@@ -74,8 +74,8 @@ export async function buildApp(opts: { logger?: boolean } = {}): Promise<Fastify
   await app.register(adminRoutes);
 
   app.setNotFoundHandler((req, reply) => {
-    if (req.url.startsWith('/api/')) return reply.code(404).send({ error: 'Not found' });
-    if (webRoot) return reply.type('text/html').sendFile('index.html');
+    if (req.url.startsWith('/api/') || req.url.startsWith('/assets/')) return reply.code(404).send({ error: 'Not found' });
+    if (webRoot) return reply.header('Cache-Control', 'no-cache').type('text/html').sendFile('index.html');
     return reply.code(404).send('Not found');
   });
 
@@ -83,7 +83,13 @@ export async function buildApp(opts: { logger?: boolean } = {}): Promise<Fastify
   const here = path.dirname(fileURLToPath(import.meta.url));
   const candidate = path.resolve(here, '../../web/dist');
   const webRoot = c.SERVE_WEB === 'true' && fs.existsSync(path.join(candidate, 'index.html')) ? candidate : null;
-  if (webRoot) await app.register(fastifyStatic, { root: webRoot, prefix: '/', wildcard: false, index: ['index.html'], maxAge: '1h', immutable: false });
+  if (webRoot) {
+    await app.register(fastifyStatic, {
+      root: webRoot, prefix: '/', wildcard: true, index: ['index.html'], cacheControl: false,
+      // Hashed build files can be cached forever; index.html must always be re-checked so a deploy shows up at once.
+      setHeaders: (res, filePath) => res.setHeader('Cache-Control', filePath.includes(`${path.sep}assets${path.sep}`) ? 'public, max-age=31536000, immutable' : 'no-cache'),
+    });
+  }
 
   return app;
 }

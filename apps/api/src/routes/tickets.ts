@@ -105,7 +105,9 @@ export async function ticketRoutes(app: FastifyInstance) {
     const [t] = await db().select().from(tickets).where(eq(tickets.id, id));
     if (!t) throw notFound('Ticket not found');
     const [msgs, time, client] = await Promise.all([
-      db().select().from(ticketMessages).where(eq(ticketMessages.ticket_id, id)).orderBy(asc(ticketMessages.created_at), asc(ticketMessages.id)),
+      db().select({ m: ticketMessages, user_name: users.name }).from(ticketMessages).leftJoin(users, eq(users.id, ticketMessages.author_user_id))
+        .where(eq(ticketMessages.ticket_id, id)).orderBy(asc(ticketMessages.created_at), asc(ticketMessages.id))
+        .then((rows) => rows.map((r) => ({ ...r.m, author_name: r.m.author_name ?? r.user_name ?? null }))),
       db().select({ e: ticketTime, user_name: users.name }).from(ticketTime).leftJoin(users, eq(users.id, ticketTime.user_id)).where(eq(ticketTime.ticket_id, id)).orderBy(asc(ticketTime.created_at)),
       t.client_id ? db().select({ id: clients.id, name: clients.name, plan: clients.plan, account_alert: clients.account_alert, phone: clients.phone }).from(clients).where(eq(clients.id, t.client_id)).then((r) => r[0] ?? null) : null,
     ]);

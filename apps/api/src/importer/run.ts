@@ -236,7 +236,7 @@ export async function runImport(o: ImportOptions) {
         return {
           number: str(r.invoice_number, 50), client_id, status: st === 'cancelled' || st === 'voided' ? 'Void' : title(st, ['Draft', 'Sent', 'Viewed', 'Partial', 'Paid', 'Overdue', 'Void'], 'Draft'),
           invoice_date: day(r.invoice_date) ?? '2000-01-01', due_date: day(r.invoice_due_date) ?? day(r.invoice_date) ?? '2000-01-01',
-          tax_rate: num(r.invoice_tax_rate), subtotal: num(r.invoice_subtotal), tax_amount: num(r.invoice_tax_amount), total: num(r.invoice_total),
+          tax_rate: num(r.invoice_tax_rate), subtotal: Number(r.invoice_subtotal ?? 0) > 0 ? num(r.invoice_subtotal) : num(Number(r.invoice_total ?? 0) - Number(r.invoice_tax_amount ?? 0)), tax_amount: num(r.invoice_tax_amount), total: num(r.invoice_total),
           amount_paid: num(r.invoice_amount_paid), scope: txt(r.invoice_scope), notes: txt(r.invoice_notes), created_at: ts(r.invoice_created_at) ?? new Date(),
         };
       });
@@ -263,7 +263,7 @@ export async function runImport(o: ImportOptions) {
         return {
           number: str(r.quote_number, 50), client_id, status: title(r.quote_status, ['Draft', 'Sent', 'Accepted', 'Declined', 'Invoiced'], 'Draft'),
           quote_date: day(r.quote_date) ?? '2000-01-01', expires_on: day(r.quote_expire_date), tax_rate: num(r.quote_tax_rate),
-          subtotal: num(r.quote_subtotal), total: num(r.quote_total), scope: txt(r.quote_scope), notes: txt(r.quote_notes),
+          subtotal: Number(r.quote_subtotal ?? 0) > 0 ? num(r.quote_subtotal) : num(r.quote_total), total: num(r.quote_total), scope: txt(r.quote_scope), notes: txt(r.quote_notes),
         };
       });
       await lineItems(tx, 'quote_items', 'quote_id', 'quotes', await read('quote_items', 'qi_id'), 'qi_quote_id', (r) => ({
@@ -408,14 +408,16 @@ export async function runImport(o: ImportOptions) {
           ticket_id: ref('tickets', r.ticket_id)!, kind: 'reply', body: String(r.ticket_details), author_name: str(r.ticket_contact_name, 200), via: 'import',
           legacy_id: -Number(r.ticket_id), created_at: ts(r.ticket_created_at) ?? new Date(),
         }));
+        const userNames = new Map((await read('users', 'user_id')).map((u) => [Number(u.user_id), String(u.user_name ?? '')]));
+        const contactNames = new Map((await read('contacts', 'contact_id')).map((c) => [Number(c.contact_id), String(c.contact_name ?? '')]));
         const replies = (await read('ticket_replies', 'reply_id')).filter((r) => ref('tickets', r.reply_ticket_id)).map((r) => ({
           ticket_id: ref('tickets', r.reply_ticket_id)!, kind: r.reply_type === 'note' || r.reply_type === 'work' ? 'note' : 'reply', body: String(r.reply_body ?? ''),
-          author_user_id: ref('users', r.reply_user_id), author_name: null as string | null, via: String(r.reply_from ?? 'staff') === 'staff' ? 'web' : String(r.reply_from).slice(0, 20),
+          author_user_id: ref('users', r.reply_user_id), author_name: (userNames.get(Number(r.reply_user_id)) || contactNames.get(Number(r.reply_contact_id)) || null) as string | null, via: String(r.reply_from ?? 'staff') === 'staff' ? 'web' : String(r.reply_from).slice(0, 20),
           legacy_id: Number(r.reply_id), created_at: ts(r.reply_created_at) ?? new Date(),
         }));
         const allMsgs = [...firsts, ...replies];
         for (let i = 0; i < allMsgs.length; i += 500) {
-          await tx.insert(ticketMessages).values(allMsgs.slice(i, i + 500)).onConflictDoUpdate({ target: ticketMessages.legacy_id, set: { body: sql.raw('excluded."body"'), kind: sql.raw('excluded."kind"') } });
+          await tx.insert(ticketMessages).values(allMsgs.slice(i, i + 500)).onConflictDoUpdate({ target: ticketMessages.legacy_id, set: { body: sql.raw('excluded."body"'), kind: sql.raw('excluded."kind"'), author_name: sql.raw('excluded."author_name"') } });
         }
         steps.push({ name: 'ticket messages', source: allMsgs.length, imported: allMsgs.length, skipped: 0, warnings: [] });
         log(`  ${'ticket messages'.padEnd(18)} ${String(allMsgs.length).padStart(6)}`);

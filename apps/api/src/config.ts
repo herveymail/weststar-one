@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /**
  * All configuration comes from environment variables (see .env.example).
@@ -25,8 +28,15 @@ const schema = z.object({
 export type Config = z.infer<typeof schema>;
 
 let cached: Config | null = null;
+/** Load the repo-root .env (if present) for anything not already set in the environment. */
+function loadDotEnv() {
+  for (const p of [path.resolve(process.cwd(), '.env'), path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../.env')]) {
+    if (fs.existsSync(p)) { try { process.loadEnvFile(p); } catch { /* ignore */ } return; }
+  }
+}
 export function config(): Config {
   if (cached) return cached;
+  if (process.env.NODE_ENV !== 'test') loadDotEnv();
   const parsed = schema.safeParse(process.env);
   if (!parsed.success) {
     const msg = parsed.error.issues.map((i) => `  ${i.path.join('.')}: ${i.message}`).join('\n');

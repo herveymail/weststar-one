@@ -142,7 +142,7 @@ export const RESOURCES: Resource[] = [
   },
   {
     id: 'client_notes', table: 'client_notes', label: 'Notes', singular: 'Note', area: 'clients',
-    description: 'Notes on a client.', search: ['title', 'body'], hidden: true,
+    description: 'Notes on a client.', search: ['title', 'body'],
     fields: [
       { key: 'client_id', label: 'Client', type: 'ref', ref: 'clients', required: true, list: true },
       { key: 'title', label: 'Title', type: 'text', required: true, list: true },
