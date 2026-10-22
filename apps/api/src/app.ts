@@ -87,7 +87,7 @@ export async function buildApp(opts: { logger?: boolean } = {}): Promise<Fastify
     await app.register(fastifyStatic, {
       root: webRoot, prefix: '/', wildcard: true, index: ['index.html'], cacheControl: false,
       // Hashed build files can be cached forever; index.html must always be re-checked so a deploy shows up at once.
-      setHeaders: (res, filePath) => res.setHeader('Cache-Control', filePath.includes(`${path.sep}assets${path.sep}`) ? 'public, max-age=31536000, immutable' : 'no-cache'),
+      setHeaders: (res, filePath) => res.header('Cache-Control', filePath.includes(`${path.sep}assets${path.sep}`) ? 'public, max-age=31536000, immutable' : 'no-cache'),
     });
   }
 

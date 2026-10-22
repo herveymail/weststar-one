@@ -1,0 +1,56 @@
+# Weststar ONE — production stack: Postgres, the app, the background worker and Caddy (automatic HTTPS).
+# 1) cp .env.example .env  and fill it in (DOMAIN, POSTGRES_PASSWORD, APP_ENCRYPTION_KEY …)
+# 2) docker compose up -d --build
+# 3) docker compose exec app node dist/scripts/seed-admin.js --email you@weststarmsp.com --name "Your Name"
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: weststar
+      POSTGRES_USER: weststar
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes: [dbdata:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U weststar"], interval: 10s, retries: 10 }
+    # Not published to the host: only the app can reach the database.
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on: { db: { condition: service_healthy } }
+    environment: &appenv
+      NODE_ENV: production
+      DATABASE_URL: postgres://weststar:${POSTGRES_PASSWORD}@db:5432/weststar
+      APP_URL: https://${DOMAIN:?set DOMAIN in .env}
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?set APP_ENCRYPTION_KEY in .env}
+      APP_ENCRYPTION_KEYS_OLD: ${APP_ENCRYPTION_KEYS_OLD:-}
+      TRUST_PROXY: "true"
+      LOG_LEVEL: info
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  worker:
+    build: .
+    restart: unless-stopped
+    depends_on: { app: { condition: service_healthy } }
+    environment: *appenv
+    command: ["node", "dist/jobs/worker.js"]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [app]
+    ports: ["80:80", "443:443"]
+    environment: { DOMAIN: "${DOMAIN}" }
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+
+volumes: { dbdata: {}, caddydata: {}, caddyconfig: {} }
