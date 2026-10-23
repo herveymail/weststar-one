@@ -1,14 +1,13 @@
-{% extends "base.html" %}
+{% extends "core/settings_frame.html" %}{% load ws %}
 {% block title %}Settings · {{ app_name }}{% endblock %}
-{% block content %}
-<div class="page-head">
-  <div class="titles"><div class="eyebrow">Admin</div><h1>Settings</h1><p class="desc">Every setting in one place. Search finds a setting by what it does.</p></div>
-  <form method="get" style="flex:0 1 320px"><label for="sq" class="sr">Search settings</label><input id="sq" name="q" class="input" value="{{ q }}" placeholder="Search settings (e.g. SLA, logo, 2FA)"></form>
-</div>
+{% block settings %}
+<div class="set-head"><div><h1>Settings</h1><p class="desc">Pick a page on the left, or start with one of these.</p></div></div>
+<div class="set-overview">
 {% for title, desc, items in groups %}
-<section class="stack" style="gap:10px">
-  <div><h2 style="font-size:16px">{{ title }}</h2><div class="small muted">{{ desc }}</div></div>
-  <div class="tiles">{% for item in items %}<a href="/settings/{{ item.0 }}/" class="tile"><span class="strong">{{ item.1 }}</span><span class="small muted">{{ item.2 }}</span></a>{% endfor %}</div>
-</section>
+  <section class="card set-ov-card">
+    <div class="set-ov-title">{{ title }}</div>
+    {% for item in items %}<a href="/settings/{{ item.0 }}/" class="set-ov-row"><span class="set-ov-name">{{ item.1 }}</span><span class="set-ov-desc">{% with st=status|get_item:item.0 %}{% if st %}<span class="pill {{ st.1 }}">{{ st.0 }}</span>{% else %}{{ item.2 }}{% endif %}{% endwith %}</span>{% icon "chevron-right" 14 %}</a>{% endfor %}
+  </section>
 {% empty %}<div class="empty">No setting matches “{{ q }}”.</div>{% endfor %}
+</div>
 {% endblock %}

@@ -1,6 +1,6 @@
-{% extends "base.html" %}{% load ws %}
-{% block content %}
-<div class="page-head"><div class="titles"><a href="/settings/" class="link-btn">{% icon "back" 16 %}Settings</a><h1>Audit log</h1><p class="desc">Who changed what. You only see entries for the areas you have access to.</p></div>
+{% extends "core/settings_frame.html" %}{% load ws %}
+{% block settings %}
+<div class="page-head"><div class="titles"><h1>Audit log</h1><p class="desc">Who changed what. You only see entries for the areas you have access to.</p></div>
 <form method="get"><label for="aq" class="sr">Search</label><input id="aq" class="input" name="q" value="{{ q }}" placeholder="Search…"></form></div>
 <section class="card" style="overflow:hidden"><div class="table-wrap"><table class="grid">
   <thead><tr><th>When</th><th>Who</th><th>What</th><th>Details</th><th>IP</th></tr></thead>

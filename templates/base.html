@@ -42,7 +42,7 @@
   <button type="button" class="fly-shade" id="fly-shade" aria-label="Close menu" hidden></button>
   {% else %}
   <nav class="side" id="main-nav" aria-label="Main">
-    <a href="/" class="brand"><span class="logo">W</span>{{ app_name }}</a>
+    <a href="/" class="brand">{% if logo_url %}<img class="brand-img" src="{{ logo_url }}" alt="{{ app_name }}">{% else %}<span class="logo">W</span>{{ app_name }}{% endif %}</a>
     {% for g in nav %}
       {% if g.group and g.items|length > 1 %}
       <div class="nav-group" data-group="{{ g.group }}">

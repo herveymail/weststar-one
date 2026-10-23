@@ -1,7 +1,7 @@
-{% extends "base.html" %}{% load ws %}
+{% extends "core/settings_frame.html" %}{% load ws %}
 {% block title %}Helpdesk queues · Settings{% endblock %}
-{% block content %}
-<div class="page-head"><div class="titles"><a href="/settings/" class="link-btn">{% icon "back" 16 %}Settings</a><h1>Helpdesk queues</h1>
+{% block settings %}
+<div class="page-head"><div class="titles"><h1>Helpdesk queues</h1>
   <p class="desc">New tickets go to the first queue whose trigger words appear in the subject or message, otherwise to the default queue. Queues with a portal name appear in the client portal as “What do you need help with?”.</p></div></div>
 <div class="stack" style="max-width:900px">
 {% for q in rows %}

@@ -1,6 +1,6 @@
-{% extends "base.html" %}{% load ws %}
-{% block content %}
-<div class="page-head"><div class="titles"><a href="/settings/" class="link-btn">{% icon "back" 16 %}Settings</a><h1>Staff users</h1><p class="desc">Admins: everything. Managers: everything except H/R and changing settings. Techs: tickets, clients, projects, tools. Viewers: read only. H/R access is a separate switch.</p></div>
+{% extends "core/settings_frame.html" %}{% load ws %}
+{% block settings %}
+<div class="page-head"><div class="titles"><h1>Staff users</h1><p class="desc">Admins: everything. Managers: everything except H/R and changing settings. Techs: tickets, clients, projects, tools. Viewers: read only. H/R access is a separate switch.</p></div>
 {% if can_manage %}<button class="btn primary" hx-get="/settings/users/new/" hx-target="#modal">{% icon "plus" 16 %}Add user</button>{% endif %}</div>
 <section class="card" style="overflow:hidden"><div class="table-wrap"><table class="grid">
   <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>H/R</th><th>2FA</th><th>Last sign-in</th><th>Status</th></tr></thead>

@@ -1,30 +1,54 @@
-{% extends "base.html" %}{% load ws %}
+{% extends "core/settings_frame.html" %}{% load ws %}
 {% block title %}{{ item.1 }} · Settings{% endblock %}
-{% block content %}
-<div class="page-head"><div class="titles"><a href="/settings/" class="link-btn">{% icon "back" 16 %}Settings</a><h1>{{ item.1 }}</h1><p class="desc">{{ item.2 }}</p></div></div>
-<section class="card pad stack" style="max-width:760px">
-  <form method="post" class="form-grid">{% csrf_token %}
-    <fieldset class="form-grid wide" style="border:0;padding:0;margin:0;grid-column:1/-1"{% if not can_manage %} disabled{% endif %}>
-    {% for f in fields %}
-    <div class="field{% if f.type == 'textarea' %} wide{% endif %}">
-      {% if f.type == "bool" %}<label class="check"><input type="checkbox" class="checkbox" name="{{ f.key }}"{% if f.value == "true" %} checked{% endif %}>{{ f.label }}</label>
+{% block settings %}
+<div class="set-head">
+  <div><div class="eyebrow">{{ group }}</div><h1>{{ item.1 }}</h1><p class="desc">{{ item.2 }}</p></div>
+  {% if can_manage %}<button class="btn primary" form="settings-form">Save changes</button>{% endif %}
+</div>
+<form method="post" id="settings-form" enctype="multipart/form-data" class="set-form">{% csrf_token %}
+  <fieldset class="set-fieldset"{% if not can_manage %} disabled{% endif %}>
+  {% for sec in sections %}
+  <section class="card set-sec">
+    {% if sec.title %}<div class="set-sec-head"><h2>{{ sec.title }}</h2>{% if sec.help %}<p>{{ sec.help }}</p>{% endif %}</div>{% endif %}
+    <div class="set-grid">
+    {% for f in sec.fields %}
+      {% if f.type == "bool" %}
+      <label class="set-switch wide"><span>{{ f.label }}{% if f.help %}<small>{{ f.help }}</small>{% endif %}</span><input type="checkbox" role="switch" name="{{ f.key }}"{% if f.value == "true" %} checked{% endif %}></label>
+      {% elif f.type == "select" and f.options|length <= 3 %}
+      <div class="field wide">{% if f.label != sec.title %}<span class="label">{{ f.label }}</span>{% endif %}
+        <div class="set-cards">{% for o in f.options %}
+          <label class="set-card{% if f.value == o %} on{% endif %}"><span class="set-card-top"><input type="radio" name="{{ f.key }}" value="{{ o }}"{% if f.value == o %} checked{% endif %}>{{ o }}</span>
+            {% with h=option_help|get_item:o %}{% if h %}<small>{{ h }}</small>{% endif %}{% endwith %}
+            {% if o == "Google Workspace (Gmail API)" and gmail_connected %}<small class="ok">● Connected: {{ gmail_address }}</small>{% endif %}</label>
+        {% endfor %}</div>
+        {% if f.help %}<span class="help">{{ f.help }}</span>{% endif %}</div>
+      {% elif f.type == "image" %}
+      <div class="field wide"><span class="label">{{ f.label }}</span>
+        <div class="set-logo">
+          <div class="set-logo-box">{% if f.value %}<img src="{{ f.value }}" alt="Current logo">{% else %}<span class="muted small">No logo yet</span>{% endif %}</div>
+          <div class="stack" style="gap:8px"><input type="file" name="{{ f.key }}" accept=".png,.jpg,.jpeg,.webp,.svg" class="input">
+            {% if f.value %}<label class="check small"><input type="checkbox" name="{{ f.key }}__remove" value="1">Remove the logo</label>{% endif %}</div>
+        </div>
+        {% if f.help %}<span class="help">{{ f.help }}</span>{% endif %}</div>
       {% else %}
-      <label for="s-{{ forloop.counter }}">{{ f.label }}{% if f.type == "secret" %} {% icon "lock" 12 %}{% endif %}</label>
-      {% if f.type == "textarea" %}<textarea id="s-{{ forloop.counter }}" class="textarea" name="{{ f.key }}" rows="4">{{ f.value }}</textarea>
-      {% elif f.type == "select" %}<select id="s-{{ forloop.counter }}" class="select" name="{{ f.key }}"><option value="">Default</option>{% for o in f.options %}<option{% if f.value == o %} selected{% endif %}>{{ o }}</option>{% endfor %}</select>
-      {% elif f.type == "secret" %}<input id="s-{{ forloop.counter }}" class="input" type="password" autocomplete="new-password" name="{{ f.key }}" placeholder="{% if f.is_set %}Saved — type to replace{% else %}Not set{% endif %}">
-      {% else %}<input id="s-{{ forloop.counter }}" class="input" {% if f.type == "int" %}type="number"{% endif %} name="{{ f.key }}" value="{{ f.value }}">{% endif %}
+      <div class="field{% if f.type == 'textarea' %} wide{% endif %}">
+        <label for="s-{{ f.key|slugify }}">{{ f.label }}{% if f.type == "secret" %} {% icon "lock" 12 %}{% endif %}</label>
+        {% if f.type == "textarea" %}<textarea id="s-{{ f.key|slugify }}" class="textarea" name="{{ f.key }}" rows="4">{{ f.value }}</textarea>
+        {% elif f.type == "select" %}<select id="s-{{ f.key|slugify }}" class="select" name="{{ f.key }}"><option value="">Default</option>{% for o in f.options %}<option{% if f.value == o %} selected{% endif %}>{{ o }}</option>{% endfor %}</select>
+        {% elif f.type == "secret" %}<input id="s-{{ f.key|slugify }}" class="input" type="password" autocomplete="new-password" name="{{ f.key }}" placeholder="{% if f.is_set %}Saved — type to replace{% else %}Not set{% endif %}">
+        {% else %}<input id="s-{{ f.key|slugify }}" class="input" {% if f.type == "int" %}type="number"{% endif %} name="{{ f.key }}" value="{{ f.value }}">{% endif %}
+        {% if f.help %}<span class="help">{{ f.help }}</span>{% endif %}
+      </div>
       {% endif %}
-      {% if f.help %}<span class="help">{{ f.help }}</span>{% endif %}
-    </div>
     {% endfor %}
-    </fieldset>
-    {% if can_manage %}<div><button class="btn primary">Save</button></div>{% else %}<p class="small muted">You can view these settings. Only admins can change them.</p>{% endif %}
-  </form>
-  <p class="small muted" style="margin:0">Fields with a lock are stored encrypted and are never shown again after saving.</p>
-</section>
+    </div>
+  </section>
+  {% endfor %}
+  </fieldset>
+  {% if can_manage %}<div class="set-foot"><button class="btn primary">Save changes</button><span class="small muted">Fields with a {% icon "lock" 12 %} are stored encrypted and never shown again.</span></div>{% else %}<p class="small muted">You can view these settings. Only admins can change them.</p>{% endif %}
+</form>
 {% if item.0 == "email" and can_manage %}
-<section class="card pad stack" style="max-width:760px">
+<section class="card pad stack set-extra">
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 style="flex:1">Google mailbox</h2>
     {% if gmail_connected %}<span class="pill good">Connected: {{ gmail_address }}</span>{% else %}<span class="pill">Not connected</span>{% endif %}</div>
   <p style="margin:0">Send (and read) support@ email straight through Google Workspace — like the old Office 365 connection. Nothing to type: sign in once as the support mailbox. Works even when the server's email ports are blocked, and email to ticket no longer needs an app password.</p>
@@ -33,7 +57,7 @@
     {% if gmail_connected %}<form method="post" action="/settings/email/google/">{% csrf_token %}<input type="hidden" name="action" value="disconnect"><button class="btn danger">Disconnect</button></form>{% endif %}</div>
   <p class="small muted" style="margin:0">One-time Google Cloud setup (same project and OAuth client as staff sign-in): <b>1.</b> APIs &amp; Services › Library › <b>Gmail API</b> › Enable. <b>2.</b> Credentials › your OAuth client › add this Authorized redirect URI: <code style="user-select:all">{{ gmail_redirect }}</code>. Then click Connect and sign in as support@weststarmsp.com.</p>
 </section>
-<section class="card pad stack" style="max-width:760px">
+<section class="card pad stack set-extra">
   <h2>Send a test email</h2>
   <form method="post" action="/settings/email/test/" class="row" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">{% csrf_token %}<input type="hidden" name="what" value="send">
     <div class="field" style="flex:1 1 260px"><label for="tt">Send to</label><input id="tt" name="to" type="email" class="input" value="{{ request.user.email }}"></div>
@@ -47,7 +71,7 @@
 </section>
 {% endif %}
 {% if item.0 == "payments" %}
-<section class="card pad stack" style="max-width:760px">
+<section class="card pad stack set-extra">
   <h2>Stripe webhook</h2>
   <p style="margin:0">In Stripe › Developers › Webhooks, add an endpoint with this URL, then paste its signing secret above:</p>
   <p style="margin:0"><code style="user-select:all">{{ webhook_url }}</code></p>
@@ -55,7 +79,7 @@
 </section>
 {% endif %}
 {% if item.0 == "signin" %}
-<section class="card pad stack" style="max-width:760px">
+<section class="card pad stack set-extra">
   <h2>Google Workspace sign-in</h2>
   <p style="margin:0">In Google Cloud Console › APIs &amp; Services › Credentials, open your OAuth client (the same one the old Weststar One used) and add this <b>Authorized redirect URI</b>:</p>
   <p style="margin:0"><code style="user-select:all">{{ google_redirect }}</code></p>
@@ -63,7 +87,7 @@
 </section>
 {% endif %}
 {% if item.0 == "email_in" %}
-<section class="card pad stack" style="max-width:760px">
+<section class="card pad stack set-extra">
   {% if gmail_connected %}<div class="banner info" style="margin:0">Reading <b>{{ gmail_address }}</b> through the connected Google mailbox — no app password needed.</div>{% endif %}
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 style="flex:1">Mailbox</h2>
     {% if can_manage %}<form method="post" action="/settings/email/test/">{% csrf_token %}<input type="hidden" name="what" value="inbox"><button class="btn">Test connection</button></form>{% endif %}</div>
@@ -71,7 +95,7 @@
     Replies find their ticket by the ticket number in the subject or by the email thread. Auto-replies, out-of-office and bounces are skipped.</p>
   <p class="small muted" style="margin:0"><b>Turn off email fetching in the old Weststar One first</b>, or both apps will make a ticket for every email.</p>
 </section>
-<section class="card" style="max-width:760px;overflow:hidden">
+<section class="card set-extra" style="overflow:hidden">
   <div class="pad" style="padding-bottom:4px"><h2>Recent email</h2></div>
   <div class="table-wrap"><table class="grid"><thead><tr><th>Received</th><th>From</th><th>Subject</th><th>What happened</th></tr></thead><tbody>
   {% for e in inbound %}<tr><td class="small">{{ e.received_at|date:"M j g:i A" }}</td><td class="small">{{ e.from_name|default:e.from_address }}</td><td>{{ e.subject|truncatechars:60 }}</td>

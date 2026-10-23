@@ -1,37 +1,47 @@
 """Settings pages — same groups as the old Weststar One Settings home.
 Each item: (id, title, description, fields or a page name). Field: (key, label, type, options/help)."""
 
-T, TA, I, B, S, SEL = "text", "textarea", "int", "bool", "secret", "select"
+T, TA, I, B, S, SEL, IMG = "text", "textarea", "int", "bool", "secret", "select", "image"
+
+
+def H(title, help_text=""):
+    """A section heading inside a settings page."""
+    return ("#", title, "section", help_text)
 
 SETTINGS = [
     ("general", "General", "Your company, numbers, hours and how the app looks", [
-        ("company", "Company profile", "Name, address, phone, emails, hours", [("company.name", "Company name", T), ("company.tagline", "Tagline", T), ("company.phone", "Phone", T), ("company.after_hours_phone", "After-hours phone", T), ("company.email", "Email", T),
-            ("company.billing_email", "Billing email", T), ("company.noc_email", "NOC email", T), ("company.dispatch_email", "Dispatch email", T), ("company.address", "Address", TA), ("company.website", "Website", T),
-            ("company.hours", "Operating hours (shown to clients)", T), ("company.service_area", "Service area", T), ("company.license_number", "License number", T), ("app.timezone", "Time zone", T, "e.g. America/Denver"), ("email.signature", "Email signature", TA)]),
+        ("company", "Company profile", "Name, address, phone, emails, hours", [H("Company"), ("company.name", "Company name", T), ("company.tagline", "Tagline", T), ("company.phone", "Phone", T), ("company.after_hours_phone", "After-hours phone", T), ("company.email", "Email", T),
+            ("company.billing_email", "Billing email", T), ("company.noc_email", "NOC email", T), ("company.dispatch_email", "Dispatch email", T), H("Address & web"), ("company.address", "Address", TA), ("company.website", "Website", T),
+            H("More"), ("company.hours", "Operating hours (shown to clients)", T), ("company.service_area", "Service area", T), ("company.license_number", "License number", T), ("app.timezone", "Time zone", T, "e.g. America/Denver"), ("email.signature", "Email signature", TA)]),
         ("numbers", "Numbers & rates", "Ticket prefix, tax, hourly & mileage rates", [("numbers.ticket_prefix", "Ticket prefix (default T-)", T), ("numbers.ticket_padding", "Ticket number digits (0 = no padding)", I),
             ("numbers.invoice_prefix", "Invoice prefix (default INV-)", T), ("numbers.invoice_padding", "Invoice number digits", I),
             ("numbers.quote_prefix", "Quote prefix (default QT-)", T), ("numbers.quote_padding", "Quote number digits", I),
             ("numbers.contract_prefix", "Contract prefix (default CT-)", T), ("numbers.project_prefix", "Project prefix (default PRJ-)", T), ("billing.default_tax_rate", "Default tax rate %", T), ("billing.hourly_rate", "Default hourly rate", T), ("billing.mileage_rate", "Mileage rate per mile", T), ("billing.net_terms", "Default net terms (days)", I)]),
         ("hours", "Hours & switches", "Business hours and helpdesk switches", [("app.business_hours", "Business hours", T), ("tickets.auto_assign", "Auto-assign new tickets", B)]),
         ("appearance", "Appearance", "Default look for new users (each person can change theirs in Profile)", [("app.default_look", "Default look", SEL, ["indigo", "graphite"])]),
-        ("branding", "Branding", "App name and dashboard welcome", [("brand.app_name", "App name", T), ("brand.welcome", "Dashboard welcome", T)]),
+        ("branding", "Branding & logo", "Logo, app name and the sign-in page", [H("Logo"), ("brand.logo", "Logo", IMG, "PNG, JPG, WebP or SVG, up to 2 MB. A wide logo on a transparent background looks best. Shown on sign-in, in the menu and in the client portal."),
+            H("Names"), ("brand.app_name", "App name", T), ("brand.welcome", "Dashboard welcome", T),
+            H("Sign-in page"), ("brand.login_heading", "Headline", T, "e.g. One vendor. One bill. One phone number."), ("brand.login_text", "Text under the headline", TA)]),
         ("company_extras", "Company extras", "Social links, Google review link", [("company.review_link", "Google review link", T), ("company.social", "Social links", TA)]),
     ]),
     ("helpdesk", "Helpdesk", "How tickets come in, get routed and answered", [
         ("tickets", "Ticket settings", "Categories, work types, default priority, auto-close", [("tickets.categories", "Categories (one per line)", TA), ("tickets.work_types", "Work types (one per line)", TA), ("tickets.email_priority", "Priority for tickets that come in by email", SEL, ["Low", "Medium", "High", "Critical"]), ("tickets.auto_close_days", "Auto-close resolved tickets after (days)", I), ("tickets.auto_add_contacts", "Add unknown senders from a client's domain as contacts", B)]),
         ("sla", "SLA targets", "Response and resolve times by priority", [("tickets.sla_critical_min", "Critical: respond within (minutes)", I), ("tickets.sla_high_min", "High: respond within (minutes)", I), ("tickets.sla_medium_min", "Medium: respond within (minutes)", I), ("tickets.sla_low_min", "Low: respond within (minutes)", I),
             ("tickets.resolve_critical_hours", "Critical: resolve within (hours)", I), ("tickets.resolve_high_hours", "High: resolve within (hours)", I), ("tickets.resolve_medium_hours", "Medium: resolve within (hours)", I), ("tickets.resolve_low_hours", "Low: resolve within (hours)", I)]),
-        ("email_in", "Email to ticket", "Turn email to support@ into tickets (Google Workspace mailbox)", [("email.fetch_enabled", "Check the mailbox for new email every minute", B), ("email.imap_user", "Mailbox (e.g. support@weststarmsp.com)", T), ("email.imap_password", "App password for that mailbox", S, "Not needed when the Google mailbox is connected in Settings › Email sending"), ("email.imap_host", "IMAP server", T), ("email.imap_port", "IMAP port", I), ("email.imap_folder", "Folder", T), ("tickets.alert_senders", "Alert senders: always make tickets, even automatic mail (one address or domain per line)", TA)]),
+        ("email_in", "Email to ticket", "Turn email to support@ into tickets (Google Workspace mailbox)", [H("Mailbox"), ("email.fetch_enabled", "Check the mailbox for new email every minute", B), ("email.imap_user", "Mailbox (e.g. support@weststarmsp.com)", T), ("email.imap_password", "App password for that mailbox", S, "Not needed when the Google mailbox is connected in Settings › Email sending"), ("email.imap_host", "IMAP server", T), ("email.imap_port", "IMAP port", I), ("email.imap_folder", "Folder", T), H("Alert senders", "Monitoring tools (Datto, backups…) send automatic mail; list them here so it still becomes tickets"), ("tickets.alert_senders", "Alert senders (one address or domain per line)", TA)]),
         ("ticket_emails", "Ticket emails", "What clients get by email and the subject lines", [("tickets.email_ack", "Email the client when a ticket is created (\"we got your request\")", B), ("tickets.email_on_close", "Email the client when a ticket is resolved or closed", B),
             ("tickets.email_new_subject", "Subject: new ticket", T, "{number} and {subject} are filled in. Keep {number} so replies find the ticket."), ("tickets.email_reply_subject", "Subject: our replies", T), ("tickets.email_closed_subject", "Subject: resolved", T), ("tickets.closed_footer", "Message added to the resolved email", TA)]),
         ("afterhours", "Office hours & after hours", "Help desk hours and the after-hours note in replies", [("helpdesk.open", "Opens (24-hour, e.g. 07:00)", T), ("helpdesk.close", "Closes (e.g. 16:30)", T), ("helpdesk.days", "Open days (e.g. Mon,Tue,Wed,Thu,Fri)", T), ("tickets.afterhours_enabled", "Add the after-hours note to the \"we got your request\" email", B), ("tickets.afterhours_message", "After-hours note", TA)]),
         ("queues", "Helpdesk queues", "Level 1, Level 2, Billing, Dev, Bug Reports", "queues"),
         ("saved_replies", "Saved replies", "Reply templates", [("tickets.saved_replies", "Saved replies (separate with a line of ---)", TA)]),
-        ("portal", "Customer portal", "What clients can see and do in the portal", [("portal.enabled", "Portal is on", B), ("portal.welcome", "Welcome message on the portal home page", TA), ("portal.magic_links", "Allow \"Email me a sign-in link\"", B), ("portal.reopen_hours", "Clients can reopen a closed ticket for (hours)", I),
-            ("portal.show_billing", "Show invoices & quotes", B), ("portal.show_contracts", "Show contracts", B), ("portal.show_policies", "Show policies", B), ("portal.show_assets", "Show assets", B), ("portal.show_kb", "Show help articles", B), ("portal.show_messages", "Show secure messages", B)]),
+        ("portal", "Customer portal", "What clients can see and do in the portal", [H("Access"), ("portal.enabled", "Portal is on", B), ("portal.welcome", "Welcome message on the portal home page", TA), ("portal.magic_links", "Allow \"Email me a sign-in link\"", B), ("portal.reopen_hours", "Clients can reopen a closed ticket for (hours)", I),
+            H("What clients can see"), ("portal.show_billing", "Show invoices & quotes", B), ("portal.show_contracts", "Show contracts", B), ("portal.show_policies", "Show policies", B), ("portal.show_assets", "Show assets", B), ("portal.show_kb", "Show help articles", B), ("portal.show_messages", "Show secure messages", B)]),
     ]),
     ("comms", "Email & messaging", "Email, chat and phone connections", [
-        ("email", "Email sending", "How the app sends email — Gmail SMTP, or SMTP2GO when the server's email ports are blocked", [("email.provider", "Provider", SEL, ["Google Workspace (Gmail API)", "Gmail / SMTP", "SMTP2GO (HTTPS)"], "Google Workspace (Gmail API) = connect support@ below; works even where email ports are blocked"), ("email.smtp2go_api_key", "SMTP2GO API key (only for SMTP2GO)", S), ("email.smtp_host", "SMTP server", T), ("email.smtp_port", "SMTP port", I), ("email.smtp_user", "SMTP username (the mailbox, e.g. support@weststarmsp.com)", T), ("email.smtp_password", "SMTP password (Google: an app password)", S), ("email.from_address", "Send from address", T), ("email.from_name", "Send from name (e.g. Weststar Helpdesk)", T), ("email.support_address", "Support mailbox — replies go here and staff alerts are sent here", T)]),
+        ("email", "Email sending", "How Weststar One sends email to clients and staff", [H("Provider"), ("email.provider", "Provider", SEL, ["Google Workspace (Gmail API)", "Gmail / SMTP", "SMTP2GO (HTTPS)"]),
+            H("Addresses"), ("email.from_address", "Send from", T), ("email.from_name", "From name (e.g. Weststar Helpdesk)", T), ("email.support_address", "Replies go to (also gets staff alerts)", T),
+            H("Gmail / SMTP", "Only used when the provider is Gmail / SMTP"), ("email.smtp_host", "SMTP server", T), ("email.smtp_port", "SMTP port", I), ("email.smtp_user", "SMTP username (the mailbox, e.g. support@weststarmsp.com)", T), ("email.smtp_password", "SMTP password (Google: an app password)", S),
+            H("SMTP2GO", "Only used when the provider is SMTP2GO"), ("email.smtp2go_api_key", "SMTP2GO API key", S)]),
         ("google_chat", "Google Chat", "Ticket alerts in Google Chat", [("chat.webhook_url", "Webhook URL", S), ("chat.notify_new_ticket", "Alert on new tickets from email", B), ("chat.notify_client_replies", "Alert when a client replies", B)]),
         ("phone", "Phone system", "Yeastar PBX, call sync and recordings", [("phone.yeastar_host", "Yeastar address", T), ("phone.yeastar_client_id", "Client ID", T), ("phone.yeastar_secret", "Client secret", S)]),
     ]),
@@ -47,8 +57,8 @@ SETTINGS = [
         ("contract_defaults", "Contract defaults", "Standard terms and legal clauses", [("billing.contract_terms", "Default terms", TA), ("billing.contract_months", "Default length (months)", I), ("billing.contract_auto_renew", "Renew automatically", B),
             ("billing.contract_notice_days", "Cancellation notice (days)", I), ("billing.contract_early_term_pct", "Early termination fee %", I), ("billing.contract_state", "Governing state", T), ("billing.contract_county", "Court county", T),
             ("billing.contract_indemnification", "Indemnification", TA), ("billing.contract_insurance", "Insurance", TA), ("billing.contract_nonsolicitation", "Non-solicitation", TA), ("billing.contract_email_subject", "Contract email subject", T), ("billing.policy_review_months", "Review policies every (months)", I)]),
-        ("payments", "Payments & AutoPay", "Stripe card / ACH payments and AutoPay", [("stripe.publishable_key", "Stripe publishable key", T), ("stripe.secret_key", "Stripe secret key", S), ("stripe.webhook_secret", "Stripe webhook signing secret (whsec_…)", S),
-            ("autopay.enabled", "AutoPay is on", B), ("autopay.timing", "Charge AutoPay invoices", SEL, ["immediate", "due_date"], "immediate = as soon as the invoice is sent; due_date = on the due date"),
+        ("payments", "Payments & AutoPay", "Stripe card / ACH payments and AutoPay", [H("Stripe"), ("stripe.publishable_key", "Stripe publishable key", T), ("stripe.secret_key", "Stripe secret key", S), ("stripe.webhook_secret", "Stripe webhook signing secret (whsec_…)", S),
+            H("AutoPay"), ("autopay.enabled", "AutoPay is on", B), ("autopay.timing", "Charge AutoPay invoices", SEL, ["immediate", "due_date"], "immediate = as soon as the invoice is sent; due_date = on the due date"),
             ("autopay.retry_days", "If a charge fails, try again after (days)", I), ("autopay.max_attempts", "Stop after this many tries", I)]),
     ]),
     ("people", "People & access", "Who can sign in and what they can do", [
@@ -102,10 +112,13 @@ def field_specs(item):
     out = []
     for f in item[3]:
         key, label, typ = f[0], f[1], f[2]
+        if typ == "section":
+            out.append({"key": "", "label": label, "type": "section", "options": None, "help": f[3] if len(f) > 3 else ""})
+            continue
         options = f[3] if len(f) > 3 and isinstance(f[3], list) else None
         help_text = f[4] if len(f) > 4 else (f[3] if len(f) > 3 and isinstance(f[3], str) else "")
         out.append({"key": key, "label": label, "type": typ, "options": options, "help": help_text})
     return out
 
 
-ALL_FIELDS = {f["key"]: f for _g, _t, item in all_pages() if isinstance(item[3], list) for f in field_specs(item)}
+ALL_FIELDS = {f["key"]: f for _g, _t, item in all_pages() if isinstance(item[3], list) for f in field_specs(item) if f["type"] != "section"}

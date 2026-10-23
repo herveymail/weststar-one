@@ -1,4 +1,3 @@
-from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
@@ -6,7 +5,7 @@ from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Q
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
@@ -225,30 +224,11 @@ def module_reveal(request, slug, pk, field):
 
 @login_required
 def dashboard(request):
-    from apps.billing.models import Invoice
-    from apps.helpdesk.models import OPEN_STATUSES, Ticket
-    from apps.tools.models import BackupJob, Domain
-
-    u = request.user
-    ctx = {}
-    soon = timezone.now() + timedelta(hours=1)
-    if can(u, "tickets"):
-        open_q = Ticket.objects.filter(status__in=OPEN_STATUSES)
-        risk = open_q.filter(status__in=["New", "Open", "Scheduled"], first_response_at__isnull=True, response_due_at__lt=soon)
-        ctx["tickets"] = {"open": open_q.count(), "mine": open_q.filter(assigned_to=u).count(), "unassigned": open_q.filter(assigned_to__isnull=True).count(), "risk": risk.count()}
-        ctx["attention"] = open_q.filter(Q(priority="Critical") | Q(response_due_at__lt=soon, first_response_at__isnull=True)).order_by("response_due_at")[:8]
-    if can(u, "billing"):
-        unpaid = Invoice.objects.filter(archived_at__isnull=True, status__in=["Sent", "Viewed", "Partial", "Overdue"])
-        agg = unpaid.aggregate(total=Sum("total"), paid=Sum("amount_paid"))
-        ctx["billing"] = {"unpaid": unpaid.count(), "amount": (agg["total"] or 0) - (agg["paid"] or 0), "overdue": unpaid.filter(due_date__lt=timezone.localdate()).count()}
-    if can(u, "tools"):
-        today = timezone.localdate()
-        ctx["tools"] = {
-            "backup_failures": BackupJob.objects.filter(archived_at__isnull=True, last_result="Failed").count(),
-            "domains_expiring": Domain.objects.filter(archived_at__isnull=True, expires_on__gte=today, expires_on__lt=today + timedelta(days=30)).count(),
-        }
+    from .dashboard import data
     hour = timezone.localtime().hour
-    ctx["greeting"] = "Good morning" if hour < 12 else "Good afternoon" if hour < 17 else "Good evening"
+    ctx = {**data(request.user), "greeting": "Good morning" if hour < 12 else "Good afternoon" if hour < 17 else "Good evening"}
+    if request.headers.get("HX-Request") and request.GET.get("part") == "live":
+        return render(request, "core/_dashboard_live.html", ctx)
     return render(request, "core/dashboard.html", ctx)
 
 

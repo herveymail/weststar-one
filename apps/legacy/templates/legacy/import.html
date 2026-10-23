@@ -1,7 +1,7 @@
-{% extends "base.html" %}{% load ws %}
+{% extends "core/settings_frame.html" %}{% load ws %}
 {% block title %}Import · {{ app_name }}{% endblock %}
-{% block content %}
-<div class="page-head"><div class="titles"><a href="/settings/" class="link-btn">{% icon "back" 16 %}Settings</a><h1>Import from old Weststar One</h1>
+{% block settings %}
+<div class="page-head"><div class="titles"><h1>Import from old Weststar One</h1>
   <p class="desc">Bring over tickets, clients, billing, H/R and everything else. Safe to repeat: it updates instead of duplicating, and never overwrites what you've changed here.</p></div></div>
 <div class="stack" style="max-width:900px">
   {% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}

@@ -1,0 +1,53 @@
+{% load ws %}
+<div class="kpis">
+  {% if t %}
+  <a href="/tickets/" class="card kpi"><span class="kpi-l">Open tickets</span><b class="kpi-v">{{ t.open }}</b><small class="{% if t.late %}bad{% else %}muted{% endif %}">{% if t.late %}{{ t.late }} past SLA{% else %}All within SLA{% endif %}</small></a>
+  <a href="/tickets/?view=unassigned" class="card kpi"><span class="kpi-l">Unassigned</span><b class="kpi-v">{{ t.unassigned }}</b><small class="muted">{% if t.oldest %}oldest {{ t.oldest }}{% else %}nothing waiting{% endif %}</small></a>
+  <a href="/tickets/?view=closed" class="card kpi"><span class="kpi-l">Closed this week</span><b class="kpi-v">{{ t.closed_week }}</b><small class="{% if t.closed_delta > 0 %}good{% elif t.closed_delta < 0 %}bad{% else %}muted{% endif %}">{% if t.closed_delta > 0 %}▲ {{ t.closed_delta }}{% elif t.closed_delta < 0 %}▼ {{ t.closed_delta|stringformat:"d"|slice:"1:" }}{% else %}same{% endif %} vs last week</small></a>
+  {% endif %}
+  {% if b %}
+  <a href="/m/invoices/" class="card kpi"><span class="kpi-l">Unpaid invoices</span><b class="kpi-v">{{ b.unpaid|dollars }}</b><small class="{% if b.overdue %}bad{% else %}muted{% endif %}">{% if b.overdue %}{{ b.overdue|dollars }} overdue{% else %}{{ b.count }} open, none overdue{% endif %}</small></a>
+  {% endif %}
+  {% if t %}
+  <div class="card kpi"><span class="kpi-l">Hours logged (week)</span><b class="kpi-v">{{ t.hours }}</b><small class="muted">{{ t.billable }} billable</small></div>
+  {% endif %}
+</div>
+<div class="dash-cols">
+  {% if t %}
+  <section class="card dash-main">
+    <div class="dash-card-head"><h2>Needs attention</h2><span class="muted small">most urgent first</span><a href="/tickets/">All tickets</a></div>
+    {% for a in attention %}
+    <a class="attn" href="/tickets/{{ a.t.pk }}/">
+      <span class="pill {{ a.t.priority|prio_class }} attn-p">{{ a.t.priority }}</span>
+      <span class="attn-main"><b>{{ a.t.number }} · {{ a.t.subject }}</b><small>{{ a.t.client.name|default:a.t.contact_name|default:"No client" }}{% if a.t.assigned_to %} · {{ a.t.assigned_to.name }}{% endif %}</small></span>
+      <span class="attn-why">{% for txt, tone in a.reasons %}<span class="pill {{ tone }}">{{ txt }}</span>{% endfor %}</span>
+    </a>
+    {% empty %}<div class="empty" style="margin:16px">Nothing needs attention right now.</div>{% endfor %}
+    {% if attention_more %}<a class="attn-more" href="/tickets/">+ {{ attention_more }} more</a>{% endif %}
+  </section>
+  {% endif %}
+  <div class="dash-side">
+    {% if chart %}
+    <section class="card">
+      <div class="dash-card-head"><h2>Tickets, last 14 days</h2><span class="muted small">{{ chart_total }} opened</span></div>
+      <div class="bars" role="img" aria-label="Tickets opened per day for the last 14 days">
+        {% for c in chart %}<span class="bar{% if c.today %} today{% elif c.weekend %} wknd{% endif %}" style="height:{{ c.pct }}%" title="{{ c.d|date:'D M j' }}: {{ c.n }}"><span class="bar-n">{{ c.n }}</span></span>{% endfor %}
+      </div>
+      <div class="bars-axis"><span>{{ chart.0.d|date:"M j" }}</span><span>Today: {{ chart.13.n }} new</span></div>
+    </section>
+    {% endif %}
+    {% if events is not None %}
+    <section class="card">
+      <div class="dash-card-head"><h2>Today</h2><a href="/m/calendar/">Calendar</a></div>
+      {% for e in events %}<div class="today-row"><b>{{ e.starts_at|time:"g:i" }}</b><span>{{ e.title }}{% if e.client %} · {{ e.client.name }}{% endif %}</span></div>
+      {% empty %}<p class="muted small" style="margin:0 16px 16px">Nothing on the calendar today.</p>{% endfor %}
+    </section>
+    {% endif %}
+    {% if payments %}
+    <section class="card">
+      <div class="dash-card-head"><h2>Recent payments</h2><span class="muted small">{{ b.collected_month|dollars }} this month</span></div>
+      {% for p in payments %}<div class="today-row"><b>{{ p.amount|dollars }}</b><span>{{ p.client.name }} · {{ p.invoice.number }}{% if p.source == "autopay" %} · AutoPay{% endif %}</span><small class="muted">{{ p.paid_on|date:"M j" }}</small></div>{% endfor %}
+    </section>
+    {% endif %}
+  </div>
+</div>

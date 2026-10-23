@@ -16,6 +16,18 @@ from .permissions import AREAS, can
 from .settings_catalog import DEFAULTS, SETTINGS, field_specs, find
 
 
+# Short descriptions under radio-card choices
+OPTION_HELP = {
+    "Google Workspace (Gmail API)": "Sign in once as support@. No passwords; works on any server.",
+    "Gmail / SMTP": "smtp.gmail.com with an app password.",
+    "SMTP2GO (HTTPS)": "Relay service with an API key.",
+    "immediate": "Charge as soon as the invoice is sent.",
+    "due_date": "Charge on the invoice's due date.",
+    "everyone": "Anyone can still use a password.",
+    "admins": "Only admins keep a password, as a backup.",
+}
+
+
 @login_required
 def settings_home(request):
     q = request.GET.get("q", "").strip().lower()
@@ -32,7 +44,24 @@ def settings_home(request):
             visible.append(item)
         if visible:
             groups.append((title, desc, visible))
-    return render(request, "core/settings_home.html", {"groups": groups, "q": q})
+    return render(request, "core/settings_home.html", {"groups": groups, "q": q, "status": _status() if admin else {}})
+
+
+def _status() -> dict:
+    """One-word health per settings page, shown on the Settings home list. (text, tone)"""
+    from apps.accounts import google
+    from apps.billing import stripe_api
+
+    from . import mail
+    st = {}
+    st["email"] = ("Set up", "good") if mail.configured() else ("Not set up", "bad")
+    st["email_in"] = ("On", "good") if Setting.get("email.fetch_enabled", "") == "true" else ("Off", "")
+    st["payments"] = (("Live" if stripe_api.live() else "Test mode"), "good") if stripe_api.configured() else ("Not connected", "")
+    st["signin"] = ("Google on", "good") if google.enabled() else ("Passwords only", "")
+    st["portal"] = ("On", "good") if Setting.get("portal.enabled", "true") != "false" else ("Off", "")
+    st["google_chat"] = ("On", "good") if Setting.get("chat.webhook_url", "") else ("Off", "")
+    st["branding"] = ("Logo set", "good") if Setting.get("brand.logo", "") else ("No logo yet", "")
+    return st
 
 
 @login_required
@@ -71,6 +100,20 @@ def settings_page(request, page):
             raise PermissionDenied
         errors, changed = [], []
         for f in fields:
+            if f["type"] == "section":
+                continue
+            if f["type"] == "image":
+                from .branding import remove_logo, save_logo
+                if request.POST.get(f["key"] + "__remove"):
+                    remove_logo()
+                    changed.append(f["key"])
+                elif request.FILES.get(f["key"]):
+                    problem = save_logo(request.FILES[f["key"]])
+                    if problem:
+                        errors.append(problem)
+                    else:
+                        changed.append(f["key"])
+                continue
             raw = request.POST.get(f["key"], "")
             if f["type"] == "bool":
                 raw = "true" if request.POST.get(f["key"]) == "on" else "false"
@@ -95,17 +138,35 @@ def settings_page(request, page):
             messages.success(request, "Settings saved.")
             return redirect(request.path)
     values = []
-    stored = {s.key: s for s in Setting.objects.filter(key__in=[f["key"] for f in fields])}
+    stored = {s.key: s for s in Setting.objects.filter(key__in=[f["key"] for f in fields if f["key"]])}
     for f in fields:
         row = stored.get(f["key"])
         f = dict(f)
+        if f["type"] == "section":
+            values.append(f)
+            continue
+        if f["type"] == "image":
+            from .branding import logo_url
+            f["value"] = logo_url() if f["key"] == "brand.logo" else ""
+            values.append(f)
+            continue
         if f["type"] == "secret":
             f["is_set"] = bool(row and row.value)
             f["value"] = ""
         else:
             f["value"] = row.value if row else DEFAULTS.get(f["key"], "")
         values.append(f)
-    ctx = {"group": group, "item": item, "fields": values, "can_manage": can(request.user, "admin", "manage")}
+    sections, cur = [], {"title": "", "help": "", "fields": []}
+    for f in values:
+        if f["type"] == "section":
+            if cur["fields"] or cur["title"]:
+                sections.append(cur)
+            cur = {"title": f["label"], "help": f["help"], "fields": []}
+        else:
+            cur["fields"].append(f)
+    sections.append(cur)
+    ctx = {"group": group, "item": item, "fields": values, "sections": [x for x in sections if x["fields"]], "can_manage": can(request.user, "admin", "manage"),
+           "option_help": OPTION_HELP}
     if item[0] in ("email", "email_in"):
         from . import gmail
         ctx.update(gmail_connected=gmail.connected(), gmail_address=gmail.address(), gmail_redirect=gmail.redirect_uri(),

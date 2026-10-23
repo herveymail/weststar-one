@@ -9,12 +9,14 @@ from apps.legacy import views as lv
 from apps.portal import staff_views as psv
 from apps.billing import views as bv
 
+from . import branding
 from . import settings_views as sv
 from . import views
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
     path("health/", views.health),
+    path("brand/logo/", branding.logo_view, name="brand_logo"),
     path("login/", acc.login_view, name="login"),
     path("login/mfa/", acc.mfa_view, name="mfa"),
     path("login/google/", acc.google_start, name="google_start"),

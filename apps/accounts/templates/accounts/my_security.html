@@ -1,6 +1,6 @@
-{% extends "base.html" %}{% load ws %}
-{% block content %}
-<div class="page-head"><div class="titles"><a href="/settings/" class="link-btn">{% icon "back" 16 %}Settings</a><h1>My sign-in &amp; 2FA</h1></div></div>
+{% extends "core/settings_frame.html" %}{% load ws %}
+{% block settings %}
+<div class="page-head"><div class="titles"><h1>My sign-in &amp; 2FA</h1></div></div>
 <div class="stack" style="max-width:760px">
   <section class="card pad stack">
     <h2>Two-factor sign-in {% if user.mfa_enabled %}<span class="pill good">On</span>{% else %}<span class="pill warn">Off</span>{% endif %}</h2>

@@ -213,3 +213,28 @@
   // Server returns 422 for forms with errors: still swap them in so the errors show.
   document.body.addEventListener('htmx:beforeSwap', (e) => { if (e.detail.xhr.status === 422) { e.detail.shouldSwap = true; e.detail.isError = false; } });
 })();
+
+// Settings: filter the left menu; highlight the chosen radio card.
+(() => {
+  const box = document.querySelector('[data-set-filter]');
+  if (box) {
+    box.addEventListener('input', () => {
+      const q = box.value.trim().toLowerCase();
+      let any = false;
+      document.querySelectorAll('[data-set-group]').forEach((g) => {
+        let shown = 0;
+        g.querySelectorAll('.set-link').forEach((a) => { const ok = !q || a.dataset.words.includes(q); a.hidden = !ok; if (ok) shown++; });
+        g.hidden = shown === 0; if (shown) any = true;
+        g.classList.toggle('searching', !!q);
+      });
+      const none = document.querySelector('.set-none'); if (none) none.hidden = any;
+    });
+    box.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const a = document.querySelector('.set-link:not([hidden])'); if (a) { e.preventDefault(); location.href = a.href; } } });
+  }
+  document.querySelectorAll('[data-set-group] .set-group-title').forEach((b) => b.addEventListener('click', () => {
+    const g = b.closest('[data-set-group]'); const closed = g.classList.toggle('closed'); b.setAttribute('aria-expanded', String(!closed));
+  }));
+  document.querySelectorAll('.set-cards').forEach((c) => c.addEventListener('change', () => {
+    c.querySelectorAll('.set-card').forEach((l) => l.classList.toggle('on', l.querySelector('input').checked));
+  }));
+})();

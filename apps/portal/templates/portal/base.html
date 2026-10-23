@@ -15,7 +15,7 @@
 {% block body %}
 <header class="top">
   <nav aria-label="Portal">
-    <a href="/client-portal/" class="brand"><span class="logo">{{ company|initials|slice:":1" }}</span>{{ company }}</a>
+    <a href="/client-portal/" class="brand">{% if logo_url %}<img src="{{ logo_url }}" alt="{{ company }}" style="max-height:36px;max-width:180px">{% else %}<span class="logo">{{ company|initials|slice:":1" }}</span>{{ company }}{% endif %}</a>
     {% for key, label, url in nav %}<a href="{{ url }}" class="nav-a{% if active == key %} on{% endif %}"{% if active == key %} aria-current="page"{% endif %}>{{ label }}{% if key == "tickets" and open_count %} <span class="badge">{{ open_count }}</span>{% endif %}{% if key == "messages" and unread_count %} <span class="badge red">{{ unread_count }}</span>{% endif %}</a>{% endfor %}
     <span class="grow"></span>
     <details class="menu"><summary class="btn small">{{ pu.name }} ▾</summary>

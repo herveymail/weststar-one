@@ -1,10 +1,15 @@
 {% extends "base.html" %}
 {% block body %}
-<div class="login-wrap">
-  <div class="login">
-    <div class="brand-row"><span class="logo">W</span><b>{{ app_name|default:"Weststar ONE" }}</b></div>
-    <div class="card">
-      <div><h1 class="h-login">{% block heading %}{% endblock %}</h1>{% block sub %}{% endblock %}</div>
+<div class="auth">
+  <svg class="auth-bg" viewBox="0 0 1400 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><pattern id="auth-grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#1D2939" stroke-width="1"/></pattern></defs><rect width="1400" height="900" fill="url(#auth-grid)"/><circle cx="1150" cy="120" r="320" fill="#312E81" opacity=".55"/><circle cx="180" cy="820" r="260" fill="#0A4B85" opacity=".5"/></svg>
+  <div class="auth-inner">
+    <div class="auth-brand">
+      {% if logo_url %}<img class="auth-logo" src="{{ logo_url }}" alt="{{ app_name|default:'Weststar ONE' }}">{% else %}<div class="auth-wordmark"><span class="logo">W</span>{{ app_name|default:"Weststar ONE" }}</div>{% endif %}
+      <h1 class="auth-headline">{{ login_heading }}</h1>
+      <p class="auth-text">{{ login_text }}</p>
+    </div>
+    <div class="auth-card">
+      <h2 class="auth-h">{% block heading %}{% endblock %}</h2>{% block sub %}{% endblock %}
       {% block form %}{% endblock %}
     </div>
   </div>

@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% load ws %}
+{% block content %}
+<div class="set-wrap">
+  <aside class="set-nav" aria-label="Settings menu">
+    <a href="/settings/" class="set-title">Settings</a>
+    <label for="set-filter" class="sr">Search settings</label>
+    <input id="set-filter" class="input set-filter" placeholder="Search settings" autocomplete="off" data-set-filter>
+    {% for g in settings_nav %}
+    <div class="set-group{% if not g.open %} closed{% endif %}" data-set-group>
+      <button type="button" class="set-group-title" aria-expanded="{% if g.open %}true{% else %}false{% endif %}">{{ g.title }}{% icon "chevron" 12 %}</button>
+      {% for pg in g.pages %}<a href="/settings/{{ pg.id }}/" class="set-link{% if pg.active %} on{% endif %}"{% if pg.active %} aria-current="page"{% endif %} data-words="{{ pg.words }}">{{ pg.title }}</a>{% endfor %}
+    </div>
+    {% endfor %}
+    <p class="small muted set-none" hidden>No setting matches.</p>
+  </aside>
+  <section class="set-main">{% block settings %}{% endblock %}</section>
+</div>
+{% endblock %}

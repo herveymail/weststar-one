@@ -1,38 +1,9 @@
 {% extends "base.html" %}{% load ws %}
 {% block content %}
-<div class="page-head"><div class="titles">
-  <div class="eyebrow">{% now "l, F j" %}</div>
+<div class="dash-head">
   <h1>{{ greeting }}, {{ user.get_short_name }}</h1>
-</div></div>
-<div class="stats">
-  {% if tickets %}
-  <a href="/tickets/" class="card stat"><span class="label">Open tickets</span><span class="v">{{ tickets.open }}</span></a>
-  <a href="/tickets/?filter=risk" class="card stat{% if tickets.risk %} alert{% endif %}"><span class="label">SLA at risk</span><span class="v">{{ tickets.risk }}</span></a>
-  <a href="/tickets/?filter=unassigned" class="card stat"><span class="label">Unassigned</span><span class="v">{{ tickets.unassigned }}</span></a>
-  <a href="/tickets/?view=queue" class="card stat"><span class="label">Assigned to me</span><span class="v">{{ tickets.mine }}</span></a>
-  {% endif %}
-  {% if billing %}
-  <a href="/m/invoices/" class="card stat"><span class="label">Unpaid invoices</span><span class="v">{{ billing.amount|dollars }}</span><span class="small muted">{{ billing.unpaid }} invoice{{ billing.unpaid|pluralize }}</span></a>
-  <a href="/m/invoices/?status=Overdue" class="card stat{% if billing.overdue %} alert{% endif %}"><span class="label">Overdue</span><span class="v">{{ billing.overdue }}</span></a>
-  {% endif %}
-  {% if tools %}
-  <a href="/m/backups/?status=Failed" class="card stat{% if tools.backup_failures %} alert{% endif %}"><span class="label">Backup failures</span><span class="v">{{ tools.backup_failures }}</span></a>
-  <a href="/m/domains/" class="card stat"><span class="label">Domains expiring in 30 days</span><span class="v">{{ tools.domains_expiring }}</span></a>
-  {% endif %}
+  <span class="muted">{% now "l, M j" %}</span>
+  <span class="dash-live" title="Updates every 30 seconds"><span class="dot"></span>Live</span>
 </div>
-{% if tickets %}
-<section class="card" style="overflow:hidden">
-  <div style="padding:16px 18px 8px"><h2>Needs attention</h2><p class="desc small">Critical tickets and anything close to missing its response time.</p></div>
-  {% if attention %}
-  <div class="table-wrap"><table class="grid"><tbody>
-    {% for t in attention %}<tr>
-      <td class="small muted num" style="width:90px"><a href="/tickets/{{ t.pk }}/">{{ t.number }}</a></td>
-      <td class="strong"><a class="row-link" href="/tickets/{{ t.pk }}/">{{ t.subject }}</a></td>
-      <td><span class="pill {{ t.priority|prio_class }}">{{ t.priority }}</span></td>
-      <td class="small muted">{% if t.response_due_at and not t.first_response_at %}due {{ t.response_due_at|timeuntil }}{% endif %}</td>
-    </tr>{% endfor %}
-  </tbody></table></div>
-  {% else %}<div class="empty">Nothing urgent right now.</div>{% endif %}
-</section>
-{% endif %}
+<div id="dash-live" hx-get="/?part=live" hx-trigger="every 30s" hx-swap="innerHTML">{% include "core/_dashboard_live.html" %}</div>
 {% endblock %}

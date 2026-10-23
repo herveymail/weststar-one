@@ -1,7 +1,7 @@
-{% extends "base.html" %}{% load ws %}
+{% extends "core/settings_frame.html" %}{% load ws %}
 {% block title %}Old system settings · Settings{% endblock %}
-{% block content %}
-<div class="page-head"><div class="titles"><a href="/settings/" class="link-btn">{% icon "back" 16 %}Settings</a><h1>Old system settings</h1>
+{% block settings %}
+<div class="page-head"><div class="titles"><h1>Old system settings</h1>
   <p class="desc">Every setting from the old Weststar One, brought over by the import. “Copied” went into the new setting shown. “Kept yours” means you'd already set it here. “Not used yet” has no place in the new app yet — it's saved so nothing is lost.</p></div></div>
 {% if not counts.all %}<div class="banner info">Nothing here yet. Run the import (Settings › Import from old Weststar One) and the old settings will show up.</div>{% endif %}
 <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">

@@ -1,7 +1,7 @@
-{% extends "base.html" %}{% load ws %}
+{% extends "core/settings_frame.html" %}{% load ws %}
 {% block title %}Portal groups · Settings{% endblock %}
-{% block content %}
-<div class="page-head"><div class="titles"><a href="/settings/" class="link-btn">{% icon "back" 16 %}Settings</a><h1>Portal groups</h1>
+{% block settings %}
+<div class="page-head"><div class="titles"><h1>Portal groups</h1>
   <p class="desc">A group decides what a client portal user can see. Someone in a group gets the group's boxes; people with no group use their own. Everyone always sees their own tickets.</p></div></div>
 <div class="stack" style="max-width:900px">
 {% for g in rows %}<details class="card pad"><summary style="display:flex;gap:10px;align-items:center;cursor:pointer"><b style="flex:1">{{ g.name }}</b><span class="small muted">{{ g.count }} people</span></summary>
