@@ -1,5 +1,7 @@
 # Pinned versions. Upgrade deliberately: change a version, run the tests, commit.
 Django==5.2.18
+psycopg[binary]==3.3.6
+# Only used by the importer to read the old PHP app's MariaDB/MySQL database.
 mysqlclient==2.2.7
 argon2-cffi==25.1.0
 bcrypt==4.3.0

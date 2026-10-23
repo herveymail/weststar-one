@@ -125,15 +125,17 @@ TEMPLATES = [
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
+        # PostgreSQL. (The old PHP app's MariaDB is only ever read by the importer, see apps/legacy.)
+        "ENGINE": "django.db.backends.postgresql",
         "NAME": env("DB_NAME", "weststar"),
         "USER": env("DB_USER", "weststar"),
         "PASSWORD": env("DB_PASSWORD", required=True),
         "HOST": env("DB_HOST", "127.0.0.1"),
-        "PORT": env("DB_PORT", "3306"),
+        "PORT": env("DB_PORT", "5432"),
         "CONN_MAX_AGE": 60,
-        "OPTIONS": {"charset": "utf8mb4", "init_command": "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+00:00'"},
-        "TEST": {"NAME": env("DB_TEST_NAME", "test_weststar"), "CHARSET": "utf8mb4", "COLLATION": "utf8mb4_unicode_ci"},
+        "CONN_HEALTH_CHECKS": True,
+        "OPTIONS": {"sslmode": env("DB_SSLMODE", "prefer")},
+        "TEST": {"NAME": env("DB_TEST_NAME", "test_weststar")},
     }
 }
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

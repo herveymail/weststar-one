@@ -4,7 +4,7 @@ The Weststar MSP platform: tickets, clients, projects, sales, billing, tools and
 This replaces the old PHP app (myflow). It has the same menus and features, a cleaner screen, and much
 tighter security, and everything from the old app is imported.
 
-**Stack:** Python 3.13 · Django 5.2 LTS · MariaDB · HTMX (screens are rendered by the server, with no
+**Stack:** Python 3.13 · Django 5.2 LTS · PostgreSQL 17 · HTMX (screens are rendered by the server, with no
 front-end build step) · gunicorn · Caddy (automatic HTTPS) · Docker.
 
 The earlier TypeScript version, with the same look, is kept on the `typescript-reference` branch.
@@ -31,6 +31,9 @@ There are two looks, and each person picks theirs under *Profile & look*:
 
 - **Passwords** are hashed with Argon2. Old PHP bcrypt hashes still work and are upgraded the first time
   each person signs in, so nobody has to reset.
+- **Sign in with Google Workspace** for staff. Only people added in Staff users, on your company domain(s),
+  can get in. Google's 2-Step Verification counts as the second factor, and passwords can be limited to
+  admins as a backup.
 - **Two-factor sign-in** uses authenticator apps, with one-time recovery codes. It's required for admins,
   managers and anyone with H/R access (changeable in Settings). Codes can't be reused.
 - **Lockout** starts after 5 failed attempts and doubles on repeat lockouts. Password and 2FA failures are
@@ -49,30 +52,56 @@ There are two looks, and each person picks theirs under *Profile & look*:
   form, HSTS, and clickjacking protection.
 - **Audit log** of every change, filtered so people only see entries for areas they can access.
 
-## Install (production)
+## Install: the setup wizard
 
-You need a Linux server (Ubuntu 24.04 is a good choice) with Docker, and a DNS name pointing at it, for
-example `one.weststarmsp.com`.
+You need a fresh Linux server (Ubuntu 24.04/26.04 LTS or Debian 12/13, 2 CPU / 4 GB RAM is plenty) and a
+DNS name pointing at it, for example `one.weststarmsp.com`.
 
 ```sh
-# 1. Get the code
-git clone https://github.com/herveymail/weststar-one /opt/weststar-one
-cd /opt/weststar-one
-
-# 2. Settings
-cp .env.example .env
-nano .env        # fill in DOMAIN, SECRET_KEY, DB_PASSWORD, DB_ROOT_PASSWORD, APP_ENCRYPTION_KEY
-                 # (each line in .env.example shows the command that makes a good random value)
-
-# 3. Start everything. HTTPS certificates are automatic.
-docker compose up -d --build
-
-# 4. Your first admin account. This prints a temporary password, which you change at first sign-in.
-docker compose exec app python manage.py create_admin --email you@weststarmsp.com --name "Your Name"
+git clone https://github.com/herveymail/weststar-one.git /opt/weststar-one   # GitHub asks for your username + a token
+sudo bash /opt/weststar-one/install.sh
 ```
 
-> **Back up `APP_ENCRYPTION_KEY` offline**, in a password manager or printed and kept in the safe. Without
-> it, the encrypted fields in the database and backups can't be read.
+The wizard works like the old Weststar One installer:
+
+| Step | What it does |
+|---|---|
+| 1. Configuration | Domain, company name, time zone, first admin, Google sign-in, Gmail sending, Wasabi backups, AI, update branch |
+| 2. Install packages | Docker (official repository), firewall (SSH, 80, 443 only); offers to stop an old web server holding ports 80/443 |
+| 3. Database & keys | Generates the database password, app secret and encryption key, and asks you to save the key |
+| 4. Build & start | Builds and starts PostgreSQL, the app and the background jobs |
+| 5. Configure | Creates your admin account and saves your settings (secrets encrypted) |
+| 6. Import | If the old app is on the same server, reads its `config/config.php`, copies its database read-only, and imports everything including uploads. Otherwise, point it at a dump file. It always does a practice run first. |
+| 7. HTTPS & finish | Gets the certificate automatically, schedules nightly backups, and prints your login |
+
+Run it again later to update, or to import again.
+
+> **Back up `APP_ENCRYPTION_KEY` offline** (the wizard shows it once), in a password manager or printed and
+> kept in the safe. Without it, the encrypted fields in the database and backups can't be read.
+
+### Google sign-in: one-time setup in Google Cloud
+
+1. Go to https://console.cloud.google.com and create a project (e.g. "Weststar ONE") under your Workspace
+   organization.
+2. Under **APIs & Services › OAuth consent screen**, choose **Internal**. This means only your Workspace
+   users can use it, and no Google review is needed. App name: Weststar ONE.
+3. Under **APIs & Services › Credentials › Create credentials › OAuth client ID**:
+   - Type: **Web application**
+   - Authorized redirect URI: `https://YOUR-DOMAIN/login/google/callback/`
+4. Copy the **client ID** and **client secret** into the wizard, or later into Settings › Sign-in & 2FA.
+5. Recommended: in Google Admin › Security › 2-Step Verification, turn on **enforcement** for your staff.
+   Google sign-in then counts as two-factor.
+
+Staff still need an account in **Settings › Staff users** (same email as their Google login) before they
+can sign in. That's how you control who gets in and what role they have.
+
+### Manual install (without the wizard)
+
+```sh
+cp .env.example .env && nano .env     # fill in DOMAIN, SECRET_KEY, DB_PASSWORD, APP_ENCRYPTION_KEY
+docker compose up -d --build
+docker compose exec app python manage.py create_admin --email you@weststarmsp.com --name "Your Name"
+```
 
 ## Bring over the old Weststar One
 
@@ -80,9 +109,13 @@ The importer reads a copy of the old database and never writes to the old server
 times as you like: it updates records instead of duplicating them, and it never overwrites anything you've
 changed in the new app.
 
+The easiest way is the wizard (`sudo bash install.sh`, option 2 when it's already installed). To do it by
+hand:
+
 1. Put the old app's `APP_KEY` and `ENCRYPTION_KEY` (from its `config/config.php`) into `.env` as
    `OLD_APP_KEY` and `OLD_ENCRYPTION_KEY`. These unlock 2FA setups, Wi-Fi passwords and H/R fields.
-2. Copy a database dump and the old `uploads/` folder to the server, then:
+2. Copy a database dump and the old `uploads/` folder to the server, then run the commands below. The old
+   dump is loaded into a temporary MariaDB container just for the import, and removed afterwards.
 
 ```sh
 ./deploy/import-old.sh /path/to/db_dump.sql.gz /path/to/old/uploads --dry-run   # practice run, saves nothing
@@ -106,8 +139,9 @@ before that. Re-running the import picks up whatever changed in the old app in t
 
 | Task | Command |
 |---|---|
-| Update to the latest version | `git pull && docker compose up -d --build` |
-| Nightly backup (database + files, kept 14 days) | `./deploy/backup.sh`, then add it to cron as shown at the top of the script |
+| Update to the latest version (backs up first, rolls back if the build fails) | `sudo ./update.sh` |
+| Backup now (the wizard schedules it nightly at 2:30 AM; optional Wasabi copy) | `./deploy/backup.sh` |
+| Restore a backup | `./deploy/restore.sh backups/db_….dump backups/media_….tar.gz` |
 | Make another admin | `docker compose exec app python manage.py create_admin --email … --name "…"` |
 | See logs | `docker compose logs -f app jobs` |
 | Run background jobs now | `docker compose exec jobs python manage.py run_jobs --force` |
@@ -123,7 +157,7 @@ cp .env.example .env    # set DEBUG=true, APP_URL=http://localhost:8000 and loca
 python manage.py migrate && python manage.py createcachetable
 python manage.py create_admin --email you@example.com --name You
 python manage.py runserver
-python -m pytest        # tests (uses a test_ database on the same MariaDB)
+python -m pytest        # tests: a test_ database on PostgreSQL; importer tests also use a MariaDB `legacy` db
 ```
 
 How the code is laid out:

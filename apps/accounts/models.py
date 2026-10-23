@@ -1,5 +1,6 @@
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.db import models
+from django.db.models.functions import Lower
 
 from apps.core.permissions import ROLES
 
@@ -52,9 +53,15 @@ class User(AbstractBaseUser):
 
     class Meta:
         ordering = ["name"]
+        # PostgreSQL compares text case-sensitively: make "Amy@…" and "amy@…" the same account.
+        constraints = [models.UniqueConstraint(Lower("email"), name="user_email_unique_ci")]
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        self.email = (self.email or "").strip().lower()
+        super().save(*args, **kwargs)
 
     def get_full_name(self):
         return self.name

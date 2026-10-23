@@ -23,7 +23,7 @@ SETTINGS = [
         ("portal", "Customer portal", "What clients can see and do in the portal", [("portal.enabled", "Portal enabled", B), ("portal.show_invoices", "Clients can see invoices", B)]),
     ]),
     ("comms", "Email & messaging", "Email, chat and phone connections", [
-        ("email", "Email", "Google Workspace sending and email-to-ticket", [("email.provider", "Provider", SEL, ["Google Workspace", "Microsoft 365", "SMTP"]), ("email.support_address", "Support mailbox", T), ("email.m365_tenant_id", "Microsoft tenant ID", T), ("email.m365_client_id", "Microsoft client ID", T), ("email.m365_client_secret", "Microsoft client secret", S), ("email.smtp_host", "SMTP host", T), ("email.smtp_password", "SMTP password", S)]),
+        ("email", "Email", "Google Workspace sending and email-to-ticket", [("email.provider", "Provider", SEL, ["Google Workspace", "SMTP"]), ("email.support_address", "Support mailbox (e.g. support@weststarmsp.com)", T), ("email.from_address", "Send from address", T), ("email.smtp_host", "SMTP host", T, "smtp.gmail.com for Google Workspace"), ("email.smtp_port", "SMTP port", I, "587"), ("email.smtp_user", "SMTP username", T), ("email.smtp_password", "SMTP password (Google: an app password)", S)]),
         ("google_chat", "Google Chat", "Ticket alerts in Google Chat", [("chat.webhook_url", "Webhook URL", S)]),
         ("phone", "Phone system", "Yeastar PBX, call sync and recordings", [("phone.yeastar_host", "Yeastar address", T), ("phone.yeastar_secret", "API secret", S)]),
     ]),

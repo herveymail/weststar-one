@@ -5,20 +5,27 @@ jobs:
   test:
     runs-on: ubuntu-24.04
     services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: weststar
+          POSTGRES_PASSWORD: ws_ci
+          POSTGRES_DB: weststar
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd="pg_isready -U weststar" --health-interval=5s --health-retries=20
+      # The OLD app's database type, used only by the importer tests.
       mariadb:
-        image: mariadb:11.4
+        image: mariadb:11.8
         env:
           MARIADB_ROOT_PASSWORD: root
-          MARIADB_DATABASE: weststar
-          MARIADB_USER: weststar
-          MARIADB_PASSWORD: ws_ci
         ports: ["3306:3306"]
         options: >-
           --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=5s --health-retries=20
     env:
       DB_HOST: 127.0.0.1
-      DB_USER: root
-      DB_PASSWORD: root
+      DB_USER: weststar
+      DB_PASSWORD: ws_ci
       LEGACY_DB_HOST: 127.0.0.1
       LEGACY_DB_USER: root
       LEGACY_DB_PASSWORD: root
@@ -38,3 +45,4 @@ jobs:
       - run: python manage.py makemigrations --check --dry-run
         env: { SECRET_KEY: ci-only-0000000000000000000000000000000000000, APP_ENCRYPTION_KEY: "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=" }
       - run: pip install pip-audit && pip-audit -r requirements.txt
+      - run: sudo apt-get install -y shellcheck && shellcheck -S warning install.sh update.sh deploy/*.sh

@@ -1,23 +1,39 @@
-# Weststar ONE — MariaDB, the app, the background jobs and Caddy (automatic HTTPS).
-#   1) cp .env.example .env   and fill it in (see README › Install)
+# Weststar ONE — PostgreSQL, the app, the background jobs and Caddy (automatic HTTPS).
+# Easiest: sudo bash install.sh   (the setup wizard does everything below for you)
+#   1) cp .env.example .env   and fill it in
 #   2) docker compose up -d --build
 #   3) docker compose exec app python manage.py create_admin --email you@weststarmsp.com --name "Your Name"
 services:
   db:
-    image: mariadb:11.4
+    image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      MARIADB_DATABASE: weststar
-      MARIADB_USER: weststar
-      MARIADB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
-      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}
-    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--innodb-buffer-pool-size=512M"]
-    volumes: [dbdata:/var/lib/mysql]
+      POSTGRES_DB: weststar
+      POSTGRES_USER: weststar
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    volumes: [dbdata:/var/lib/postgresql/data]
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test: ["CMD-SHELL", "pg_isready -U weststar -d weststar"]
       interval: 10s
       retries: 10
     # Not published to the host: only the app can reach the database.
+
+  # Temporary MariaDB used ONLY while importing from the old PHP app (deploy/import-old.sh starts and
+  # removes it). It holds a copy of the old database; your live old server is never touched.
+  olddb:
+    image: mariadb:11.8
+    profiles: ["import"]
+    environment:
+      MARIADB_DATABASE: myflow_old
+      MARIADB_USER: importer
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD}
+    tmpfs: [/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      retries: 30
 
   app:
     build: .
@@ -31,6 +47,7 @@ services:
       APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?set APP_ENCRYPTION_KEY in .env}
       APP_ENCRYPTION_KEYS_OLD: ${APP_ENCRYPTION_KEYS_OLD:-}
       DB_HOST: db
+      DB_PORT: "5432"
       DB_NAME: weststar
       DB_USER: weststar
       DB_PASSWORD: ${DB_PASSWORD}
