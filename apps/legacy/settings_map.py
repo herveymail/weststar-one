@@ -89,6 +89,8 @@ MAP = {
     "sla_resolution_critical": ("tickets.resolve_critical_hours", num), "sla_resolution_high": ("tickets.resolve_high_hours", num),
     "sla_resolution_medium": ("tickets.resolve_medium_hours", num), "sla_resolution_low": ("tickets.resolve_low_hours", num),
     # email (sending and the support mailbox; email-to-ticket itself stays off until it's turned on here)
+    "smtp2go_api_key": ("email.smtp2go_api_key", same), "smtp2go_from_email": ("email.from_address", same), "smtp2go_from_name": ("email.from_name", same),
+    "mail_provider": ("email.provider", lambda v: "SMTP2GO (HTTPS)" if "smtp2go" in v.lower() else "Gmail / SMTP"),
     "smtp_host": ("email.smtp_host", same), "smtp_port": ("email.smtp_port", num), "smtp_user": ("email.smtp_user", same),
     "smtp_pass": ("email.smtp_password", same), "smtp_from_email": ("email.from_address", same), "smtp_from_name": ("email.from_name", same),
     "imap_host": ("email.imap_host", same), "imap_port": ("email.imap_port", num), "imap_user": ("email.imap_user", same),

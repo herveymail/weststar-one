@@ -31,7 +31,7 @@ SETTINGS = [
             ("portal.show_billing", "Show invoices & quotes", B), ("portal.show_contracts", "Show contracts", B), ("portal.show_policies", "Show policies", B), ("portal.show_assets", "Show assets", B), ("portal.show_kb", "Show help articles", B), ("portal.show_messages", "Show secure messages", B)]),
     ]),
     ("comms", "Email & messaging", "Email, chat and phone connections", [
-        ("email", "Email sending (SMTP)", "How the app sends email — Google Workspace / Gmail SMTP", [("email.smtp_host", "SMTP server", T), ("email.smtp_port", "SMTP port", I), ("email.smtp_user", "SMTP username (the mailbox, e.g. support@weststarmsp.com)", T), ("email.smtp_password", "SMTP password (Google: an app password)", S), ("email.from_address", "Send from address", T), ("email.from_name", "Send from name (e.g. Weststar Helpdesk)", T), ("email.support_address", "Support mailbox — replies go here and staff alerts are sent here", T)]),
+        ("email", "Email sending", "How the app sends email — Gmail SMTP, or SMTP2GO when the server's email ports are blocked", [("email.provider", "Provider", SEL, ["Gmail / SMTP", "SMTP2GO (HTTPS)"], "Use SMTP2GO if the test says the email ports are blocked (DigitalOcean)"), ("email.smtp2go_api_key", "SMTP2GO API key (only for SMTP2GO)", S), ("email.smtp_host", "SMTP server", T), ("email.smtp_port", "SMTP port", I), ("email.smtp_user", "SMTP username (the mailbox, e.g. support@weststarmsp.com)", T), ("email.smtp_password", "SMTP password (Google: an app password)", S), ("email.from_address", "Send from address", T), ("email.from_name", "Send from name (e.g. Weststar Helpdesk)", T), ("email.support_address", "Support mailbox — replies go here and staff alerts are sent here", T)]),
         ("google_chat", "Google Chat", "Ticket alerts in Google Chat", [("chat.webhook_url", "Webhook URL", S), ("chat.notify_new_ticket", "Alert on new tickets from email", B), ("chat.notify_client_replies", "Alert when a client replies", B)]),
         ("phone", "Phone system", "Yeastar PBX, call sync and recordings", [("phone.yeastar_host", "Yeastar address", T), ("phone.yeastar_client_id", "Client ID", T), ("phone.yeastar_secret", "Client secret", S)]),
     ]),
@@ -80,7 +80,7 @@ DEFAULTS = {
     "tickets.email_ack": "true", "tickets.email_on_close": "true", "tickets.auto_add_contacts": "true", "tickets.email_priority": "Medium",
     "chat.notify_new_ticket": "true", "chat.notify_client_replies": "true", "email.imap_host": "imap.gmail.com", "email.imap_port": "993",
     "email.imap_folder": "INBOX", "email.smtp_host": "smtp.gmail.com", "email.smtp_port": "587", "email.fetch_enabled": "false",
-    "autopay.enabled": "true", "autopay.timing": "immediate", "autopay.retry_days": "3", "autopay.max_attempts": "4",
+    "email.provider": "Gmail / SMTP", "autopay.enabled": "true", "autopay.timing": "immediate", "autopay.retry_days": "3", "autopay.max_attempts": "4",
     "tickets.email_new_subject": "[{number}] {subject}", "tickets.email_reply_subject": "Re: [{number}] {subject}", "tickets.email_closed_subject": "[{number}] Resolved: {subject}",
 }
 

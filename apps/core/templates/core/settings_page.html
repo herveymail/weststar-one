@@ -29,7 +29,8 @@
   <form method="post" action="/settings/email/test/" class="row" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">{% csrf_token %}<input type="hidden" name="what" value="send">
     <div class="field" style="flex:1 1 260px"><label for="tt">Send to</label><input id="tt" name="to" type="email" class="input" value="{{ request.user.email }}"></div>
     <button class="btn">Send test email</button></form>
-  <p class="small muted" style="margin:0">Google Workspace: use smtp.gmail.com, port 587, the full mailbox address as the username, and an <b>app password</b> (Google Account › Security › 2-Step Verification › App passwords), not the normal password.</p>
+  <p class="small muted" style="margin:0"><b>Gmail / SMTP:</b> smtp.gmail.com, port 587, the full mailbox address as the username, and an <b>app password</b> (Google Account › Security › 2-Step Verification › App passwords).<br>
+    <b>SMTP2GO (HTTPS):</b> for servers where the hosting company blocks email ports (DigitalOcean). Paste an API key from SMTP2GO › Sending › API Keys; the send-from address must be a verified sender there (support@weststarmsp.com was, in the old app).</p>
 </section>
 {% endif %}
 {% if item.0 == "payments" %}

@@ -194,3 +194,46 @@ def test_fetch_after_import_with_other_numbering_uses_date(monkeypatch):
 def test_first_fetch_without_history_starts_now(monkeypatch):
     r = _fetch_with(monkeypatch, FakeImap())
     assert "watching" in r["started"] and Setting.get("email.imap_last_uid") == "499" and not Ticket.objects.exists()
+
+
+def test_smtp2go_https_sending(monkeypatch):
+    import json as _json
+    sent = {}
+
+    class R:
+        def __init__(self, body):
+            self.body = body
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return self.body
+
+    def fake_urlopen(req, timeout=0):
+        sent["url"], sent["key"], sent["body"] = req.full_url, req.headers.get("X-smtp2go-api-key"), _json.loads(req.data)
+        return R(b'{"data": {"succeeded": 1, "failed": 0}}')
+    monkeypatch.setattr(mail.urllib.request, "urlopen", fake_urlopen)
+    Setting.put("email.provider", "SMTP2GO (HTTPS)")
+    Setting.put("email.smtp2go_api_key", "api-123", secret=True)
+    Setting.put("email.from_address", "support@weststarmsp.com")
+    assert mail.configured() and mail.test("me@x.test") == ""
+    assert sent["url"] == "https://api.smtp2go.com/v3/email/send" and sent["key"] == "api-123" and sent["body"]["to"] == ["me@x.test"]
+    t = services.create_ticket(subject="Printer", details="", contact_email="maria@franklin.test")
+    assert services.send_ticket_email(t, "new", "email/ticket_received", {})
+    assert any(h["header"] == "Message-ID" for h in sent["body"]["custom_headers"])
+
+
+def test_blocked_port_message(monkeypatch):
+    Setting.put("email.smtp_host", "smtp.gmail.com")
+    Setting.put("email.smtp_user", "support@weststarmsp.com")
+    Setting.put("email.smtp_password", "x", secret=True)
+    monkeypatch.setattr(mail, "port_open", lambda host, port, timeout=6: port == 443)
+
+    def boom(msg):
+        raise OSError(101, "Network is unreachable")
+    monkeypatch.setattr(mail, "_deliver", boom)
+    assert "blocking outgoing email ports" in mail.test("me@x.test")
