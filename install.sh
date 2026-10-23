@@ -81,7 +81,12 @@ case "${ID}:${VERSION_ID:-}" in
 esac
 command -v python3 >/dev/null || { apt-get update -qq && apt-get install -y -qq python3 >/dev/null; }
 
-if [ -f .env ] && grep -q '^APP_ENCRYPTION_KEY=.\+' .env; then
+PROGRESS=$(cat .install-progress 2>/dev/null || echo 0)
+if [ -f .env ] && [ ! -f .installed ] && grep -q '^DB_PASSWORD=.\+' .env; then
+    warn "A previous setup didn't finish (it got past step ${PROGRESS} of ${TOTAL}). Picking up where it stopped:"
+    info "you'll answer the questions again; the database that was already created is reused."
+    RESUME=yes
+elif [ -f .installed ]; then
     warn "Weststar ONE is already set up in ${APP_DIR}."
     echo -e "    ${BOLD}1${NC}) Update to the latest version (keeps all data)  ${DIM}— same as ./update.sh${NC}"
     echo -e "    ${BOLD}2${NC}) Import / re-import from the old Weststar One"
@@ -94,6 +99,8 @@ if [ -f .env ] && grep -q '^APP_ENCRYPTION_KEY=.\+' .env; then
     esac
 fi
 RERUN_IMPORT="${RERUN_IMPORT:-no}"
+RESUME="${RESUME:-no}"
+mark() { echo "$1" > .install-progress; }
 
 # ════════════════════════════════════════════
 if [ "$RERUN_IMPORT" = no ]; then
@@ -202,9 +209,19 @@ chmod 600 .env
 set_env DOMAIN "$DOMAIN"
 set_env TIME_ZONE "$TIMEZONE"
 set_env SECRET_KEY "$(rand_hex 40)"
-set_env DB_PASSWORD "$(rand_hex 24)"
-ENC_KEY="$(rand_b64key)"
-set_env APP_ENCRYPTION_KEY "$ENC_KEY"
+# The database keeps the password it was created with, so a resumed setup must reuse it.
+if [ "$RESUME" = yes ] && grep -q '^DB_PASSWORD=.\+' .env; then
+    success "Reusing the database password from the earlier attempt."
+else
+    set_env DB_PASSWORD "$(rand_hex 24)"
+fi
+# A new encryption key is safe until data has been saved (step 5). After that, keep it.
+if [ "$RESUME" = yes ] && [ "$PROGRESS" -ge 5 ]; then
+    ENC_KEY=$(grep '^APP_ENCRYPTION_KEY=' .env | cut -d= -f2- | tr -d "'")
+else
+    ENC_KEY="$(rand_b64key)"
+    set_env APP_ENCRYPTION_KEY "$ENC_KEY"
+fi
 set_env UPDATE_REPO "$UPDATE_REPO"
 set_env UPDATE_BRANCH "$UPDATE_BRANCH"
 if [ "$USE_WASABI" = yes ]; then
@@ -219,19 +236,27 @@ echo -e "  ${BOLD}${ENC_KEY}${NC}"
 echo -e "  ${DIM}It protects 2FA seeds, Wi-Fi passwords and H/R fields. Without it, those can't be read from a backup.${NC}"
 SAVED=""
 while [ "$SAVED" != "saved" ]; do ask "Type  saved  once you've stored it" "" SAVED; done
+mark 3
 
 # ════════════════════════════════════════════
 step 4 "Building & Starting the App"
 info "Building (first time takes a few minutes)…"
 docker compose build -q app || die "Build failed. See the messages above."
-docker compose up -d db app jobs || die "Couldn't start the app."
-info "Waiting for the app to be ready…"
-for _ in $(seq 1 90); do
-    [ "$(docker inspect -f '{{.State.Health.Status}}' "$(docker compose ps -q app)" 2>/dev/null)" = healthy ] && break
+app_health() { docker inspect -f '{{.State.Health.Status}}' "$(docker compose ps -aq app)" 2>/dev/null; }
+show_app_log() {
+    echo -e "\n  ${BOLD}Last lines from the app (send these to support):${NC}"
+    docker compose logs app --tail 40 --no-log-prefix 2>&1 | sed 's/^/    /'
+}
+docker compose up -d db app || { show_app_log; die "Couldn't start the app."; }
+info "Waiting for the app to be ready (first start sets up the database)…"
+for _ in $(seq 1 120); do
+    [ "$(app_health)" = healthy ] && break
     sleep 2
 done
-[ "$(docker inspect -f '{{.State.Health.Status}}' "$(docker compose ps -q app)" 2>/dev/null)" = healthy ] || die "The app didn't start. Check: docker compose logs app"
+[ "$(app_health)" = healthy ] || { show_app_log; die "The app didn't start."; }
+docker compose up -d jobs || warn "Background jobs didn't start; check: docker compose logs jobs"
 success "Database and app are running."
+mark 4
 
 # ════════════════════════════════════════════
 step 5 "Configuring Application"
@@ -259,6 +284,7 @@ success "Admin account created for ${ADMIN_EMAIL}."
     printf '}'
 } | docker compose exec -T app python manage.py configure >/dev/null || warn "Some settings didn't save — set them in Settings after signing in."
 success "Settings saved (secrets are stored encrypted)."
+mark 5
 fi  # end of first-time setup
 
 # ════════════════════════════════════════════
@@ -332,6 +358,7 @@ success "Nightly backup scheduled (2:30 AM) → ${APP_DIR}/backups$( [ "$USE_WAS
 docker image prune -f >/dev/null 2>&1
 
 echo ""
+date > .installed; rm -f .install-progress
 echo -e "${GREEN}  ╔══════════════════════════════════════════╗${NC}"
 echo -e "${GREEN}  ║        Weststar ONE is installed! 🎉       ║${NC}"
 echo -e "${GREEN}  ╚══════════════════════════════════════════╝${NC}"

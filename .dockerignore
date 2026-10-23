@@ -7,3 +7,6 @@ staticfiles
 **/__pycache__
 .pytest_cache
 tests/fixtures/*.sql*
+.installed
+.install-progress
+backups

@@ -23,4 +23,4 @@ USER weststar
 EXPOSE 8000
 ENTRYPOINT ["/usr/bin/tini", "--", "/app/deploy/entrypoint.sh"]
 CMD ["web"]
-HEALTHCHECK --interval=30s --timeout=5s --retries=5 CMD python -c "import os,urllib.request,urllib.parse;h=urllib.parse.urlparse(os.environ['APP_URL']).hostname;urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/health/',headers={'Host':h}),timeout=4)" || exit 1
+HEALTHCHECK --interval=10s --timeout=5s --start-period=120s --retries=6 CMD python -c "import os,urllib.request,urllib.parse;h=urllib.parse.urlparse(os.environ['APP_URL']).hostname;urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/health/',headers={'Host':h}),timeout=4)" || exit 1
