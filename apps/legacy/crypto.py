@@ -46,8 +46,8 @@ def decrypt_value(stored: str, encryption_key_hex: str) -> str:
         data = base64.b64decode(stored)
     except Exception as e:  # noqa: BLE001
         raise LegacyDecryptError("not base64") from e
-    sep = data.find(b"::")
-    if sep != 16:
+    # The IV is 16 random bytes and may itself contain "::", so check the fixed position.
+    if len(data) < 19 or data[16:18] != b"::":
         raise LegacyDecryptError("not a decrypt_value payload")
     iv, ct = data[:16], base64.b64decode(data[18:])
     return _cbc(_php_key(bytes.fromhex(encryption_key_hex)), iv, ct)

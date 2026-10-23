@@ -5,7 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.core.audit import audit
-from apps.core.models import Counter, Setting
+from apps.core.models import Setting
 
 from .models import DEFAULT_RESPONSE_MINUTES, OPEN_STATUSES, Ticket, TicketMessage, TimeEntry
 

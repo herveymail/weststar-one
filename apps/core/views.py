@@ -14,7 +14,7 @@ from django.views.decorators.http import require_POST
 
 from .audit import audit
 from .forms import build_form_class, build_line_formset, encrypted_fields
-from .models import Counter, get_secret
+from .models import get_secret
 from .permissions import can
 from .registry import NAV, REGISTRY, Module
 from .ui import cell, field_label

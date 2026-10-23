@@ -27,7 +27,7 @@ function encrypt_setting(string $value): string {
     return 'v2:' . base64_encode($iv . $tag . $ct);
 }
 function legacy_cbc_setting(string $v): string { $key = APP_KEY; $iv = substr(hash('sha256', $key), 0, 16); return base64_encode(openssl_decrypt(openssl_encrypt($v, 'AES-256-CBC', $key, 0, $iv), 'AES-256-CBC', $key, 0, $iv) === $v ? base64_decode(openssl_encrypt($v, 'AES-256-CBC', $key, 0, $iv)) : ''); }
-$db = new mysqli('localhost', 'root', '', getenv('LEGACY_DB') ?: 'legacy');
+$db = new mysqli(getenv('LEGACY_DB_HOST') ?: 'localhost', getenv('LEGACY_DB_USER') ?: 'root', getenv('LEGACY_DB_PASSWORD') ?: '', getenv('LEGACY_DB') ?: 'legacy');
 $db->set_charset('utf8mb4');
 foreach (['emp_ssn_enc','emp_bank_account_enc','emp_bank_routing_enc','emp_dob_enc','emp_address_enc','emp_pay_rate_enc'] as $c) { @$db->query("ALTER TABLE hr_employees ADD COLUMN IF NOT EXISTS $c TEXT NULL"); }
 $q = function (string $sql, array $p = []) use ($db) { $st = $db->prepare($sql); if ($p) { $st->bind_param(str_repeat('s', count($p)), ...$p); } if (!$st->execute()) { fwrite(STDERR, $db->error . "\n" . $sql . "\n"); exit(1); } return $db->insert_id; };

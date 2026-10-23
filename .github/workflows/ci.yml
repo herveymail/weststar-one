@@ -1,0 +1,40 @@
+name: CI
+on: [push, pull_request]
+permissions: { contents: read }
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: weststar
+          MARIADB_USER: weststar
+          MARIADB_PASSWORD: ws_ci
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=5s --health-retries=20
+    env:
+      DB_HOST: 127.0.0.1
+      DB_USER: root
+      DB_PASSWORD: root
+      LEGACY_DB_HOST: 127.0.0.1
+      LEGACY_DB_USER: root
+      LEGACY_DB_PASSWORD: root
+      LEGACY_DB_NAME: legacy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13", cache: pip }
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends default-libmysqlclient-dev pkg-config php-cli php-mysql mariadb-client
+      - run: pip install -r requirements-dev.txt ruff
+      - name: Old-schema database for the importer tests
+        run: |
+          mariadb -h127.0.0.1 -uroot -proot -e "CREATE DATABASE legacy CHARACTER SET utf8mb4"
+          mariadb -h127.0.0.1 -uroot -proot legacy < tests/fixtures/legacy-schema.sql
+      - run: ruff check --select E,F,W,B --ignore E501,B904,B023,E741,B007 apps weststar tests
+      - run: python -m pytest
+      - run: python manage.py makemigrations --check --dry-run
+        env: { SECRET_KEY: ci-only-0000000000000000000000000000000000000, APP_ENCRYPTION_KEY: "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=" }
+      - run: pip install pip-audit && pip-audit -r requirements.txt

@@ -1,0 +1,70 @@
+# Weststar ONE — MariaDB, the app, the background jobs and Caddy (automatic HTTPS).
+#   1) cp .env.example .env   and fill it in (see README › Install)
+#   2) docker compose up -d --build
+#   3) docker compose exec app python manage.py create_admin --email you@weststarmsp.com --name "Your Name"
+services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: weststar
+      MARIADB_USER: weststar
+      MARIADB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--innodb-buffer-pool-size=512M"]
+    volumes: [dbdata:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      retries: 10
+    # Not published to the host: only the app can reach the database.
+
+  app:
+    build: .
+    image: weststar-one:latest
+    restart: unless-stopped
+    depends_on: { db: { condition: service_healthy } }
+    environment: &appenv
+      DEBUG: "false"
+      APP_URL: https://${DOMAIN:?set DOMAIN in .env}
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?set APP_ENCRYPTION_KEY in .env}
+      APP_ENCRYPTION_KEYS_OLD: ${APP_ENCRYPTION_KEYS_OLD:-}
+      DB_HOST: db
+      DB_NAME: weststar
+      DB_USER: weststar
+      DB_PASSWORD: ${DB_PASSWORD}
+      TRUST_PROXY: "true"
+      TIME_ZONE: ${TIME_ZONE:-America/Denver}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
+      LOG_LEVEL: INFO
+    volumes: [media:/data/media]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  jobs:
+    image: weststar-one:latest
+    restart: unless-stopped
+    depends_on: { app: { condition: service_healthy } }
+    environment: *appenv
+    command: ["jobs"]
+    volumes: [media:/data/media]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    depends_on: [app]
+    ports: ["80:80", "443:443"]
+    environment: { DOMAIN: "${DOMAIN}" }
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+
+volumes: { dbdata: {}, media: {}, caddydata: {}, caddyconfig: {} }

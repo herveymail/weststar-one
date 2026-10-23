@@ -52,6 +52,7 @@
           <td>{{ lf.description }}</td><td>{{ lf.qty }}</td><td>{{ lf.rate }}</td><td><label class="check">{{ lf.taxable }}</label></td><td class="num"><span class="muted">—</span></td><td></td>{% endwith %}</tr></template>
       {% endif %}
     </form>
+    {% if obj and m.slug == "projects" %}<div class="drawer-files"><h3>Files</h3><div hx-get="/files/project/{{ obj.pk }}/" hx-trigger="load" hx-swap="outerHTML"><div class="empty">Loading…</div></div></div>{% endif %}
     <div class="drawer-foot">
       {% if not locked %}<button class="btn primary" type="submit" form="module-form">{% if obj %}Save changes{% else %}Create {{ m.singular|lower }}{% endif %}</button>{% endif %}
       <button type="button" class="btn" data-close>Cancel</button>

@@ -162,7 +162,9 @@ class Importer:
             return []
         import MySQLdb.cursors
         with self.conn.cursor(MySQLdb.cursors.DictCursor) as c:
-            c.execute(f"SELECT * FROM `{table}` ORDER BY `{order}`")  # names are constants in this file
+            if not (re.fullmatch(r"[a-z_]+", table) and re.fullmatch(r"[a-z_]+", order)):
+                raise ValueError("bad table name")
+            c.execute(f"SELECT * FROM `{table}` ORDER BY `{order}`")  # noqa: S608 — names are constants in this file
             return list(c.fetchall())
 
     def ref(self, kind, v):
@@ -377,7 +379,7 @@ class Importer:
             "name": s(r.get("client_name"), 200) or f"Client {r['client_id']}",
             "status": "Former" if yes(r.get("client_archived")) else title(r.get("client_status"), ["Active", "Lead", "Inactive", "Former"], "Active"),
             "type": title(r.get("client_type"), ["Business", "Residential", "Nonprofit", "Government"], "Business"),
-            "plan": "Managed · Gold" if r.get("client_billing_type") == "managed" or re.search("managed", str(r.get("client_contract_type") or ""), re.I) else "Break/fix" if r.get("client_billing_type") == "hourly" else None,
+            "plan": "Managed" if r.get("client_billing_type") == "managed" or re.search("managed", str(r.get("client_contract_type") or ""), re.I) else "Break/fix" if r.get("client_billing_type") == "hourly" else None,
             "industry": s(r.get("client_industry")), "phone": s(r.get("client_phone")), "email": email(r.get("client_email")), "website": url(r.get("client_website")),
             "address": s(r.get("client_address")), "city": s(r.get("client_city")), "state": s(r.get("client_state")), "zip": s(r.get("client_zip")),
             "account_manager": R("users", r.get("client_account_manager")), "hourly_rate": num(r.get("client_rate")), "tax_rate": num(r.get("client_tax_rate")),

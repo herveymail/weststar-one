@@ -9,7 +9,7 @@ class Client(Record):
     name = models.CharField("Client name", max_length=200)
     status = models.CharField(max_length=20, choices=C("Active", "Lead", "Inactive", "Former"), default="Active")
     type = models.CharField(max_length=20, choices=C("Business", "Residential", "Nonprofit", "Government"), default="Business")
-    plan = models.CharField(max_length=40, choices=C("Managed · Gold", "Managed · Silver", "Managed · Bronze", "Break/fix", "Project"), blank=True)
+    plan = models.CharField(max_length=40, choices=C("Managed", "Managed · Gold", "Managed · Silver", "Managed · Bronze", "Break/fix", "Project"), blank=True)
     industry = models.CharField(max_length=100, blank=True)
     phone = models.CharField(max_length=50, blank=True)
     email = models.EmailField(blank=True)

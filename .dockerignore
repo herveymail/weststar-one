@@ -1,0 +1,9 @@
+.git
+.venv
+.env
+.env.*
+media
+staticfiles
+**/__pycache__
+.pytest_cache
+tests/fixtures/*.sql*

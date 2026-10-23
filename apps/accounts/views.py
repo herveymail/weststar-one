@@ -98,7 +98,9 @@ def password_view(request):
             user.must_change_password = False
             user.password_changed_at = timezone.now()
             user.save()
-            update_session_auth_hash(request, user)
+            old_key = request.session.session_key
+            update_session_auth_hash(request, user)  # issues a new session id for this browser
+            UserSession.objects.filter(session_key=old_key).update(session_key=request.session.session_key)
             security.revoke_sessions(user, except_key=request.session.session_key)
             audit(request, "password_change", "user", user.pk, "Changed password; other sessions signed out")
             messages.success(request, "Password changed. You were signed out everywhere else.")
