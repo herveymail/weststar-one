@@ -196,9 +196,8 @@ MAX_UPLOAD_MB = int(env("MAX_UPLOAD_MB", "25"))
 FILE_UPLOAD_MAX_MEMORY_SIZE = 3 * 1024 * 1024
 # Large uploads (e.g. the old backup in Settings › Import) are spooled to disk next to the files,
 # not to /tmp (which is in memory inside the container).
-FILE_UPLOAD_TEMP_DIR = str(MEDIA_ROOT / ".upload-tmp")
-if DEBUG:
-    MEDIA_ROOT.joinpath(".upload-tmp").mkdir(parents=True, exist_ok=True)  # in the container, entrypoint.sh makes it
+# (deploy/entrypoint.sh creates the folder when the container starts; without it, the system default is used.)
+FILE_UPLOAD_TEMP_DIR = str(MEDIA_ROOT / ".upload-tmp") if (MEDIA_ROOT / ".upload-tmp").is_dir() else None
 FILE_UPLOAD_PERMISSIONS = 0o640
 FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o750
 
