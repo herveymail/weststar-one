@@ -140,3 +140,57 @@ def test_staff_reply_threads_email(monkeypatch):
     m.refresh_from_db()
     assert sent["subject"] == f"Re: [{t.number}] Printer" and "<abc@mail.test>" in sent["references"]
     assert m.via == "email" and m.email_message_id == sent["message_id"] and f"ws1.t{t.pk}." in m.email_message_id
+
+
+class FakeImap:
+    def __init__(self, validity=b"777", uids=b"440 441", nxt=500):
+        self.validity, self.uids, self.nxt, self.searched, self.stored = validity, uids, nxt, [], []
+
+    def select(self, folder, readonly=False):
+        return "OK", [b"1"]
+
+    def response(self, code):
+        return code, [self.validity]
+
+    def status(self, folder, what):
+        return "OK", [f"INBOX (UIDNEXT {self.nxt})".encode()]
+
+    def uid(self, cmd, *args):
+        if cmd == "search":
+            self.searched.append(args[1])
+            return "OK", [self.uids]
+        if cmd == "fetch":
+            return "OK", [(b"1", raw(subject=f"Mail {args[0]}", mid=f"<m{args[0]}@x.test>").as_bytes())]
+        self.stored.append(args[0])
+        return "OK", []
+
+    def logout(self):
+        pass
+
+
+def _fetch_with(monkeypatch, imap):
+    Setting.put("email.fetch_enabled", "true")
+    Setting.put("email.imap_password", "app-pass", secret=True)
+    monkeypatch.setattr(inbound, "_connect", lambda: imap)
+    return inbound.fetch()
+
+
+def test_fetch_continues_from_old_app(monkeypatch):
+    Setting.put("email.imap_last_uid", "439")
+    Setting.put("email.imap_uidvalidity", "777")
+    r = _fetch_with(monkeypatch, FakeImap())
+    assert r["ticket"] == 2 and Setting.get("email.imap_last_uid") == "441"
+
+
+def test_fetch_after_import_with_other_numbering_uses_date(monkeypatch):
+    Setting.put("email.imap_last_uid", "439")
+    Setting.put("email.imap_uidvalidity", "1")
+    Setting.put("email.imap_since", "2026-10-22")
+    imap = FakeImap()
+    _fetch_with(monkeypatch, imap)
+    assert imap.searched[0] == "UID 2:* SINCE 22-Oct-2026"
+
+
+def test_first_fetch_without_history_starts_now(monkeypatch):
+    r = _fetch_with(monkeypatch, FakeImap())
+    assert "watching" in r["started"] and Setting.get("email.imap_last_uid") == "499" and not Ticket.objects.exists()

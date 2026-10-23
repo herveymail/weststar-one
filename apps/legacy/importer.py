@@ -844,6 +844,16 @@ class Importer:
                     "resolve_due_at": ts(r.get("ticket_sla_resolve_due") or r.get("ticket_sla_resolution_due")),
                     "created_at": ts(r.get("ticket_created_at")), "updated_at": ts(r.get("ticket_updated_at")) or ts(r.get("ticket_created_at"))}
         self.upsert("tickets", Ticket, rows, "ticket_id", ticket)
+        # Emails the old app already turned into tickets — so this app never makes them twice
+        from apps.helpdesk.models import InboundEmail
+        for r in rows:
+            mid = str(r.get("ticket_email_msgid") or "").strip()[:255]
+            tid = R("tickets", r.get("ticket_id"))
+            if mid and tid:
+                if not mid.startswith("<"):
+                    mid = f"<{mid}>"
+                InboundEmail.objects.get_or_create(message_id=mid, defaults={"ticket_id": tid, "result": "ticket", "note": "made by the old app",
+                                                                             "subject": s(r.get("ticket_subject"), 255) or "", "from_address": email(r.get("ticket_contact_email")) or ""})
         for r in rows:  # merged tickets point at a ticket that may come later in the list
             target = R("tickets", r.get("ticket_merged_into"))
             if target:
@@ -1028,6 +1038,10 @@ class Importer:
         days = [DAY_NAMES[i] for i, k in enumerate(DAY_KEYS) if old.get(k) == "1"]
         if days and not Setting.get("helpdesk.days", ""):
             Setting.put("helpdesk.days", ",".join(days))
+        # Where the old app stopped reading the support mailbox (the first check here picks up from that day)
+        lastrun = old.get("cron_lastrun_fetch_emails.php", "")
+        if lastrun[:10] and not Setting.get("email.last_fetch", "") and lastrun[:10] > Setting.get("email.imap_since", ""):
+            Setting.put("email.imap_since", lastrun[:10])
         # Google Workspace sign-in like the old app: allowed domains = the staff email domains,
         # and staff who had linked Google must keep using it (sso_require_for_linked).
         staff = self.read("users", "user_id") if self.has("users") else []

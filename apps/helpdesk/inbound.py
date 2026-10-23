@@ -262,8 +262,13 @@ def fetch() -> dict:
         _t, data = conn.response("UIDVALIDITY")
         validity = (data[0].decode() if data and data[0] else "")
         last = int(Setting.get("email.imap_last_uid", "0") or 0)
+        first_here = not Setting.get("email.last_fetch", "")
+        since = Setting.get("email.imap_since", "")  # set by the import: the old app's last mailbox check
         if Setting.get("email.imap_uidvalidity", "") not in ("", validity):
-            last = 0  # the mailbox was rebuilt; Message-IDs stop duplicates
+            if first_here and since:
+                last = 1  # the old app's numbering doesn't apply; pick up by date instead (below)
+            else:
+                last = 0  # the mailbox was rebuilt; Message-IDs stop duplicates
         if last == 0:
             # First run: start from now instead of turning the whole mailbox into tickets.
             _t, nxt = conn.status(f'"{folder}"', "(UIDNEXT)")
@@ -272,7 +277,15 @@ def fetch() -> dict:
             Setting.put("email.imap_last_uid", str(last))
             Setting.put("email.imap_uidvalidity", validity)
             return {"started": f"watching for new mail after #{last}"}
-        _t, found = conn.uid("search", None, f"UID {last + 1}:*")
+        criteria = f"UID {last + 1}:*"
+        if first_here and since:
+            import datetime as _dt
+            try:
+                d = _dt.date.fromisoformat(since[:10])
+                criteria += f" SINCE {d.day:02d}-{d.strftime('%b')}-{d.year}"  # catch mail that came in while switching over
+            except ValueError:
+                pass
+        _t, found = conn.uid("search", None, criteria)
         uids = sorted(int(u) for u in (found[0] or b"").split() if int(u) > last)[:MAX_PER_RUN]
         counts = {"ticket": 0, "reply": 0, "skipped": 0, "error": 0}
         for uid in uids:
