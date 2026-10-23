@@ -43,3 +43,6 @@ th a.sort:hover { color: var(--text); }
 .drawer-files { padding: 0 24px 16px; max-height: 40vh; overflow: auto; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
 .file-chip { display: inline-flex; align-items: center; gap: 6px; margin: 6px 6px 0 0; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--text); text-decoration: none; background: var(--panel); }
 .file-chip:hover { border-color: var(--accent); }
+.google-btn { justify-content: center; gap: 10px; font-weight: 600; min-height: 44px; }
+.or-line { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; }
+.or-line::before, .or-line::after { content: ""; flex: 1; border-top: 1px solid var(--line); }

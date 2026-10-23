@@ -50,6 +50,10 @@ def _record(email: str, request, success: bool, reason: str):
     LoginAttempt.objects.create(email=(email or "")[:254], ip=client_ip(request), success=success, reason=reason)
 
 
+def record_attempt(email: str, request, success: bool, reason: str):
+    _record(email, request, success, reason)
+
+
 def ip_blocked(request) -> bool:
     since = timezone.now() - timedelta(minutes=15)
     return LoginAttempt.objects.filter(ip=client_ip(request), success=False, created_at__gte=since).count() >= settings.LOGIN_IP_MAX_FAILS

@@ -3,6 +3,7 @@ from django.shortcuts import redirect
 from django.utils import timezone
 
 from .models import UserSession
+from .google import counts_as_2fa as google_counts_as_2fa
 from .security import idle_minutes, mfa_required
 
 OPEN_PATHS = ("/login/", "/static/", "/health/")
@@ -45,6 +46,6 @@ class SessionGuardMiddleware:
             return self.get_response(request) if path.startswith(("/login/mfa/", "/logout/")) else redirect("/login/mfa/")
         if user.must_change_password:
             return self.get_response(request) if path.startswith(("/account/password/", "/logout/")) else redirect("/account/password/")
-        if not user.mfa_enabled and mfa_required(user):
+        if not user.mfa_enabled and mfa_required(user) and not (request.session.get("via_google") and google_counts_as_2fa()):
             return self.get_response(request) if path.startswith(("/account/mfa-setup/", "/logout/")) else redirect("/account/mfa-setup/")
         return self.get_response(request)

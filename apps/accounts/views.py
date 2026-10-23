@@ -18,6 +18,7 @@ from django.views.decorators.http import require_POST
 
 from apps.core.audit import audit
 from apps.core.crypto import decrypt
+from apps.core.models import Setting
 from apps.core.permissions import ROLES, can
 
 from . import security
@@ -37,13 +38,57 @@ def login_view(request):
     error = ""
     if request.method == "POST":
         user, reason = security.check_password_step(request, request.POST.get("email", ""), request.POST.get("password", ""))
+        if user and not password_login_allowed(user):
+            security.record_attempt(user.email, request, False, "password_off")
+            user = None
         if user:
             needs_code = user.mfa_enabled
             security.start_session(request, user, mfa_passed=not needs_code)
             audit(request, "login", "user", user.pk, f"{user.email} signed in{' (password step)' if needs_code else ''}", user=user)
             return redirect("/login/mfa/" if needs_code else request.GET.get("next", "/") if request.GET.get("next", "/").startswith("/") and not request.GET.get("next", "/").startswith("//") else "/")
         error = security.GENERIC_FAIL
-    return render(request, "accounts/login.html", {"error": error, "expired": request.GET.get("expired")})
+    from . import google
+    return render(request, "accounts/login.html", {"error": error, "expired": request.GET.get("expired"), "google": google.enabled(),
+                                                   "password_login": not google.enabled() or Setting.get("security.password_login", "everyone") == "everyone"
+                                                   or request.GET.get("password") == "1"})
+
+
+def password_login_allowed(user) -> bool:
+    """Settings › Sign-in: once Google sign-in is on, passwords can be limited to admins (break-glass)."""
+    from . import google
+    if not google.enabled() or Setting.get("security.password_login", "everyone") == "everyone":
+        return True
+    return user.role == "admin"
+
+
+def google_start(request):
+    from . import google
+    if not google.enabled():
+        return redirect("/login/")
+    return redirect(google.start(request.session))
+
+
+def google_callback(request):
+    from . import google
+    if not google.enabled():
+        return redirect("/login/")
+    try:
+        email = google.finish(request.session, request.GET)
+    except google.GoogleSignInError as e:
+        return render(request, "accounts/login.html", {"error": str(e), "google": True, "password_login": True}, status=400)
+    user = User.objects.filter(email__iexact=email, is_active=True).first()
+    if user is None or (user.locked_until and user.locked_until > timezone.now()):
+        security.record_attempt(email, request, False, "google_no_account" if user is None else "locked")
+        return render(request, "accounts/login.html", {
+            "error": "There's no active Weststar ONE account for that Google login. Ask an admin to add you in Staff users.",
+            "google": True, "password_login": True}, status=403)
+    security.record_attempt(email, request, True, "google")
+    passed = google.counts_as_2fa() or not user.mfa_enabled
+    security.start_session(request, user, mfa_passed=passed)
+    request.session["via_google"] = True
+    User.objects.filter(pk=user.pk).update(failed_logins=0, last_login=timezone.now())
+    audit(request, "login", "user", user.pk, f"{user.email} signed in with Google", user=user)
+    return redirect("/" if passed else "/login/mfa/")
 
 
 def mfa_view(request):

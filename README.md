@@ -141,7 +141,7 @@ search, filters, add/edit drawer, permissions and audit log all come from the re
 
 ## Next rounds
 
-- Email-to-ticket and replies through Microsoft 365
+- Email-to-ticket and replies through Google Workspace (Gmail)
 - Client portal
 - Stripe payments and QuickBooks sync
 - Dispatch board

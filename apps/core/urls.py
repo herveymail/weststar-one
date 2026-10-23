@@ -14,6 +14,8 @@ urlpatterns = [
     path("health/", views.health),
     path("login/", acc.login_view, name="login"),
     path("login/mfa/", acc.mfa_view, name="mfa"),
+    path("login/google/", acc.google_start, name="google_start"),
+    path("login/google/callback/", acc.google_callback, name="google_callback"),
     path("logout/", acc.logout_view, name="logout"),
     path("account/password/", acc.password_view, name="password"),
     path("account/mfa-setup/", acc.mfa_setup_view, name="mfa_setup"),

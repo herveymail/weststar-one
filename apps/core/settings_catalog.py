@@ -23,7 +23,7 @@ SETTINGS = [
         ("portal", "Customer portal", "What clients can see and do in the portal", [("portal.enabled", "Portal enabled", B), ("portal.show_invoices", "Clients can see invoices", B)]),
     ]),
     ("comms", "Email & messaging", "Email, chat and phone connections", [
-        ("email", "Email", "Microsoft 365 / Google sending and email-to-ticket", [("email.provider", "Provider", SEL, ["Microsoft 365", "Google Workspace", "SMTP"]), ("email.support_address", "Support mailbox", T), ("email.m365_tenant_id", "Microsoft tenant ID", T), ("email.m365_client_id", "Microsoft client ID", T), ("email.m365_client_secret", "Microsoft client secret", S), ("email.smtp_host", "SMTP host", T), ("email.smtp_password", "SMTP password", S)]),
+        ("email", "Email", "Google Workspace sending and email-to-ticket", [("email.provider", "Provider", SEL, ["Google Workspace", "Microsoft 365", "SMTP"]), ("email.support_address", "Support mailbox", T), ("email.m365_tenant_id", "Microsoft tenant ID", T), ("email.m365_client_id", "Microsoft client ID", T), ("email.m365_client_secret", "Microsoft client secret", S), ("email.smtp_host", "SMTP host", T), ("email.smtp_password", "SMTP password", S)]),
         ("google_chat", "Google Chat", "Ticket alerts in Google Chat", [("chat.webhook_url", "Webhook URL", S)]),
         ("phone", "Phone system", "Yeastar PBX, call sync and recordings", [("phone.yeastar_host", "Yeastar address", T), ("phone.yeastar_secret", "API secret", S)]),
     ]),
@@ -33,7 +33,7 @@ SETTINGS = [
     ]),
     ("people", "People & access", "Who can sign in and what they can do", [
         ("users", "Staff users", "Accounts, roles, H/R access, password and 2FA resets", "users"),
-        ("signin", "Sign-in & 2FA", "Who must use two-factor, session timeout", [("security.require_mfa", "Require two-factor sign-in for", SEL, ["privileged", "everyone", "nobody"], "privileged = admins, managers and anyone with H/R access (recommended)"), ("security.idle_minutes", "Sign out after idle (minutes)", I)]),
+        ("signin", "Sign-in & 2FA", "Google Workspace sign-in, two-factor rules, session timeout", [("google.client_id", "Google OAuth client ID", T), ("google.client_secret", "Google OAuth client secret", S), ("google.domains", "Allowed Google Workspace domains (comma-separated, e.g. weststarmsp.com, dsotv.com)", T), ("google.counts_as_2fa", "Google sign-in counts as two-factor (turn on 2-Step Verification enforcement in Google Admin)", SEL, ["yes", "no"]), ("security.password_login", "Password sign-in (once Google is set up)", SEL, ["everyone", "admins"], "admins = only admins can still use a password, as a backup if Google is down"), ("security.require_mfa", "Require two-factor sign-in for", SEL, ["privileged", "everyone", "nobody"], "privileged = admins, managers and anyone with H/R access (recommended)"), ("security.idle_minutes", "Sign out after idle (minutes)", I)]),
     ]),
     ("integrations", "Integrations & automation", "Other apps, AI and scheduled jobs", [
         ("rmm", "Datto RMM", "Device and alert sync", [("rmm.api_url", "API URL", T), ("rmm.api_key", "API key", S), ("rmm.api_secret", "API secret", S)]),

@@ -81,7 +81,7 @@
       <span class="spacer"></span>
       <button type="button" class="btn" hx-post="/tickets/{{ t.pk }}/update/" hx-vals='{"status":"{% if t.is_open %}Closed{% else %}Open{% endif %}"}' hx-target="#pane" hx-swap="outerHTML">{% if t.is_open %}Close ticket{% else %}Reopen ticket{% endif %}</button>
     </div>
-    <span class="small muted">Replies are saved to the ticket. Emailing them to the client arrives with the Microsoft 365 connection in the next round.</span>
+    <span class="small muted">Replies are saved to the ticket. Emailing them to the client arrives with the Google Workspace (Gmail) connection in the next round.</span>
   </form>
   {% endif %}
 </section>
