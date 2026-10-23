@@ -236,4 +236,58 @@ def test_blocked_port_message(monkeypatch):
     def boom(msg):
         raise OSError(101, "Network is unreachable")
     monkeypatch.setattr(mail, "_deliver", boom)
-    assert "blocking outgoing email ports" in mail.test("me@x.test")
+    assert "can't open a connection to smtp.gmail.com on port 587" in mail.test("me@x.test")
+
+
+def test_ipv4_tried_before_ipv6(monkeypatch):
+    import socket as s
+    tried = []
+    monkeypatch.setattr(mail.socket, "getaddrinfo", lambda h, p, *a: [(s.AF_INET6, 1, 6, "", ("::1", p, 0, 0)), (s.AF_INET, 1, 6, "", ("1.2.3.4", p))])
+
+    def conn(sa, timeout):
+        tried.append(sa[0])
+        if ":" in sa[0]:
+            raise OSError(101, "Network is unreachable")
+        return "sock"
+    monkeypatch.setattr(mail.socket, "create_connection", conn)
+    assert mail._ipv4_first("smtp.gmail.com", 587, 5) == "sock" and tried == ["1.2.3.4"]
+
+
+def test_google_mailbox_connect_and_send(client, monkeypatch):
+    import base64
+    import json as _json
+
+    from apps.core import gmail
+
+    from .helpers import make_user, signed_in
+    Setting.put("security.require_mfa", "nobody")
+    Setting.put("google.client_id", "cid")
+    Setting.put("google.client_secret", "sec", secret=True)
+    signed_in(client, make_user(role="admin"))
+    r = client.post("/settings/email/google/")
+    assert r.status_code == 302 and "mail.google.com" in r["Location"] and "access_type=offline" in r["Location"]
+    state = client.session["gmail_oauth"]["state"]
+    idt = "x." + base64.urlsafe_b64encode(_json.dumps({"email": "support@weststarmsp.com"}).encode()).decode().rstrip("=") + ".y"
+    monkeypatch.setattr(gmail, "_token", lambda url, data: {"access_token": "at", "refresh_token": "rt", "expires_in": 3600,
+                                                             "scope": "openid email https://mail.google.com/", "id_token": idt})
+    r = client.get("/settings/email/google/callback/", {"state": state, "code": "c"}, follow=True)
+    assert b"Connected support@weststarmsp.com" in r.content and mail.provider() == "gmail" and mail.configured()
+    sent = {}
+
+    class R:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return b'{"id": "m1"}'
+    monkeypatch.setattr(gmail.urllib.request, "urlopen", lambda req, timeout=0: sent.update(auth=req.headers["Authorization"], body=_json.loads(req.data)) or R())
+    assert mail.test("me@x.test") == ""
+    raw = base64.urlsafe_b64decode(sent["body"]["raw"]).decode()
+    assert sent["auth"] == "Bearer at" and "To: me@x.test" in raw and "support@weststarmsp.com" in raw
+    Setting.put("email.fetch_enabled", "true")
+    assert inbound.enabled()  # reads the inbox through the connected mailbox, no app password
+    r = client.post("/settings/email/test/", {"what": "diagnose"})
+    assert r.status_code == 302

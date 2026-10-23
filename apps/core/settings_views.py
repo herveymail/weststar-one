@@ -106,6 +106,10 @@ def settings_page(request, page):
             f["value"] = row.value if row else DEFAULTS.get(f["key"], "")
         values.append(f)
     ctx = {"group": group, "item": item, "fields": values, "can_manage": can(request.user, "admin", "manage")}
+    if item[0] in ("email", "email_in"):
+        from . import gmail
+        ctx.update(gmail_connected=gmail.connected(), gmail_address=gmail.address(), gmail_redirect=gmail.redirect_uri(),
+                   diag=request.session.pop("mail_diag", None))
     if item[0] == "payments":
         from django.conf import settings as dj
         ctx["webhook_url"] = f"{dj.APP_URL}/stripe/webhook/"
@@ -124,6 +128,10 @@ def email_test(request):
     """Settings › Email buttons: send a test email / check the support mailbox."""
     if request.method != "POST" or not can(request.user, "admin", "manage"):
         raise PermissionDenied
+    if request.POST.get("what") == "diagnose":
+        from . import mail
+        request.session["mail_diag"] = mail.diagnose()
+        return redirect("/settings/email/#diag")
     if request.POST.get("what") == "inbox":
         from apps.helpdesk.inbound import test_connection
         problem = test_connection()
@@ -156,3 +164,33 @@ def _jobs():
     from .jobs import JOBS
     runs = {r.name: r for r in JobRun.objects.all()}
     return [{"name": name, "label": j["label"], "every": j["every_minutes"], "run": runs.get(name)} for name, j in JOBS.items()]
+
+
+@login_required
+def gmail_connect(request):
+    """Settings › Email sending › Connect Google mailbox (and the return from Google)."""
+    from . import gmail
+    if not can(request.user, "admin", "manage"):
+        raise PermissionDenied
+    if request.method == "POST":
+        if request.POST.get("action") == "disconnect":
+            gmail.disconnect()
+            audit(request, "settings", "settings", "email", "Disconnected the Google mailbox", area="admin")
+            messages.success(request, "Google mailbox disconnected.")
+            return redirect("/settings/email/")
+        try:
+            return redirect(gmail.start(request.session, hint=Setting.get("email.support_address", "") or Setting.get("email.imap_user", "")))
+        except gmail.GmailError as e:
+            messages.error(request, str(e))
+            return redirect("/settings/email/")
+    try:
+        addr = gmail.finish(request.session, request.GET)
+    except Exception as e:  # noqa: BLE001 — shown to the admin in plain words
+        messages.error(request, str(e))
+        return redirect("/settings/email/")
+    Setting.put("email.provider", "Google Workspace (Gmail API)", user=request.user)
+    if not Setting.get("email.from_address", ""):
+        Setting.put("email.from_address", addr, user=request.user)
+    audit(request, "settings", "settings", "email", f"Connected the Google mailbox {addr}", area="admin")
+    messages.success(request, f"Connected {addr}. Email now goes out through Google, and email to ticket can read this inbox without an app password. Send a test email to check.")
+    return redirect("/settings/email/")

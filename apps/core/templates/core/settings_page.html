@@ -25,10 +25,23 @@
 </section>
 {% if item.0 == "email" and can_manage %}
 <section class="card pad stack" style="max-width:760px">
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 style="flex:1">Google mailbox</h2>
+    {% if gmail_connected %}<span class="pill good">Connected: {{ gmail_address }}</span>{% else %}<span class="pill">Not connected</span>{% endif %}</div>
+  <p style="margin:0">Send (and read) support@ email straight through Google Workspace — like the old Office 365 connection. Nothing to type: sign in once as the support mailbox. Works even when the server's email ports are blocked, and email to ticket no longer needs an app password.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <form method="post" action="/settings/email/google/">{% csrf_token %}<button class="btn primary">{% if gmail_connected %}Reconnect{% else %}Connect Google mailbox{% endif %}</button></form>
+    {% if gmail_connected %}<form method="post" action="/settings/email/google/">{% csrf_token %}<input type="hidden" name="action" value="disconnect"><button class="btn danger">Disconnect</button></form>{% endif %}</div>
+  <p class="small muted" style="margin:0">One-time Google Cloud setup (same project and OAuth client as staff sign-in): <b>1.</b> APIs &amp; Services › Library › <b>Gmail API</b> › Enable. <b>2.</b> Credentials › your OAuth client › add this Authorized redirect URI: <code style="user-select:all">{{ gmail_redirect }}</code>. Then click Connect and sign in as support@weststarmsp.com.</p>
+</section>
+<section class="card pad stack" style="max-width:760px">
   <h2>Send a test email</h2>
   <form method="post" action="/settings/email/test/" class="row" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">{% csrf_token %}<input type="hidden" name="what" value="send">
     <div class="field" style="flex:1 1 260px"><label for="tt">Send to</label><input id="tt" name="to" type="email" class="input" value="{{ request.user.email }}"></div>
     <button class="btn">Send test email</button></form>
+  <form method="post" action="/settings/email/test/" id="diag">{% csrf_token %}<input type="hidden" name="what" value="diagnose"><button class="btn">Check this server's connections</button></form>
+  {% if diag %}<div class="table-wrap"><table class="grid"><thead><tr><th>Service</th><th>Address</th><th>Result</th></tr></thead><tbody>
+    {% for label, addr, ok, note in diag %}<tr><td class="small">{{ label }}</td><td class="small">{{ addr }}</td><td class="small">{% if ok %}<span class="pill good">Open</span>{% else %}<span class="pill bad">Blocked</span>{% endif %} {{ note }}</td></tr>{% endfor %}</tbody></table></div>
+    <p class="small muted" style="margin:0">IPv6 “Network is unreachable” is normal for servers without IPv6 and doesn't matter as long as IPv4 is open.</p>{% endif %}
   <p class="small muted" style="margin:0"><b>Gmail / SMTP:</b> smtp.gmail.com, port 587, the full mailbox address as the username, and an <b>app password</b> (Google Account › Security › 2-Step Verification › App passwords).<br>
     <b>SMTP2GO (HTTPS):</b> for servers where the hosting company blocks email ports (DigitalOcean). Paste an API key from SMTP2GO › Sending › API Keys; the send-from address must be a verified sender there (support@weststarmsp.com was, in the old app).</p>
 </section>
@@ -51,6 +64,7 @@
 {% endif %}
 {% if item.0 == "email_in" %}
 <section class="card pad stack" style="max-width:760px">
+  {% if gmail_connected %}<div class="banner info" style="margin:0">Reading <b>{{ gmail_address }}</b> through the connected Google mailbox — no app password needed.</div>{% endif %}
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 style="flex:1">Mailbox</h2>
     {% if can_manage %}<form method="post" action="/settings/email/test/">{% csrf_token %}<input type="hidden" name="what" value="inbox"><button class="btn">Test connection</button></form>{% endif %}</div>
   <p class="small muted" style="margin:0">{% if last_fetch %}Last checked {{ last_fetch }}.{% else %}Not checked yet.{% endif %} The first check starts from that moment, so older email in the mailbox is not turned into tickets.

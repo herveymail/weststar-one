@@ -7,12 +7,14 @@ the caller carries on (a ticket reply is still saved even when its email can't b
 import json
 import logging
 import secrets
+import smtplib
 import socket
 import urllib.error
 import urllib.request
 from email.utils import formataddr
 
-from django.core.mail import EmailMultiAlternatives, get_connection
+from django.core.mail import EmailMultiAlternatives
+from django.core.mail.backends.smtp import EmailBackend
 from django.template.loader import render_to_string
 
 from .models import Setting
@@ -20,14 +22,21 @@ from .models import Setting
 log = logging.getLogger("weststar.mail")
 
 
+GMAIL_API = "Google Workspace (Gmail API)"
+
+
 def provider() -> str:
-    return "smtp2go" if Setting.get("email.provider", "") == "SMTP2GO (HTTPS)" else "smtp"
+    p = Setting.get("email.provider", "")
+    if p == GMAIL_API:
+        return "gmail"
+    return "smtp2go" if p == "SMTP2GO (HTTPS)" else "smtp"
 
 
 def test(to: str) -> str:
     """Sends a test email. Returns '' when it worked, otherwise the problem in plain words."""
     if not configured():
-        return ("Paste the SMTP2GO API key first." if provider() == "smtp2go" else "Fill in the SMTP host, username and password first.")
+        return {"smtp2go": "Paste the SMTP2GO API key first.", "gmail": "Click “Connect Google mailbox” first."}.get(
+            provider(), "Fill in the SMTP host, username and password first.")
     msg = EmailMultiAlternatives(subject="Test email from Weststar ONE", body="Sending email from Weststar ONE works.", from_email=from_address(), to=[to])
     try:
         _deliver(msg)
@@ -38,16 +47,18 @@ def test(to: str) -> str:
 
 def explain(e: Exception) -> str:
     text = str(e)
+    if provider() == "gmail":
+        return text[:400]
     if provider() == "smtp2go":
         return f"SMTP2GO said: {text[:300]}"
     if "535" in text or "Username and Password not accepted" in text:
         return "Google didn't accept the username or app password. Make a new app password for this mailbox and paste it in."
     if isinstance(e, (OSError, socket.timeout)) and not isinstance(e, socket.gaierror):
         port = Setting.get("email.smtp_port", "587") or "587"
-        if not port_open(Setting.get("email.smtp_host") or "smtp.gmail.com", int(port)) and port_open("api.smtp2go.com", 443):
-            return (f"This server can't reach the mail server on port {port} — the hosting company is blocking outgoing email ports "
-                    "(DigitalOcean blocks 25, 465 and 587 on every server). Fix: switch Provider to “SMTP2GO (HTTPS)” and paste your "
-                    "SMTP2GO API key (what the old Weststar One used), or ask your host to unblock SMTP.")
+        if not port_open(Setting.get("email.smtp_host") or "smtp.gmail.com", int(port)) and port_open("gmail.googleapis.com", 443):
+            return (f"This server can't open a connection to {Setting.get('email.smtp_host') or 'smtp.gmail.com'} on port {port}, but web (HTTPS) "
+                    "connections work. Click “Check this server's connections” below to see exactly what's open. Fix: “Connect Google "
+                    "mailbox” (sends through Google over HTTPS) or SMTP2GO.")
     return f"The mail server said: {text[:300]}"
 
 
@@ -63,12 +74,19 @@ def port_open(host: str, port: int, timeout=6) -> bool:
 
 
 def configured() -> bool:
+    if provider() == "gmail":
+        from . import gmail
+        return gmail.connected()
     if provider() == "smtp2go":
         return bool(Setting.get("email.smtp2go_api_key") and (Setting.get("email.from_address") or Setting.get("email.smtp_user")))
     return bool(Setting.get("email.smtp_host") and Setting.get("email.smtp_user") and Setting.get("email.smtp_password"))
 
 
 def _deliver(msg: EmailMultiAlternatives) -> None:
+    if provider() == "gmail":
+        from . import gmail
+        gmail.send_raw(msg.message().as_bytes())
+        return
     if provider() != "smtp2go":
         msg.connection = _connection()
         msg.send()
@@ -95,27 +113,79 @@ def _deliver(msg: EmailMultiAlternatives) -> None:
         raise RuntimeError(data.get("error") or (data.get("failures") or ["not accepted"])[0])
 
 
+def _ipv4_first(host, port, timeout):
+    """Connect over IPv4 first (Docker networks often have no IPv6 route: "Network is unreachable"), then IPv6."""
+    last = None
+    infos = socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM)
+    for _f, _t, _p, _c, sa in sorted(infos, key=lambda i: i[0] != socket.AF_INET):
+        try:
+            return socket.create_connection(sa[:2], timeout)
+        except OSError as e:
+            last = e
+    raise last or OSError("no address for " + host)
+
+
+class _SMTP(smtplib.SMTP):
+    def _get_socket(self, host, port, timeout):
+        return _ipv4_first(host, port, timeout)
+
+
+class _SMTPSSL(smtplib.SMTP_SSL):
+    def _get_socket(self, host, port, timeout):
+        sock = _ipv4_first(host, port, timeout)
+        return self.context.wrap_socket(sock, server_hostname=self._host)
+
+
+class _Backend(EmailBackend):
+    @property
+    def connection_class(self):
+        return _SMTPSSL if self.use_ssl else _SMTP
+
+
+def diagnose() -> list[tuple[str, str, bool, str]]:
+    """Settings › Email sending › Check this server's connections: plain facts instead of guesses."""
+    checks = [("Gmail SMTP", "smtp.gmail.com", 587), ("Gmail SMTP (SSL)", "smtp.gmail.com", 465), ("Office 365 SMTP", "smtp.office365.com", 587),
+              ("Gmail IMAP (email to ticket)", "imap.gmail.com", 993), ("Google API (HTTPS)", "gmail.googleapis.com", 443),
+              ("SMTP2GO API (HTTPS)", "api.smtp2go.com", 443), ("SMTP2GO SMTP alt port", "mail.smtp2go.com", 2525)]
+    out = []
+    for label, host, port in checks:
+        for fam, name in ((socket.AF_INET, "IPv4"), (socket.AF_INET6, "IPv6")):
+            try:
+                sa = socket.getaddrinfo(host, port, fam, socket.SOCK_STREAM)[0][4]
+            except OSError:
+                out.append((label, f"{host}:{port} {name}", False, "no address"))
+                continue
+            t0 = __import__("time").monotonic()
+            try:
+                with socket.create_connection(sa[:2], timeout=6):
+                    out.append((label, f"{host}:{port} {name}", True, f"open ({int((__import__('time').monotonic() - t0) * 1000)} ms)"))
+            except TimeoutError:
+                out.append((label, f"{host}:{port} {name}", False, "timed out — blocked by a firewall"))
+            except OSError as e:
+                out.append((label, f"{host}:{port} {name}", False, e.strerror or str(e)))
+    return out
+
+
 def _connection():
     try:
         port = int(Setting.get("email.smtp_port", "587") or 587)
     except ValueError:
         port = 587
-    return get_connection(
-        "django.core.mail.backends.smtp.EmailBackend",
+    return _Backend(
         host=Setting.get("email.smtp_host"), port=port, username=Setting.get("email.smtp_user"),
         password=Setting.get("email.smtp_password"), use_tls=port == 587, use_ssl=port == 465, timeout=15,
     )
 
 
 def from_address() -> str:
-    addr = Setting.get("email.from_address") or Setting.get("email.smtp_user")
+    addr = Setting.get("email.from_address") or Setting.get("email.smtp_user") or Setting.get("email.gmail_address")
     name = Setting.get("email.from_name") or Setting.get("company.name") or Setting.get("brand.app_name", "Weststar ONE")
     return formataddr((name, addr))
 
 
 def own_addresses() -> set[str]:
     """Our own mailbox addresses (mail from these is never turned into a ticket)."""
-    keys = ("email.from_address", "email.smtp_user", "email.support_address", "email.imap_user")
+    keys = ("email.from_address", "email.smtp_user", "email.support_address", "email.imap_user", "email.gmail_address")
     return {Setting.get(k, "").strip().lower() for k in keys if Setting.get(k, "").strip()}
 
 

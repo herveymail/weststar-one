@@ -40,22 +40,33 @@ QUOTE_STARTS = [
 ]
 
 
+def _use_google() -> bool:
+    from apps.core import gmail
+    user = (Setting.get("email.imap_user") or "").lower()
+    return gmail.connected() and (not user or user == gmail.address()) and "gmail" in (Setting.get("email.imap_host") or "imap.gmail.com")
+
+
 def enabled() -> bool:
-    return Setting.get("email.fetch_enabled", "false") == "true" and bool(Setting.get("email.imap_user") and Setting.get("email.imap_password"))
+    return Setting.get("email.fetch_enabled", "false") == "true" and (
+        _use_google() or bool(Setting.get("email.imap_user") and Setting.get("email.imap_password")))
 
 
 def _connect():
     host = Setting.get("email.imap_host") or "imap.gmail.com"
     port = int(Setting.get("email.imap_port") or 993)
     conn = imaplib.IMAP4_SSL(host, port, timeout=30)
-    conn.login(Setting.get("email.imap_user"), Setting.get("email.imap_password"))
+    if _use_google():
+        from apps.core import gmail
+        gmail.imap_xoauth2(conn, gmail.address())
+    else:
+        conn.login(Setting.get("email.imap_user"), Setting.get("email.imap_password"))
     return conn
 
 
 def test_connection() -> str:
     """'' when it works, otherwise the problem in plain words."""
-    if not (Setting.get("email.imap_user") and Setting.get("email.imap_password")):
-        return "Fill in the mailbox username and app password first."
+    if not (_use_google() or (Setting.get("email.imap_user") and Setting.get("email.imap_password"))):
+        return "Connect the Google mailbox in Settings › Email sending, or fill in the mailbox and app password."
     try:
         conn = _connect()
         typ, data = conn.select(f'"{Setting.get("email.imap_folder") or "INBOX"}"', readonly=True)
