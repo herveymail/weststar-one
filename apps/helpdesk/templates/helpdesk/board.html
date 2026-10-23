@@ -1,0 +1,30 @@
+{% extends "base.html" %}{% load ws %}
+{% block title %}Tickets · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-head" style="align-items:center">
+  <h1>Tickets</h1>
+  {% include "helpdesk/_views.html" %}
+  <form class="search" style="max-width:280px" method="get" role="search">
+    {% icon "search" 16 %}<label for="tq" class="sr">Filter tickets</label>
+    <input type="hidden" name="view" value="board">
+    <input id="tq" name="q" value="{{ q }}" placeholder="Filter tickets…" autocomplete="off">
+  </form>
+</div>
+<div class="table-wrap">
+  <div class="board">
+    {% for name, cards in columns %}
+    <section class="col" aria-label="{{ name }}">
+      <div class="col-head"><span>{{ name }}</span><span class="muted">{{ cards|length }}</span></div>
+      {% for t in cards %}
+      <a class="b-card" href="/tickets/{{ t.pk }}/?view=inbox&filter=all">
+        <span class="small muted num">{{ t.number }}</span>
+        <span class="strong" style="line-height:1.35">{{ t.subject }}</span>
+        <span class="small muted">{{ t.client.name|default:"No client" }}</span>
+        <span style="display:flex;justify-content:space-between;gap:8px"><span class="pill {{ t.priority|prio_class }}">{{ t.priority }}</span><span class="small muted">{{ t.assigned_to.name|default:"Unassigned" }}</span></span>
+      </a>
+      {% endfor %}
+    </section>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

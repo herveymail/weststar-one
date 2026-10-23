@@ -1,0 +1,65 @@
+{% load ws %}
+<div class="shade">
+  <section class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+    <div class="drawer-head">
+      <h2 id="drawer-title" style="flex:1;min-width:0">{% if obj %}{{ m.singular }} {{ obj }}{% else %}New {{ m.singular|lower }}{% endif %}</h2>
+      <button type="button" class="icon-btn" aria-label="Close" data-close>{% icon "close" 16 %}</button>
+    </div>
+    <form class="drawer-body" hx-post="{% if obj %}/m/{{ m.slug }}/{{ obj.pk }}/{% else %}/m/{{ m.slug }}/new/?{{ request.GET.urlencode }}{% endif %}" hx-target="#modal" id="module-form">
+      {% if obj.archived_at %}<p class="banner info">This record is archived.</p>{% elif locked %}<p class="banner info">This has been {{ obj.status|lower }}. Ask H/R if it needs to change.</p>{% endif %}
+      {% if form.non_field_errors %}<div class="banner">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+      {% if readonly_values %}<div class="kv">{% for label, c in readonly_values %}<div><div class="label">{{ label }}</div><div>{{ c.text }}</div></div>{% endfor %}</div>{% endif %}
+      <fieldset class="form-grid" style="border:0;padding:0;margin:0"{% if locked %} disabled{% endif %}>
+        {% for f in form %}
+        <div class="field{% if f.widget_type == 'textarea' %} wide{% endif %}">
+          {% if f.widget_type == "checkbox" %}
+            <label class="check">{{ f }}{{ f.label }}</label>
+          {% else %}
+            <label for="{{ f.id_for_label }}">{{ f.label }}{% if f.field.required %} *{% endif %}{% if f.field.is_secret %} {% icon "lock" 12 %}{% endif %}</label>
+            {% if f.field.is_secret and f.field.secret_is_set and can_reveal %}
+              <div class="secret-row" id="reveal-{{ f.name }}">{% icon "lock" 16 %}<span class="muted">Saved and encrypted</span>
+                <button type="button" class="link-btn" hx-post="/m/{{ m.slug }}/{{ obj.pk }}/reveal/{{ f.name }}/" hx-target="#reveal-{{ f.name }}" hx-swap="innerHTML">{% icon "eye" 14 %}Show</button></div>
+            {% endif %}
+            {{ f }}
+          {% endif %}
+          {% if f.help_text %}<span class="help">{{ f.help_text }}</span>{% endif %}
+          {{ f.errors }}
+        </div>
+        {% endfor %}
+      </fieldset>
+      {% if lines %}
+        <h3>Line items</h3>
+        {{ lines.management_form }}
+        {% if lines.non_form_errors %}<div class="banner">{{ lines.non_form_errors|join:" " }}</div>{% endif %}
+        <div class="card" style="overflow:hidden"><div class="table-wrap">
+          <table class="grid lines">
+            <thead><tr><th>Description</th><th style="width:90px">Qty</th><th style="width:120px">Rate</th><th style="width:60px">Tax</th><th style="width:110px">Total</th><th style="width:70px">Remove</th></tr></thead>
+            <tbody id="lines-body">
+              {% for lf in lines %}<tr>{% for h in lf.hidden_fields %}{{ h }}{% endfor %}
+                <td><label class="sr" for="{{ lf.description.id_for_label }}">Description</label>{{ lf.description }}{{ lf.description.errors }}</td>
+                <td><label class="sr" for="{{ lf.qty.id_for_label }}">Qty</label>{{ lf.qty }}</td>
+                <td><label class="sr" for="{{ lf.rate.id_for_label }}">Rate</label>{{ lf.rate }}</td>
+                <td><label class="check">{{ lf.taxable }}<span class="sr">Taxable</span></label></td>
+                <td class="num">{% if lf.instance.pk %}{{ lf.instance.line_total|dollars }}{% else %}<span class="muted">—</span>{% endif %}</td>
+                <td>{% if lf.instance.pk %}<label class="check">{{ lf.DELETE }}<span class="sr">Remove</span></label>{% endif %}</td>
+              </tr>{% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="pager"><button type="button" class="btn small" data-add-line>{% icon "plus" 14 %}Add line</button>
+          {% if obj %}<span class="num">Subtotal {{ obj.subtotal|dollars }} · Tax {{ obj.tax_amount|dollars }} · <b>Total {{ obj.total|dollars }}</b></span>{% else %}<span class="muted small">Totals are calculated when you save.</span>{% endif %}</div></div>
+        <template id="line-template"><tr>{% with lf=lines.empty_form %}{% for h in lf.hidden_fields %}{{ h }}{% endfor %}
+          <td>{{ lf.description }}</td><td>{{ lf.qty }}</td><td>{{ lf.rate }}</td><td><label class="check">{{ lf.taxable }}</label></td><td class="num"><span class="muted">—</span></td><td></td>{% endwith %}</tr></template>
+      {% endif %}
+    </form>
+    <div class="drawer-foot">
+      {% if not locked %}<button class="btn primary" type="submit" form="module-form">{% if obj %}Save changes{% else %}Create {{ m.singular|lower }}{% endif %}</button>{% endif %}
+      <button type="button" class="btn" data-close>Cancel</button>
+      <div class="spacer"></div>
+      {% if obj and can_manage %}
+        {% if obj.archived_at %}<button class="btn" hx-post="/m/{{ m.slug }}/{{ obj.pk }}/archive/" hx-vals='{"restore":"1"}'>Restore</button>
+        {% else %}<button class="btn danger" hx-post="/m/{{ m.slug }}/{{ obj.pk }}/archive/">Archive</button>{% endif %}
+      {% endif %}
+    </div>
+  </section>
+</div>

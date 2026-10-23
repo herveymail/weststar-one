@@ -1,9 +1,10 @@
-node_modules/
-dist/
+.venv/
+__pycache__/
+*.pyc
 .env
 .env.*
 !.env.example
+staticfiles/
+media/
 *.log
-coverage/
-storage/
-.DS_Store
+.pytest_cache/

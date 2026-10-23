@@ -1,0 +1,10 @@
+# Pinned versions. Upgrade deliberately: change a version, run the tests, commit.
+Django==5.2.18
+mysqlclient==2.2.7
+argon2-cffi==25.1.0
+bcrypt==4.3.0
+pyotp==2.9.0
+cryptography==44.0.3
+qrcode==8.2
+gunicorn==23.0.0
+whitenoise==6.9.0

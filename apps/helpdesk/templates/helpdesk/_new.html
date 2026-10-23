@@ -1,0 +1,18 @@
+<div class="shade center">
+  <section class="dialog" role="dialog" aria-modal="true" aria-label="New ticket"><h2>New ticket</h2>
+    <form hx-post="/tickets/new/" hx-target="#modal" style="display:flex;flex-direction:column;gap:14px">
+      {% if form.non_field_errors %}<div class="banner">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+      <div class="field"><label for="{{ form.subject.id_for_label }}">Subject *</label>{{ form.subject }}{{ form.subject.errors }}</div>
+      <div class="form-grid">
+        <div class="field"><label for="{{ form.client.id_for_label }}">Client</label>{{ form.client }}{{ form.client.errors }}</div>
+        <div class="field"><label for="{{ form.contact.id_for_label }}">Contact</label>{{ form.contact }}{{ form.contact.errors }}</div>
+        <div class="field"><label for="{{ form.priority.id_for_label }}">Priority</label>{{ form.priority }}</div>
+      </div>
+      <div class="field"><label for="{{ form.details.id_for_label }}">Details</label>{{ form.details }}</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn primary">Create ticket</button>
+      </div>
+    </form>
+  </section>
+</div>

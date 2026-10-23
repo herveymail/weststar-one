@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}My HR · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="titles"><div class="eyebrow">H/R</div><h1>My HR</h1><p class="desc">Your time off, timeclock and mileage. Only you and H/R can see these.</p></div></div>
+<div class="stats">
+  <div class="card stat"><span class="label">Signed in as</span><span class="v" style="font-size:18px">{{ user.name }}</span><span class="small muted">{{ user.title|default:user.get_role_display }}</span></div>
+  {% if emp %}<div class="card stat"><span class="label">PTO balance</span><span class="v">{{ emp.pto_balance_hours|default:"—" }} h</span></div>{% endif %}
+</div>
+<div class="tabs" role="tablist" aria-label="My HR sections">
+  {% for k, label in tabs %}<a href="?tab={{ k }}" role="tab" aria-selected="{% if tab == k %}true{% else %}false{% endif %}" class="tab{% if tab == k %} on{% endif %}">{{ label }}</a>{% endfor %}
+</div>
+<div hx-get="?tab={{ tab }}" hx-trigger="load" hx-swap="innerHTML" class="stack"><div class="empty">Loading…</div></div>
+{% endblock %}

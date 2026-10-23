@@ -1,0 +1,41 @@
+{% load ws %}
+{% if embedded %}
+<div class="page-head" style="align-items:center">
+  <h3 style="flex:1">{{ m.label }} <span class="muted small">{{ page.paginator.count }}</span></h3>
+  {% if can_add %}<button type="button" class="btn small" hx-get="/m/{{ m.slug }}/new/?{{ filter_qs }}" hx-target="#modal">{% icon "plus" 14 %}Add {{ m.singular|lower }}</button>{% endif %}
+</div>
+{% endif %}
+<div class="card" style="overflow:hidden">
+  <div class="table-wrap">
+    <table class="grid">
+      <thead><tr>{% for key, label in columns %}<th>{% if not embedded %}<a class="sort" href="{% if sort == key %}{% qs_replace sort='-'|add:key page='' %}{% else %}{% qs_replace sort=key page='' %}{% endif %}">{{ label }}{% if sort == key %} ↑{% elif sort == '-'|add:key %} ↓{% endif %}</a>{% else %}{{ label }}{% endif %}</th>{% endfor %}</tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr>
+          {% for c in r.cells %}
+          <td{% if c.kind == "num" %} class="num"{% endif %}>
+            {% if forloop.first %}
+              {% if row_url %}<a class="row-link" href="/clients/{{ r.obj.pk }}/">{{ c.text }}</a>
+              {% else %}<a class="row-link" href="#" hx-get="/m/{{ m.slug }}/{{ r.obj.pk }}/" hx-target="#modal">{{ c.text }}</a>{% endif %}
+            {% elif c.kind == "pill" %}<span class="pill {{ c.tone }}">{{ c.text }}</span>
+            {% elif c.kind == "muted" %}<span class="muted">{{ c.text }}</span>
+            {% elif c.kind == "url" %}<a href="{{ c.href }}" target="_blank" rel="noopener noreferrer">{{ c.text }}</a>
+            {% else %}{{ c.text }}{% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if not rows %}<div class="empty">{% if q or status %}Nothing matches. Try another filter or clear the search.{% elif archived %}Nothing is archived.{% else %}No {{ m.label|lower }} yet.{% endif %}</div>{% endif %}
+  {% if page.has_other_pages %}
+  <div class="pager">
+    <span class="muted small num">{{ page.start_index }}–{{ page.end_index }} of {{ page.paginator.count }}</span>
+    <div class="row">
+      {% if page.has_previous %}<a class="btn small" href="{% qs_replace page=page.previous_page_number %}">Previous</a>{% endif %}
+      {% if page.has_next %}<a class="btn small" href="{% qs_replace page=page.next_page_number %}">Next</a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>

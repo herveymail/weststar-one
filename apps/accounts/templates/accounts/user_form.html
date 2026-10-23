@@ -1,0 +1,24 @@
+{% load ws %}
+<div class="shade center">
+  <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="ud-title">
+    <h2 id="ud-title">{% if obj %}{{ obj.name }}{% else %}Add user{% endif %}</h2>
+    {% if temp %}<div class="banner info">Temporary password: <span class="code">{{ temp }}</span><br>Give it to them privately. They must change it at first sign-in.</div>{% endif %}
+    <form hx-post="{% if obj %}/settings/users/{{ obj.pk }}/{% else %}/settings/users/new/{% endif %}" hx-target="#modal" class="stack">
+      <input type="hidden" name="action" value="save">
+      <div class="form-grid">
+        {% for f in form %}<div class="field">{% if f.widget_type == "checkbox" %}<label class="check">{{ f }}{{ f.label }}</label>{% else %}<label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% endif %}{{ f.errors }}</div>{% endfor %}
+      </div>
+      <div class="row"><button class="btn primary">{% if obj %}Save{% else %}Add user{% endif %}</button><button type="button" class="btn" data-close>Close</button></div>
+    </form>
+    {% if obj %}
+    <div class="row" style="border-top:1px solid var(--line);padding-top:14px">
+      <button class="btn small" hx-post="/settings/users/{{ obj.pk }}/" hx-vals='{"action":"reset_password"}' hx-target="#modal">Reset password</button>
+      {% if obj.mfa_enabled %}<button class="btn small" hx-post="/settings/users/{{ obj.pk }}/" hx-vals='{"action":"reset_mfa"}' hx-target="#modal">Reset 2FA</button>{% endif %}
+      {% if obj.locked_until and obj.locked_until > now %}<button class="btn small" hx-post="/settings/users/{{ obj.pk }}/" hx-vals='{"action":"unlock"}' hx-target="#modal">Unlock</button>{% endif %}
+      <button class="btn small" hx-post="/settings/users/{{ obj.pk }}/" hx-vals='{"action":"sign_out"}' hx-target="#modal">Sign out everywhere</button>
+      {% if obj.is_active %}<button class="btn small danger" hx-post="/settings/users/{{ obj.pk }}/" hx-vals='{"action":"archive"}' hx-target="#modal">Archive user</button>
+      {% else %}<button class="btn small" hx-post="/settings/users/{{ obj.pk }}/" hx-vals='{"action":"restore"}' hx-target="#modal">Restore</button>{% endif %}
+    </div>
+    {% endif %}
+  </section>
+</div>

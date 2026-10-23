@@ -1,0 +1,5 @@
+<div class="tabs" role="tablist" aria-label="Ticket views">
+  <a href="/tickets/?view=inbox" role="tab" aria-selected="{% if view == 'inbox' %}true{% else %}false{% endif %}" class="tab{% if view == 'inbox' %} on{% endif %}">Inbox</a>
+  <a href="/tickets/?view=board" role="tab" aria-selected="{% if view == 'board' %}true{% else %}false{% endif %}" class="tab{% if view == 'board' %} on{% endif %}">Board</a>
+  <a href="/tickets/?view=queue" role="tab" aria-selected="{% if view == 'queue' %}true{% else %}false{% endif %}" class="tab{% if view == 'queue' %} on{% endif %}">My queue</a>
+</div>

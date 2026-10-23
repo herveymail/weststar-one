@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% load ws %}
+{% block content %}
+<div class="page-head"><div class="titles"><a href="/settings/" class="link-btn">{% icon "back" 16 %}Settings</a><h1>Scheduled jobs</h1><p class="desc">The jobs container runs these automatically. They replace the old app's cron scripts.</p></div></div>
+<section class="card" style="overflow:hidden"><div class="table-wrap"><table class="grid">
+  <thead><tr><th>Job</th><th>Runs every</th><th>Last run</th><th>Result</th></tr></thead>
+  <tbody>{% for j in jobs %}<tr><td class="strong">{{ j.label }}</td><td>{{ j.every }} min</td>
+    <td>{% if j.run.last_run_at %}{{ j.run.last_run_at|timesince }} ago{% else %}<span class="muted">Not yet — is the jobs container running?</span>{% endif %}</td>
+    <td class="small">{% if j.run %}{% if not j.run.last_ok %}<span class="pill bad">Failed</span> {% endif %}{{ j.run.last_result }}{% endif %}</td></tr>{% endfor %}</tbody>
+</table></div></section>
+{% endblock %}

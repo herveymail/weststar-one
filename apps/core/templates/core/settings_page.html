@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% load ws %}
+{% block title %}{{ item.1 }} · Settings{% endblock %}
+{% block content %}
+<div class="page-head"><div class="titles"><a href="/settings/" class="link-btn">{% icon "back" 16 %}Settings</a><h1>{{ item.1 }}</h1><p class="desc">{{ item.2 }}</p></div></div>
+<section class="card pad stack" style="max-width:760px">
+  <form method="post" class="form-grid">{% csrf_token %}
+    <fieldset class="form-grid wide" style="border:0;padding:0;margin:0;grid-column:1/-1"{% if not can_manage %} disabled{% endif %}>
+    {% for f in fields %}
+    <div class="field{% if f.type == 'textarea' %} wide{% endif %}">
+      {% if f.type == "bool" %}<label class="check"><input type="checkbox" class="checkbox" name="{{ f.key }}"{% if f.value == "true" %} checked{% endif %}>{{ f.label }}</label>
+      {% else %}
+      <label for="s-{{ forloop.counter }}">{{ f.label }}{% if f.type == "secret" %} {% icon "lock" 12 %}{% endif %}</label>
+      {% if f.type == "textarea" %}<textarea id="s-{{ forloop.counter }}" class="textarea" name="{{ f.key }}" rows="4">{{ f.value }}</textarea>
+      {% elif f.type == "select" %}<select id="s-{{ forloop.counter }}" class="select" name="{{ f.key }}"><option value="">Default</option>{% for o in f.options %}<option{% if f.value == o %} selected{% endif %}>{{ o }}</option>{% endfor %}</select>
+      {% elif f.type == "secret" %}<input id="s-{{ forloop.counter }}" class="input" type="password" autocomplete="new-password" name="{{ f.key }}" placeholder="{% if f.is_set %}Saved — type to replace{% else %}Not set{% endif %}">
+      {% else %}<input id="s-{{ forloop.counter }}" class="input" {% if f.type == "int" %}type="number"{% endif %} name="{{ f.key }}" value="{{ f.value }}">{% endif %}
+      {% endif %}
+      {% if f.help %}<span class="help">{{ f.help }}</span>{% endif %}
+    </div>
+    {% endfor %}
+    </fieldset>
+    {% if can_manage %}<div><button class="btn primary">Save</button></div>{% else %}<p class="small muted">You can view these settings. Only admins can change them.</p>{% endif %}
+  </form>
+  <p class="small muted" style="margin:0">Fields with a lock are stored encrypted and are never shown again after saving.</p>
+</section>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "plain.html" %}
+{% block heading %}Two-factor sign-in{% endblock %}
+{% block sub %}<p class="desc">{% if required %}Your account needs a code from an authenticator app every time you sign in.{% else %}Adds a code from your phone to every sign-in.{% endif %}</p>{% endblock %}
+{% block form %}
+{% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+{% if codes %}
+  <div class="stack">
+    <div class="banner info">Two-factor sign-in is on.</div>
+    <p style="margin:0">Save these recovery codes somewhere safe, like your password manager. Each works once if you lose your phone. They won't be shown again.</p>
+    <div class="codes" id="codes">{% for c in codes %}<span>{{ c }}</span>{% endfor %}</div>
+    <button type="button" class="btn" data-copy="codes">Copy codes</button>
+    <a class="btn primary" href="/">I saved them, continue</a>
+  </div>
+{% elif qr %}
+  <form method="post" class="stack">{% csrf_token %}<input type="hidden" name="step" value="confirm">
+    <p style="margin:0">1. Scan this with your authenticator app.</p>
+    <img class="qr" src="{{ qr }}" alt="QR code to add Weststar ONE to your authenticator app">
+    <p class="small muted" style="margin:0">Can't scan? Enter this key: <span class="code">{{ secret }}</span></p>
+    <div class="field"><label for="c1">2. Type the 6-digit code it shows</label><input id="c1" name="code" class="input num" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required autofocus></div>
+    <button class="btn primary">Turn on two-factor</button>
+  </form>
+{% else %}
+  <form method="post" class="stack">{% csrf_token %}<input type="hidden" name="step" value="start">
+    <p style="margin:0">You'll need an authenticator app such as Microsoft Authenticator, Google Authenticator, 1Password or Bitwarden.</p>
+    {% if needs_password %}<div class="field"><label for="pw">Your password (needed to replace your current authenticator)</label><input id="pw" name="password" class="input" type="password" autocomplete="current-password" required></div>{% endif %}
+    <button class="btn primary">Start setup</button>
+  </form>
+{% endif %}
+<form method="post" action="/logout/">{% csrf_token %}<button class="link-btn">Sign out</button></form>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}{% load ws %}
+{% block content %}
+<div class="page-head"><div class="titles"><a href="/settings/" class="link-btn">{% icon "back" 16 %}Settings</a><h1>Import from old Weststar One</h1></div></div>
+<section class="card pad stack" style="max-width:860px">
+  <h2>How importing works</h2>
+  <p style="margin:0">The import runs on the server from the command line, so the old database password and encryption keys never pass through a browser. It reads them from the old app's <span class="code">config/config.php</span>.</p>
+  <pre class="block"># 1) Practice run — shows counts, saves nothing
+python manage.py import_legacy --old-config /old/config.php --dry-run
+
+# 2) Real import — safe to repeat
+python manage.py import_legacy --old-config /old/config.php</pre>
+  <p class="small muted" style="margin:0">Ticket, invoice and quote numbers stay the same. Old passwords and two-factor keep working. Re-running only adds and updates records that haven't been changed here since the last import, so nothing you change in the new app is overwritten.</p>
+</section>
+<section class="card" style="overflow:hidden;max-width:860px">
+  <div style="padding:16px 18px 8px"><h2>Import history</h2></div>
+  <div class="table-wrap"><table class="grid">
+    <thead><tr><th>Started</th><th>Type</th><th>Records</th><th>Result</th></tr></thead>
+    <tbody>{% for r in runs %}<tr><td class="small">{{ r.started_at|date:"M j, g:i A" }}</td><td>{% if r.dry_run %}Practice run{% else %}Import{% endif %}</td><td class="num">{{ r.total }}</td>
+      <td>{% if r.error %}<span class="pill bad">Failed</span>{% elif not r.finished_at %}<span class="pill warn">Running</span>{% elif r.warnings %}<span class="pill warn">{{ r.warnings }} warnings</span>{% else %}<span class="pill good">OK</span>{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% if not runs %}<div class="empty">No imports yet.</div>{% endif %}
+</section>
+{% endblock %}

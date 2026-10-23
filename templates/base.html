@@ -1,0 +1,90 @@
+{% load static ws %}<!doctype html>
+<html lang="en" data-look="{{ look|default:'indigo' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="same-origin">
+  <meta name="htmx-config" content='{"allowEval":false,"includeIndicatorStyles":false,"selfRequestsOnly":true}'>
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="icon" href="{% static 'core/favicon.svg' %}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{% static 'core/styles.css' %}">
+  <link rel="stylesheet" href="{% static 'core/app.css' %}">
+  <script src="{% static 'core/htmx-2.0.4.min.js' %}" defer></script>
+  <script src="{% static 'core/app.js' %}" defer></script>
+</head>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+{% block body %}
+<div class="app">
+  {% if look == "graphite" %}
+  <nav class="rail" id="main-nav" aria-label="Main">
+    <a href="/" class="logo" aria-label="{{ app_name }} home">W1</a>
+    {% for g in nav %}
+      {% if not g.group or g.items|length == 1 %}
+        {% for i in g.items %}{% if i.id != "settings" %}
+        <a href="{{ i.url }}" class="rail-item{% if i.active %} on{% endif %}"{% if i.active %} aria-current="page"{% endif %}>{% icon i.id 20 %}{% if i.id == "dashboard" %}Home{% else %}{{ i.label }}{% endif %}</a>
+        {% endif %}{% endfor %}
+      {% else %}
+        <button type="button" class="rail-item{% if g.active %} on{% endif %}" data-fly="fly-{{ forloop.counter }}" aria-expanded="false" aria-controls="fly-{{ forloop.counter }}">{% icon g.icon 20 %}{{ g.short }}</button>
+      {% endif %}
+    {% endfor %}
+    <div class="grow"></div>
+    <a href="/settings/" class="rail-item{% if request.path|slice:':10' == '/settings/' %} on{% endif %}">{% icon "settings" 20 %}Settings</a>
+  </nav>
+  {% for g in nav %}{% if g.group and g.items|length > 1 %}
+  <div class="fly" id="fly-{{ forloop.counter }}" role="menu" aria-label="{{ g.group }}" hidden>
+    <div class="fly-title">{{ g.group }}</div>
+    {% for i in g.items %}<a href="{{ i.url }}" class="nav-item{% if i.active %} on{% endif %}">{% icon i.id %}{{ i.label }}</a>{% endfor %}
+  </div>
+  {% endif %}{% endfor %}
+  <button type="button" class="fly-shade" id="fly-shade" aria-label="Close menu" hidden></button>
+  {% else %}
+  <nav class="side" id="main-nav" aria-label="Main">
+    <a href="/" class="brand"><span class="logo">W</span>{{ app_name }}</a>
+    {% for g in nav %}
+      {% if g.group %}
+      <div class="nav-group" data-group="{{ g.group }}">
+        <button type="button" class="nav-section" aria-expanded="true">{{ g.group }}{% icon "chevron" 14 %}</button>
+        <div class="nav-items">
+      {% endif %}
+      {% for i in g.items %}
+        <a href="{{ i.url }}" class="nav-item{% if i.active %} on{% endif %}"{% if i.active %} aria-current="page"{% endif %}>{% icon i.id %}{{ i.label }}{% if i.id == "tickets" and open_ticket_count %}<span class="badge">{{ open_ticket_count }}</span>{% endif %}</a>
+      {% endfor %}
+      {% if g.group %}</div></div>{% endif %}
+    {% endfor %}
+  </nav>
+  {% endif %}
+
+  <div class="main">
+    <header class="topbar">
+      <button type="button" class="btn menu-btn" id="menu-btn" aria-controls="main-nav" aria-expanded="false">Menu</button>
+      <div class="search" id="jump-box">
+        {% icon "search" 16 %}
+        <label for="jump" class="sr">Search or jump to a page</label>
+        <input id="jump" name="q" autocomplete="off" placeholder="Search tickets and clients, or jump to any page…"
+               hx-get="/search/" hx-trigger="input changed delay:200ms, focus" hx-target="#jump-results" hx-swap="innerHTML">
+        <span class="kbd">Ctrl K</span>
+        <div id="jump-results"></div>
+      </div>
+      <div class="spacer"></div>
+      <button type="button" class="btn" hx-post="/clock/" hx-swap="none">{% icon "clock" 16 %}{% if clocked_in %}Clock out{% else %}Clock in{% endif %}</button>
+      {% if can_tickets_edit %}<button type="button" class="btn primary" hx-get="/tickets/new/" hx-target="#modal" hx-swap="innerHTML">{% icon "plus" 16 %}New ticket</button>{% endif %}
+      <div class="user-menu">
+        <button type="button" class="icon-btn" id="user-btn" aria-expanded="false" aria-controls="user-pop" aria-label="Your account">{{ user.initials }}</button>
+        <div class="jump" id="user-pop" hidden>
+          <div class="jump-head">{{ user.name }}<br><span class="small">{{ user.email }}</span></div>
+          <a class="jump-item" href="/profile/">Profile &amp; look</a>
+          <a class="jump-item" href="/settings/my_security/">My sign-in &amp; 2FA</a>
+          <form method="post" action="/logout/">{% csrf_token %}<button class="jump-item" style="width:100%">Sign out</button></form>
+        </div>
+      </div>
+    </header>
+    {% if messages %}<div class="flash">{% for m in messages %}<div role="status" class="banner {% if m.level_tag == 'error' %}{% else %}info{% endif %}">{{ m }}</div>{% endfor %}</div>{% endif %}
+    <main id="content" class="page">{% block content %}{% endblock %}</main>
+  </div>
+</div>
+<div id="modal"></div>
+{% endblock %}
+</body>
+</html>

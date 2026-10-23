@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% load ws %}
+{% block content %}
+<div class="page-head"><div class="titles"><a href="/settings/" class="link-btn">{% icon "back" 16 %}Settings</a><h1>Staff users</h1><p class="desc">Admins: everything. Managers: everything except H/R and changing settings. Techs: tickets, clients, projects, tools. Viewers: read only. H/R access is a separate switch.</p></div>
+{% if can_manage %}<button class="btn primary" hx-get="/settings/users/new/" hx-target="#modal">{% icon "plus" 16 %}Add user</button>{% endif %}</div>
+<section class="card" style="overflow:hidden"><div class="table-wrap"><table class="grid">
+  <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>H/R</th><th>2FA</th><th>Last sign-in</th><th>Status</th></tr></thead>
+  <tbody>{% for u in users %}<tr>
+    <td>{% if can_manage %}<a href="#" class="row-link" hx-get="/settings/users/{{ u.pk }}/" hx-target="#modal">{{ u.name }}</a>{% else %}{{ u.name }}{% endif %}{% if u.pk == user.pk %} <span class="small muted">(you)</span>{% endif %}</td>
+    <td>{{ u.email }}</td><td>{{ u.get_role_display }}</td><td>{% if u.hr_access %}Yes{% else %}—{% endif %}</td>
+    <td>{% if u.mfa_enabled %}<span class="pill good">On</span>{% else %}<span class="pill warn">Off</span>{% endif %}</td>
+    <td class="small muted">{% if u.last_login %}{{ u.last_login|timesince }} ago{% else %}Never{% endif %}</td>
+    <td>{% if not u.is_active %}<span class="pill bad">Archived</span>{% elif u.locked_until and u.locked_until > now %}<span class="pill bad">Locked</span>{% elif u.must_change_password %}<span class="pill warn">Must change password</span>{% else %}<span class="pill good">Active</span>{% endif %}</td>
+  </tr>{% endfor %}</tbody>
+</table></div></section>
+{% endblock %}

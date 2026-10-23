@@ -1,0 +1,24 @@
+{% load ws %}
+<div id="files-box" class="stack" hx-get="/files/{{ kind }}/{{ pk }}/" hx-trigger="filesChanged from:body" hx-swap="outerHTML">
+  {% if can_edit %}
+  <form class="card pad row" hx-post="/files/{{ kind }}/{{ pk }}/" hx-encoding="multipart/form-data" hx-target="#files-box" hx-swap="outerHTML">
+    <label for="up-files" class="strong">Add files</label>
+    <input id="up-files" type="file" name="files" multiple required class="input" style="flex:1 1 240px">
+    <label for="up-notes" class="sr">Note</label><input id="up-notes" name="notes" class="input" placeholder="Note (optional)" style="flex:1 1 200px">
+    <button class="btn primary">Upload</button>
+  </form>
+  {% endif %}
+  {% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+  <section class="card" style="overflow:hidden">
+    {% if files %}
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>File</th><th>Size</th><th>Added by</th><th>When</th><th></th></tr></thead>
+      <tbody>{% for f in files %}<tr>
+        <td><a class="row-link" href="/files/{{ f.pk }}/">{{ f.original_name }}</a>{% if f.notes %}<div class="small muted">{{ f.notes }}</div>{% endif %}</td>
+        <td class="num small">{{ f.size|filesizeformat }}</td><td class="small">{{ f.who }}</td><td class="small muted">{{ f.created_at|when }}</td>
+        <td style="text-align:right">{% if can_manage or f.uploaded_by_id == user.pk %}<button class="btn small danger" hx-post="/files/{{ f.pk }}/delete/" hx-confirm="Delete {{ f.original_name }}?" hx-swap="none">Delete</button>{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<div class="empty">No files yet.</div>{% endif %}
+  </section>
+</div>

@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% load ws %}
+{% block content %}
+<div class="page-head"><div class="titles"><a href="/settings/" class="link-btn">{% icon "back" 16 %}Settings</a><h1>My sign-in &amp; 2FA</h1></div></div>
+<div class="stack" style="max-width:760px">
+  <section class="card pad stack">
+    <h2>Two-factor sign-in {% if user.mfa_enabled %}<span class="pill good">On</span>{% else %}<span class="pill warn">Off</span>{% endif %}</h2>
+    {% if user.mfa_enabled %}
+      <p style="margin:0" class="muted">{{ codes_left }} recovery code{{ codes_left|pluralize }} left.</p>
+      <div class="row"><a class="btn" href="/account/mfa-setup/">Replace authenticator / new recovery codes</a></div>
+      {% if not required %}
+      <form method="post" class="row" style="align-items:flex-end">{% csrf_token %}<input type="hidden" name="action" value="disable_mfa">
+        <div class="field" style="flex:1 1 220px"><label for="dpw">To turn it off, enter your password</label><input id="dpw" name="password" class="input" type="password" autocomplete="current-password" required></div>
+        <button class="btn danger">Turn off</button></form>
+      {% else %}<p class="small muted" style="margin:0">Two-factor is required for your account.</p>{% endif %}
+    {% else %}<div><a class="btn primary" href="/account/mfa-setup/">Turn on two-factor</a></div>{% endif %}
+  </section>
+  <section class="card pad stack"><h2>Password</h2><div><a class="btn" href="/account/password/?from=security">Change password</a></div></section>
+  <section class="card" style="overflow:hidden">
+    <div style="padding:16px 18px 8px" class="row"><h2 style="flex:1">Where you're signed in</h2>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="end_session"><input type="hidden" name="fp" value="all"><button class="btn small">Sign out everywhere else</button></form></div>
+    <div class="table-wrap"><table class="grid"><tbody>
+      {% for s in sessions %}<tr><td><div class="strong">{{ s.user_agent|truncatechars:80|default:"Unknown browser" }}</div><div class="small muted">{{ s.ip }} · signed in {{ s.created_at|date:"M j, g:i A" }} · active {{ s.last_seen_at|timesince }} ago</div></td>
+        <td style="text-align:right">{% if s.session_key == current %}<span class="pill good">This device</span>{% else %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="end_session"><input type="hidden" name="fp" value="{{ s.fingerprint }}"><button class="btn small">Sign out</button></form>{% endif %}</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+</div>
+{% endblock %}

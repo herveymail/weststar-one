@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% load ws %}
+{% block content %}
+<div class="page-head"><div class="titles"><a href="/settings/" class="link-btn">{% icon "back" 16 %}Settings</a><h1>Security log</h1><p class="desc">Sign-in attempts, newest first.</p></div></div>
+<section class="card" style="overflow:hidden"><div class="table-wrap"><table class="grid">
+  <thead><tr><th>When</th><th>Email</th><th>IP</th><th>Result</th></tr></thead>
+  <tbody>{% for a in rows %}<tr><td class="small num">{{ a.created_at|date:"M j, g:i:s A" }}</td><td>{{ a.email }}</td><td class="small">{{ a.ip }}</td>
+    <td>{% if a.success %}<span class="pill good">Signed in</span>{% else %}<span class="pill bad">{{ a.reason|cut:"_"|default:"failed" }}</span>{% endif %}</td></tr>{% endfor %}</tbody>
+</table></div></section>
+{% endblock %}

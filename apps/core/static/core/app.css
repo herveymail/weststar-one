@@ -1,0 +1,42 @@
+/* Additions for the server-rendered version (the approved look lives in styles.css). */
+.ic { flex: none; }
+.grow { flex: 1 1 auto; min-height: 12px; }
+.rail .logo { text-decoration: none; }
+.nav-group { display: flex; flex-direction: column; gap: 2px; }
+.nav-group .nav-items { display: flex; flex-direction: column; gap: 2px; }
+.nav-group.closed .nav-items { display: none; }
+.nav-group.closed .nav-section svg { transform: rotate(-90deg); }
+.fly[hidden], .fly-shade[hidden], #user-pop[hidden] { display: none; }
+.user-menu { position: relative; }
+#user-pop { left: auto; right: 0; width: 230px; }
+#jump-results:empty { display: none; }
+#jump-results { position: absolute; left: -1px; right: -1px; top: calc(100% + 6px); z-index: 40; }
+#jump-results .jump { position: static; }
+.flash { padding: 12px 24px 0; display: flex; flex-direction: column; gap: 8px; }
+.brand-row { display: flex; align-items: center; gap: 10px; font-size: 18px; }
+.h-login { font-size: 22px; }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.checkbox { width: 18px; height: 18px; accent-color: var(--accent); }
+.errorlist { margin: 0; padding: 0; list-style: none; color: var(--crit); font-size: 12px; font-weight: 600; }
+.field.wide { grid-column: 1 / -1; }
+.lines td { padding: 6px 8px; }
+.lines .input { min-height: 36px; }
+.htmx-request.htmx-indicator, .htmx-request .htmx-indicator { opacity: 1; }
+.htmx-indicator { opacity: 0; transition: opacity .2s; }
+a.t-row { text-decoration: none; }
+a.stat, a.tile { color: inherit; }
+.tabs a.tab { display: inline-flex; align-items: center; text-decoration: none; }
+.chips a.chip { text-decoration: none; }
+table.grid tbody tr a.row-link { color: inherit; text-decoration: none; font-weight: 600; }
+.qr { width: 220px; height: 220px; }
+.inline-form { display: inline; }
+label.tab { cursor: pointer; }
+label.tab { display: inline-flex; align-items: center; }
+label.tab:has(input:checked) { background: var(--tab-on); color: var(--tab-on-text); font-weight: 600; }
+[data-look="indigo"] label.tab:has(input:checked) { box-shadow: 0 1px 2px rgba(16, 24, 40, .08); }
+label.tab:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+a.b-card { color: inherit; text-decoration: none; }
+.tabs a.tab { gap: 4px; }
+th a.sort { color: inherit; text-decoration: none; }
+th a.sort:hover { color: var(--text); }

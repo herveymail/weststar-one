@@ -1,0 +1,45 @@
+{% extends "base.html" %}{% load ws %}
+{% block title %}{{ c.name }} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="titles">
+    <a href="/clients/" class="link-btn">{% icon "back" 16 %}All clients</a>
+    <h1>{{ c.name }}</h1>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+      <span class="pill {{ c.status|pill_tone }}">{{ c.status }}</span>{% if c.plan %}<span class="pill info">{{ c.plan }}</span>{% endif %}{% if c.archived_at %}<span class="pill bad">Archived</span>{% endif %}
+    </div>
+  </div>
+  {% if can_edit_client %}<button class="btn" hx-get="/m/clients/{{ c.pk }}/" hx-target="#modal">Edit client</button>{% endif %}
+  {% if can_tickets_edit %}<button class="btn primary" hx-get="/tickets/new/?client_id={{ c.pk }}" hx-target="#modal">{% icon "plus" 16 %}New ticket</button>{% endif %}
+</div>
+{% if c.account_alert %}<div class="alert-line">⚠ {{ c.account_alert }}</div>{% endif %}
+<div class="tabs scroll" role="tablist" aria-label="Client sections">
+  {% for label, slug in tabs %}<a href="?tab={{ label|urlencode }}" role="tab" aria-selected="{% if tab == label %}true{% else %}false{% endif %}" class="tab{% if tab == label %} on{% endif %}">{{ label }}</a>{% endfor %}
+</div>
+
+{% if tab == "Overview" %}
+<div class="split">
+  <section class="card pad" style="flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:14px">
+    <h2>Account</h2>
+    <div class="kv">
+      {% for label, value in account %}<div><div class="label">{{ label }}</div><div>{% if value.kind == "url" %}<a href="{{ value.href }}" target="_blank" rel="noopener noreferrer">{{ value.text }}</a>{% elif value.kind == "muted" %}<span class="muted">{{ value.text }}</span>{% else %}{{ value.text }}{% endif %}</div></div>{% endfor %}
+    </div>
+    {% if c.address %}<div><div class="label">Address</div>{{ c.address }}{% if c.city %}, {{ c.city }}{% endif %} {{ c.state }} {{ c.zip }}</div>{% endif %}
+    {% if c.notes %}<div><div class="label">Internal notes</div><p style="margin:0;white-space:pre-wrap">{{ c.notes }}</p></div>{% endif %}
+  </section>
+  {% if tickets is not None %}
+  <section class="card" style="flex:1.4 1 380px;min-width:0;overflow:hidden">
+    <div style="padding:16px 18px 8px;display:flex;justify-content:space-between"><h2>Recent tickets</h2><span class="small muted">{{ open_tickets }} open</span></div>
+    {% include "crm/_ticket_rows.html" %}
+  </section>
+  {% endif %}
+</div>
+{% elif tab == "Tickets" %}
+<section class="card" style="overflow:hidden">{% include "crm/_ticket_rows.html" %}</section>
+{% elif slug %}
+<div hx-get="?tab={{ tab|urlencode }}" hx-trigger="load" hx-swap="innerHTML" class="stack"><div class="empty">Loading…</div></div>
+{% if tab == "Invoices" and balance is not None %}<p class="muted">Open balance: <b style="color:var(--text)">{{ balance|dollars }}</b>.</p>{% endif %}
+{% else %}
+<div class="later"><b style="display:block;color:var(--text);font-size:15px;margin-bottom:4px">{{ c.name }} · {{ tab }}</b>This part is planned for a later round. Everything else on this page works.</div>
+{% endif %}
+{% endblock %}

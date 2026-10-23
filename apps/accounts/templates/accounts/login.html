@@ -1,0 +1,13 @@
+{% extends "plain.html" %}
+{% block title %}Sign in · Weststar ONE{% endblock %}
+{% block heading %}Sign in{% endblock %}
+{% block form %}
+<form method="post" class="stack">{% csrf_token %}
+  {% if expired %}<div class="banner info">You were signed out after being idle. Sign in again.</div>{% endif %}
+  {% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+  <div class="field"><label for="email">Email</label><input id="email" name="email" class="input" type="email" autocomplete="username" required autofocus></div>
+  <div class="field"><label for="pw">Password</label><input id="pw" name="password" class="input" type="password" autocomplete="current-password" required></div>
+  <button class="btn primary">Sign in</button>
+  <p class="small muted" style="margin:0">Forgot your password? Ask an admin to reset it in Settings › Staff users.</p>
+</form>
+{% endblock %}

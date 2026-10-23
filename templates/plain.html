@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="login-wrap">
+  <div class="login">
+    <div class="brand-row"><span class="logo">W</span><b>{{ app_name|default:"Weststar ONE" }}</b></div>
+    <div class="card">
+      <div><h1 class="h-login">{% block heading %}{% endblock %}</h1>{% block sub %}{% endblock %}</div>
+      {% block form %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% endblock %}

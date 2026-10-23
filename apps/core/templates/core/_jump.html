@@ -1,0 +1,7 @@
+{% load ws %}{% if pages or clients or tickets %}
+<div class="jump" role="listbox">
+  {% if pages %}<div class="jump-head">Go to</div>{% for p in pages %}<a class="jump-item" role="option" href="{{ p.url }}">{% icon p.icon 16 %}{{ p.label }}<span class="small muted" style="margin-left:auto">{{ p.group }}</span></a>{% endfor %}{% endif %}
+  {% if clients %}<div class="jump-head">Clients</div>{% for c in clients %}<a class="jump-item" role="option" href="/clients/{{ c.pk }}/">{% icon "clients" 16 %}{{ c.name }}</a>{% endfor %}{% endif %}
+  {% if tickets %}<div class="jump-head">Tickets</div>{% for t in tickets %}<a class="jump-item" role="option" href="/tickets/{{ t.pk }}/"><span class="small muted num">{{ t.number }}</span>{{ t.subject|truncatechars:60 }}</a>{% endfor %}{% endif %}
+</div>
+{% endif %}

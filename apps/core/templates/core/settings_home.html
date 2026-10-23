@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Settings · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="titles"><div class="eyebrow">Admin</div><h1>Settings</h1><p class="desc">Every setting in one place. Search finds a setting by what it does.</p></div>
+  <form method="get" style="flex:0 1 320px"><label for="sq" class="sr">Search settings</label><input id="sq" name="q" class="input" value="{{ q }}" placeholder="Search settings (e.g. SLA, logo, 2FA)"></form>
+</div>
+{% for title, desc, items in groups %}
+<section class="stack" style="gap:10px">
+  <div><h2 style="font-size:16px">{{ title }}</h2><div class="small muted">{{ desc }}</div></div>
+  <div class="tiles">{% for item in items %}<a href="/settings/{{ item.0 }}/" class="tile"><span class="strong">{{ item.1 }}</span><span class="small muted">{{ item.2 }}</span></a>{% endfor %}</div>
+</section>
+{% empty %}<div class="empty">No setting matches “{{ q }}”.</div>{% endfor %}
+{% endblock %}

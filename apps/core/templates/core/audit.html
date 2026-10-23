@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% load ws %}
+{% block content %}
+<div class="page-head"><div class="titles"><a href="/settings/" class="link-btn">{% icon "back" 16 %}Settings</a><h1>Audit log</h1><p class="desc">Who changed what. You only see entries for the areas you have access to.</p></div>
+<form method="get"><label for="aq" class="sr">Search</label><input id="aq" class="input" name="q" value="{{ q }}" placeholder="Search…"></form></div>
+<section class="card" style="overflow:hidden"><div class="table-wrap"><table class="grid">
+  <thead><tr><th>When</th><th>Who</th><th>What</th><th>Details</th><th>IP</th></tr></thead>
+  <tbody>{% for a in page %}<tr>
+    <td class="small num" style="white-space:nowrap">{{ a.created_at|date:"M j, g:i A" }}</td><td>{{ a.user.name|default:"system" }}</td>
+    <td><span class="code">{{ a.action }}</span> <span class="small muted">{{ a.entity }}</span></td>
+    <td>{{ a.summary }}{% if a.changes_text %}<div class="small muted">{{ a.changes_text }}</div>{% endif %}</td><td class="small muted">{{ a.ip }}</td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{% if page.has_other_pages %}<div class="pager"><span class="small muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</span><div class="row">{% if page.has_previous %}<a class="btn small" href="{% qs_replace page=page.previous_page_number %}">Newer</a>{% endif %}{% if page.has_next %}<a class="btn small" href="{% qs_replace page=page.next_page_number %}">Older</a>{% endif %}</div></div>{% endif %}
+</section>
+{% endblock %}

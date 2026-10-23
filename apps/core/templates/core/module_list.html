@@ -1,0 +1,30 @@
+{% extends "base.html" %}{% load ws %}
+{% block title %}{{ page_title|default:m.label }} · {{ app_name }}{% endblock %}
+{% block content %}
+{% if page_tabs %}
+<div class="tabs" role="tablist" aria-label="{{ page_title }} sections">
+  {% for slug, label in page_tabs %}<a role="tab" aria-selected="{% if slug == page_tab %}true{% else %}false{% endif %}" class="tab{% if slug == page_tab %} on{% endif %}" href="{{ page_tab_base }}?tab={{ slug }}">{{ label }}</a>{% endfor %}
+</div>
+{% endif %}
+<div class="page-head">
+  <div class="titles">
+    <div class="eyebrow">{{ m.area|title }}</div>
+    <h1>{{ page_title|default:m.label }}</h1>
+    <p class="desc">{{ m.description }}</p>
+  </div>
+  {% if can_add %}<button type="button" class="btn primary" hx-get="/m/{{ m.slug }}/new/" hx-target="#modal">{% icon "plus" 16 %}{{ m.primary_action|default:"Add" }}</button>{% endif %}
+</div>
+<form class="row" method="get" role="search">
+  {% if page_tab %}<input type="hidden" name="tab" value="{{ page_tab }}">{% endif %}
+  {% if statuses %}
+  <div class="tabs scroll" aria-label="Filter by status">
+    <a class="tab{% if not status and not archived %} on{% endif %}" href="{% qs_replace status='' archived='' page='' %}">All <span class="muted">{{ all_count }}</span></a>
+    {% for s, n in statuses %}<a class="tab{% if status == s %} on{% endif %}" href="{% qs_replace status=s archived='' page='' %}">{{ s }} <span class="muted">{{ n }}</span></a>{% endfor %}
+  </div>
+  {% endif %}
+  <div class="search" style="max-width:320px">{% icon "search" 16 %}<label for="q" class="sr">Search {{ m.label }}</label><input id="q" name="q" value="{{ q }}" placeholder="Search {{ m.label|lower }}…"></div>
+  {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+  {% if can_manage %}<a class="chip{% if archived %} on{% endif %}" href="{% if archived %}{% qs_replace archived='' page='' %}{% else %}{% qs_replace archived='1' status='' page='' %}{% endif %}">Archived</a>{% endif %}
+</form>
+{% include "core/_module_table.html" %}
+{% endblock %}
