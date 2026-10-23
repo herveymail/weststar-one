@@ -168,7 +168,7 @@ class DumpSource:
         for r in self.rows.get(table, []):
             if len(r) != len(cols):
                 raise DumpError(f"Table {table}: a row has {len(r)} values but the table has {len(cols)} columns.")
-            out.append(dict(zip(cols, r)))
+            out.append(dict(zip(cols, r, strict=True)))
         if order in cols:
             out.sort(key=lambda d: (d[order] is None, d[order] if not isinstance(d[order], bytes) else b""))
         return out
