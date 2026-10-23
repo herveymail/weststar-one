@@ -3,7 +3,8 @@ when invoices go out), payments recorded by staff, and Stripe webhooks keeping i
 import hashlib
 import logging
 import secrets
-from datetime import timedelta
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
 from decimal import Decimal
 
 from django.conf import settings
@@ -171,6 +172,13 @@ def charge_invoice(invoice: Invoice, *, source="autopay", by=None) -> Payment | 
     bal = invoice.balance
     if bal <= 0:
         return None
+    if source == "autopay":
+        dup = _already_paid_at_stripe(c, bal, invoice)
+        if dup:
+            note = f"Stripe already shows a ${bal} payment from this client on {dup} — check it and record it here; not charging again."
+            Invoice.objects.filter(pk=invoice.pk).update(autopay_attempts=_int("autopay.max_attempts", 4), autopay_next_at=None, autopay_error=note[:255])
+            send_staff_note(invoice, note)
+            return None
     key = f"ws1-{source}-{invoice.pk}-{invoice.autopay_attempts}-{cents(bal)}" + (f"-{timezone.now():%Y%m%d%H%M}" if source == "staff" else "")
     Client.objects.filter(pk=c.pk).update(autopay_last_attempt_at=timezone.now())
     try:
@@ -193,6 +201,31 @@ def charge_invoice(invoice: Invoice, *, source="autopay", by=None) -> Payment | 
     if by is not None and p:
         audit(None, "payment", "invoice", invoice.pk, f"{by.name} charged the card on file ${p.amount} for {invoice}", area="billing", user=by)
     return p
+
+
+def _already_paid_at_stripe(c: Client, bal, invoice: Invoice) -> str:
+    """Safety net for the move from the old app: a successful Stripe charge for this exact amount in the
+    last 45 days that isn't recorded here yet (e.g. charged by the old app after the last backup)."""
+    since = int((timezone.now() - timedelta(days=45)).timestamp())
+    try:
+        res = stripe_api.call("GET", "payment_intents", {"customer": c.stripe_customer_id or ensure_customer(c), "created": {"gte": since}, "limit": 100})
+    except stripe_api.StripeError:
+        return ""
+    known = set(Payment.objects.filter(client=c).exclude(stripe_payment_intent="").values_list("stripe_payment_intent", flat=True))
+    for pi in res.get("data") or []:
+        if pi.get("status") == "succeeded" and pi.get("amount_received") == cents(bal) and pi.get("id") not in known:
+            meta = pi.get("metadata") or {}
+            if meta.get("invoice_id") and str(meta["invoice_id"]) != str(invoice.pk) and meta.get("client_id") == str(c.pk):
+                continue  # ours, for a different invoice
+            return timezone.localtime(datetime.fromtimestamp(pi.get("created", 0), tz=dt_timezone.utc)).strftime("%b %-d")
+    return ""
+
+
+def send_staff_note(inv: Invoice, note: str):
+    staff = Setting.get("company.billing_email", "") or Setting.get("email.support_address", "")
+    if staff:
+        mail.send(staff, f"AutoPay paused: {inv.client.name} {inv.number}", "email/portal_staff_notice",
+                  {"what": f"AutoPay paused for {inv.client.name} ({inv.number})", "detail": note, "link": f"{settings.APP_URL}/clients/{inv.client_id}/?tab=Invoices"})
 
 
 def _failed(invoice: Invoice, message: str, code: str):

@@ -35,6 +35,8 @@ class FakeStripe:
             return self.session
         if path.startswith("payment_methods/") and method == "GET":
             return {"id": "pm_new", "type": "card", "card": {"brand": "visa", "last4": "4242"}}
+        if path == "payment_intents" and method == "GET":
+            return {"data": getattr(self, "existing", [])}
         if path == "payment_intents":
             if self.decline:
                 raise stripe_api.StripeError("Your card was declined.", "card_declined", "insufficient_funds", 402,
@@ -189,3 +191,12 @@ def test_staff_autopay_box_link_and_charge(client, fake, inv):
     r = client.post(f"/clients/{inv.client_id}/autopay/", {"action": "charge", "invoice": inv.pk}, follow=True)
     inv.refresh_from_db()
     assert inv.status == "Paid" and b"Charged" in r.content
+
+
+def test_autopay_skips_when_stripe_already_has_the_payment(fake, inv):
+    Client.objects.filter(pk=inv.client_id).update(autopay_enabled=True, autopay_method_id="pm_1", stripe_customer_id="cus_1")
+    fake.existing = [{"id": "pi_old", "status": "succeeded", "amount_received": 14182, "created": int(time.time()) - 86400, "metadata": {}}]
+    payments.run_autopay()
+    inv.refresh_from_db()
+    assert not inv.payments.exists() and "already shows" in inv.autopay_error
+    assert not [c for c in fake.calls if c[0] == "POST" and c[1] == "payment_intents"]
