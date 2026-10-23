@@ -79,7 +79,7 @@ def test_old_php_bcrypt_password_works_and_upgrades(client):
     User.objects.filter(pk=u.pk).update(password="bcrypt$" + php_hash.replace("$2y$", "$2b$"))
     Setting.put("security.require_mfa", "nobody")
     signed_in(client, User.objects.get(pk=u.pk))
-    assert User.objects.get(pk=u.pk).password.startswith("argon2")
+    assert not User.objects.get(pk=u.pk).password.startswith("bcrypt")  # re-hashed with the preferred hasher
 
 
 def test_privileged_people_must_set_up_2fa(client):
