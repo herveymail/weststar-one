@@ -23,6 +23,9 @@ git log --oneline "${BEFORE}..${AFTER}" | sed 's/^/      /' | head -20
 
 docker compose build -q app || { git reset -q --hard "$BEFORE"; die "Build failed; rolled the code back to ${BEFORE}. The running app was not touched."; }
 docker compose up -d db app jobs caddy || die "Couldn't restart. Check: docker compose logs app"
+if git diff --name-only "$BEFORE" "$AFTER" | grep -q '^deploy/Caddyfile$'; then
+  docker compose restart caddy >/dev/null && ok "Web server settings reloaded."
+fi
 for _ in $(seq 1 90); do
   [ "$(docker inspect -f '{{.State.Health.Status}}' "$(docker compose ps -q app)" 2>/dev/null)" = healthy ] && break; sleep 2
 done
