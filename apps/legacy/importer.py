@@ -979,6 +979,13 @@ class Importer:
         def put(new_key, value, secret, legacy_row):
             if value is None or value.strip() in ("", "NULL") or (new_key in ALL_FIELDS and ALL_FIELDS[new_key]["type"] == "bool" and value not in ("true", "false")):
                 return
+            if new_key in ("email.imap_last_uid", "email.imap_uidvalidity") and not Setting.get("email.last_fetch", ""):
+                # Until this app reads the mailbox itself, follow the old app's place in it (a newer backup = further along)
+                cur = Setting.get(new_key, "")
+                if new_key == "email.imap_uidvalidity" or not cur.isdigit() or (value.isdigit() and int(value) > int(cur)):
+                    Setting.put(new_key, value)
+                legacy_row.copied = True
+                return
             if Setting.objects.filter(key=new_key).exclude(value="").exists():
                 legacy_row.copied = Setting.get(new_key, "") == value[:20000]  # same as before (an earlier import) or changed here
                 return  # changed here already — keep it
