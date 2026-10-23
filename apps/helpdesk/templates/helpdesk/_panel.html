@@ -1,0 +1,60 @@
+{% load ws %}
+<aside class="tkg-panel" id="panel" aria-label="Selected ticket" data-panel="{{ t.pk }}">
+  <div class="head">
+    <div class="row mono muted" style="gap:8px">{{ t.number }} · opened by {% if t.contact_name %}{{ t.contact_name }}{% elif t.created_by %}{{ t.created_by.name }}{% else %}—{% endif %} · {{ t.created_at|ago }}
+      <span class="spacer"></span>
+      {% if can_edit %}{% if timer %}<button class="btn small" hx-post="/tickets/{{ t.pk }}/timer/?ctx=panel" hx-vals='{"action":"stop"}' hx-target="#panel" hx-swap="outerHTML">■ Stop <span data-since="{{ timer.started_at|date:'U' }}">0:00</span></button>
+      {% else %}<button class="btn small" hx-post="/tickets/{{ t.pk }}/timer/?ctx=panel" hx-vals='{"action":"start"}' hx-target="#panel" hx-swap="outerHTML">▶ Start timer</button>{% endif %}{% endif %}
+      <a class="btn small" href="/tickets/{{ t.pk }}/?classic=1" title="Full page" aria-label="Open full page">⤢</a>
+      <button class="btn small" data-close-panel aria-label="Close panel">×</button>
+    </div>
+    {% if t.client.account_alert %}<div class="hd-alert small">⚠ {{ t.client.account_alert }}</div>{% endif %}
+    <h2 style="font-size:17px">{{ t.subject }}</h2>
+    <div class="meta-grid">
+      <div><div class="lbl">Status</div><span class="st {{ t.status|st_class }}">{{ t.status }}</span></div>
+      <div><div class="lbl">Priority</div><span class="pri {{ t.priority|p_class }}">{{ t.priority }}</span></div>
+      <div><div class="lbl">Company</div>{% if t.client %}<a href="/clients/{{ t.client.pk }}/">{{ t.client.name }}</a>{% else %}—{% endif %}</div>
+      <div><div class="lbl">Assignee</div>{{ t.assigned_to.name|default:"Unassigned" }}</div>
+      <div><div class="lbl">Queue</div>{{ t.queue.name|default:"—" }}</div>
+      <div><div class="lbl">Category</div>{{ t.category|default:"—" }}</div>
+    </div>
+    {% if t.sla_chips %}<div class="row">{% for c in t.sla_chips %}<span class="sla {{ c.tone }}">{{ c.text }}</span>{% endfor %}</div>{% endif %}
+    {% if can_edit %}
+    <form class="row" hx-post="/tickets/{{ t.pk }}/update/" hx-trigger="change" hx-target="#panel" hx-swap="outerHTML">
+      <input type="hidden" name="ctx" value="panel">
+      <label class="sr" for="ps-{{ t.pk }}">Status</label><select id="ps-{{ t.pk }}" name="status" class="select" style="width:auto">{% for s in statuses %}<option{% if s == t.status %} selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+      <label class="sr" for="pa-{{ t.pk }}">Assignee</label><select id="pa-{{ t.pk }}" name="assigned_to" class="select" style="width:auto"><option value="">Unassigned</option>{% for u in users %}<option value="{{ u.pk }}"{% if u.pk == t.assigned_to_id %} selected{% endif %}>{{ u.name }}</option>{% endfor %}</select>
+      <label class="sr" for="pp-{{ t.pk }}">Priority</label><select id="pp-{{ t.pk }}" name="priority" class="select" style="width:auto">{% for p in priorities %}<option{% if p == t.priority %} selected{% endif %}>{{ p }}</option>{% endfor %}</select>
+      <label class="sr" for="pq-{{ t.pk }}">Queue</label><select id="pq-{{ t.pk }}" name="queue" class="select" style="width:auto"><option value="">No queue</option>{% for q in queues %}<option value="{{ q.pk }}"{% if q.pk == t.queue_id %} selected{% endif %}>{{ q.name }}</option>{% endfor %}</select>
+    </form>
+    <div class="row">{% if t.is_open %}<button class="btn small" hx-post="/tickets/{{ t.pk }}/update/" hx-vals='{"status":"Closed","ctx":"panel"}' hx-target="#panel" hx-swap="outerHTML">Close ticket</button>{% else %}<button class="btn small" hx-post="/tickets/{{ t.pk }}/update/" hx-vals='{"status":"Open","ctx":"panel"}' hx-target="#panel" hx-swap="outerHTML">Reopen</button>{% endif %}
+      <a class="btn small" href="/tickets/{{ t.pk }}/?classic=1">Resolve, snooze, merge…</a></div>
+    {% endif %}
+    {% if t.client %}<div class="strip">{{ t.client.name }}{% if t.client.plan %} · <b>{{ t.client.plan }}</b>{% endif %}{% if contract %} · Contract active{% endif %}{% if t.client.phone %} · {{ t.client.phone }}{% endif %}{% if client_open %} · {{ client_open|length }} other open{% endif %}</div>{% endif %}
+    <div class="ptabs" role="radiogroup" aria-label="Panel section">
+      <label><input type="radio" name="ptab" id="pt-conv" class="sr" checked>Conversation {{ conversation_count }}</label>
+      <label><input type="radio" name="ptab" id="pt-details" class="sr">Details</label>
+      <label><input type="radio" name="ptab" id="pt-history" class="sr">History {{ history|length }}</label>
+    </div>
+  </div>
+  <div class="pbody pane-conv">{% include "helpdesk/_thread.html" %}</div>
+  <div class="pbody pane-details">
+    <div class="kv">
+      <span>Requester</span><span>{{ t.contact_name|default:"—" }}</span>
+      <span>Email</span><span style="overflow-wrap:anywhere">{{ t.contact_email|default:"—" }}</span>
+      <span>Source</span><span>{{ t.source }}</span>
+      <span>Created</span><span>{{ t.created_at|date:"M j, g:i A" }}</span>
+      <span>Updated</span><span>{{ t.updated_at|date:"M j, g:i A" }}</span>
+      {% if t.due_date %}<span>Due</span><span>{{ t.due_date|date:"M j" }}</span>{% endif %}
+      {% if t.closed_at %}<span>Closed</span><span>{{ t.closed_at|date:"M j, g:i A" }}</span>{% endif %}
+      {% if t.resolution %}<span>Resolution</span><span>{{ t.resolution }}</span>{% endif %}
+      <span>Cc</span><span>{{ t.cc|default:"—" }}</span>
+      <span>Response</span><span>{% if t.first_response_at %}Answered {{ t.first_response_at|ago }}{% elif t.response_due_at %}Due {{ t.response_due_at|date:"M j, g:i A" }}{% else %}—{% endif %}</span>
+      <span>Resolve by</span><span>{{ t.resolve_due_at|date:"M j, g:i A"|default:"—" }}</span>
+      <span>Logged</span><span>{{ minutes|minutes_text }}</span>
+      <span>Billable</span><span>{{ billable_minutes|minutes_text }}</span>
+    </div>
+  </div>
+  <div class="pbody pane-history"><div class="timeline">{% for m in history %}<div><span>{{ m.body }} <span class="muted">· {{ m.created_at|ago }}</span></span></div>{% empty %}<span class="muted">No changes yet.</span>{% endfor %}</div></div>
+  {% if can_edit %}{% include "helpdesk/_composer.html" %}{% endif %}
+</aside>

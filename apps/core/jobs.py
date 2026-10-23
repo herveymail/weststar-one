@@ -81,13 +81,25 @@ def cleanup():
     return {"sessions": s + us, "attempts": a}
 
 
+def wake_snoozed():
+    from apps.helpdesk.services import wake_snoozed as wake
+    return {"woken": wake()}
+
+
 def import_files_cleanup():
     from apps.legacy.uploaded import cleanup_old_files
     return {"deleted": cleanup_old_files()}
 
 
+def fetch_email():
+    from apps.helpdesk.inbound import fetch
+    return fetch()
+
+
 JOBS = {
+    "fetch-email": {"label": "Email to ticket (support mailbox)", "every_minutes": 1, "run": fetch_email},
     "sla-watch": {"label": "SLA watch", "every_minutes": 5, "run": sla_watch},
+    "wake-snoozed": {"label": "Bring back snoozed tickets", "every_minutes": 5, "run": wake_snoozed},
     "recurring-invoices": {"label": "Recurring invoices", "every_minutes": 60, "run": recurring_invoices},
     "overdue-invoices": {"label": "Mark overdue invoices", "every_minutes": 60, "run": overdue_invoices},
     "auto-close": {"label": "Auto-close resolved tickets", "every_minutes": 60, "run": auto_close},

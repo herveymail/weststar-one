@@ -1,0 +1,30 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}{{ q.number }}{% endblock %}
+{% block main_extra %} narrow{% endblock %}
+{% block content %}
+<a href="/client-portal/quotes/">← Quotes</a>
+<section class="card pad stack">
+  <div class="row"><h1 class="grow" style="font-size:22px">Quote {{ q.number }}</h1><span class="pill{% if q.status == 'Accepted' %} done{% elif q.status == 'Sent' %} wait{% endif %}">{{ q.status }}</span></div>
+  <div class="kv"><span>Date</span><span>{{ q.quote_date|date:"M j, Y" }}</span>{% if q.expires_on %}<span>Good until</span><span>{{ q.expires_on|date:"M j, Y" }}</span>{% endif %}</div>
+  {% if q.scope %}<div class="doc">{{ q.scope }}</div>{% endif %}
+  <div class="table-wrap"><table class="t">
+    <thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th style="text-align:right">Amount</th></tr></thead>
+    <tbody>{% for l in lines %}<tr><td>{{ l.description }}</td><td>{{ l.qty|floatformat:"-2" }}</td><td>{{ l.rate|dollars }}</td><td style="text-align:right">{{ l.line_total|dollars }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <div class="kv" style="max-width:340px;margin-left:auto"><span>Subtotal</span><span style="text-align:right">{{ q.subtotal|dollars }}</span><span>Tax</span><span style="text-align:right">{{ q.tax_amount|dollars }}</span><span><b>Total</b></span><span style="text-align:right"><b>{{ q.total|dollars }}</b></span></div>
+  {% if q.notes %}<p class="muted" style="margin:0;white-space:pre-wrap">{{ q.notes }}</p>{% endif %}
+</section>
+{% if approval %}<div class="banner ok">{{ approval.get_decision_display }} by {{ approval.signed_name }} on {{ approval.created_at|date:"M j, Y g:i A" }}.</div>{% endif %}
+{% if q.status == "Sent" %}
+<section class="card pad stack">
+  <h2>Approve this quote</h2>
+  {% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+  <form method="post" class="stack">{% csrf_token %}
+    <div class="field"><label for="nm">Type your full name</label><input id="nm" name="name" class="input" autocomplete="name" value="{{ pu.name }}"></div>
+    <label class="check"><input type="checkbox" name="agree" value="1"><span>I accept this quote for <b>{{ q.total|dollars }}</b> on behalf of {{ pu.client.name }}.</span></label>
+    <div class="row"><button class="btn primary" name="decision" value="accepted">Accept quote</button><span class="grow"></span>
+      <details><summary class="link-btn">Decline…</summary><div class="stack" style="margin-top:8px"><label for="cm" class="small">Tell us why (optional)</label><textarea id="cm" name="comment" class="textarea" style="min-height:70px"></textarea><button class="btn danger" name="decision" value="declined">Decline quote</button></div></details></div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

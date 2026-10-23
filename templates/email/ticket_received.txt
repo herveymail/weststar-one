@@ -1,0 +1,10 @@
+Hi {{ t.contact_name|default:"there" }},
+
+We received your request and created ticket {{ t.number }}: {{ t.subject }}.
+{% if after_hours %}{{ after_hours }}
+
+{% endif %}{% if t.response_due_at %}We aim to respond by {{ t.response_due_at|date:"M j, g:i A" }}.{% endif %}
+
+Follow it or add details here: {{ link }}
+
+— {{ company }}

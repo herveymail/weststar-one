@@ -1,0 +1,54 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}My Profile{% endblock %}
+{% block main_extra %} narrow{% endblock %}
+{% block content %}
+<h1 style="font-size:22px">My Profile</h1>
+{% if msg %}<div class="banner ok" role="status">{{ msg }}</div>{% endif %}
+{% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+<section class="card pad stack">
+  <div class="kv"><span>Name</span><span>{{ pu.name }}</span><span>Email</span><span>{{ pu.email }}</span><span>Company</span><span>{{ pu.client.name }}</span><span>Role</span><span>{{ pu.get_role_display }}</span></div>
+</section>
+<section class="card pad stack">
+  <h2>{% if pu.has_password %}Change password{% else %}Set a password{% endif %}</h2>
+  <form method="post" class="stack">{% csrf_token %}<input type="hidden" name="action" value="password">
+    <input type="email" name="username" value="{{ pu.email }}" autocomplete="username" hidden>
+    {% if pu.has_password %}<div class="field"><label for="cur">Current password</label><input id="cur" name="current" type="password" class="input" autocomplete="current-password" required></div>{% endif %}
+    <div class="field"><label for="np">New password (12+ characters)</label><input id="np" name="new" type="password" class="input" autocomplete="new-password" minlength="12" required></div>
+    <div class="field"><label for="na">Again</label><input id="na" name="again" type="password" class="input" autocomplete="new-password" minlength="12" required></div>
+    <div><button class="btn primary">Save password</button></div></form>
+</section>
+<section class="card pad stack">
+  <h2>Two-step sign-in {% if pu.mfa_enabled %}<span class="pill done">On</span>{% else %}<span class="pill">Off</span>{% endif %}</h2>
+  {% if qr %}
+    <form method="post" class="stack">{% csrf_token %}<input type="hidden" name="action" value="mfa_confirm">
+      <p style="margin:0">Scan this with an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password…), then type the code it shows.</p>
+      <img class="qr" src="{{ qr }}" alt="QR code for your authenticator app">
+      <p class="small muted" style="margin:0">Can't scan? Enter this key: <span class="codebox">{{ secret }}</span></p>
+      <div class="field"><label for="c1">6-digit code</label><input id="c1" name="code" class="input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required style="max-width:200px"></div>
+      <div><button class="btn primary">Turn on</button></div></form>
+  {% elif pu.mfa_enabled %}
+    <form method="post" class="row" style="align-items:flex-end">{% csrf_token %}<input type="hidden" name="action" value="mfa_off">
+      <div class="field" style="flex:1 1 240px"><label for="dp">To turn it off, enter your password</label><input id="dp" name="password" type="password" class="input" autocomplete="current-password"></div>
+      <button class="btn danger">Turn off</button></form>
+  {% else %}
+    <p class="muted" style="margin:0">Adds a code from your phone when you sign in. Recommended.</p>
+    <form method="post">{% csrf_token %}<input type="hidden" name="action" value="mfa_start"><button class="btn">Turn on two-step sign-in</button></form>
+  {% endif %}
+</section>
+<section class="card" style="overflow:hidden">
+  <div class="pad" style="padding-bottom:6px"><h2>Team Members</h2></div>
+  <div class="table-wrap"><table class="t"><tbody>{% for u in team %}<tr><td><b>{{ u.name }}</b>{% if u.pk == pu.pk %} <span class="muted small">(you)</span>{% endif %}<div class="small muted">{{ u.email }}</div></td>
+    <td>{{ u.get_role_display }}</td><td>{% if not u.is_active %}<span class="pill">Off</span>{% elif not u.has_password %}<span class="pill wait">Invited</span>{% else %}<span class="pill done">Active</span>{% endif %}</td>
+    <td style="text-align:right">{% if pu.role == "admin" and u.pk != pu.pk and u.is_active %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="deactivate"><input type="hidden" name="user" value="{{ u.pk }}"><button class="btn small danger">Turn off access</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+</section>
+{% if pu.role == "admin" %}
+<section class="card pad stack">
+  <h2>Invite a Team Member</h2>
+  <form method="post" class="row" style="align-items:flex-end">{% csrf_token %}<input type="hidden" name="action" value="invite">
+    <div class="field" style="flex:1 1 200px"><label for="in">Name</label><input id="in" name="name" class="input" required></div>
+    <div class="field" style="flex:1 1 240px"><label for="ie">Email</label><input id="ie" name="email" type="email" class="input" required></div>
+    <button class="btn primary">Send invitation</button></form>
+  <p class="small muted" style="margin:0">They get an email to set their own password. They can open tickets and see their own tickets; we can give them more access.</p>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,6 @@
+Hi {{ u.first_name }},
+
+Here's your link to sign in to the {{ company }} client portal:
+{{ link }}
+
+It works once and expires in {{ minutes }} minutes. If you didn't ask for it, you can ignore this email.

@@ -1,0 +1,17 @@
+<form method="post" class="form-grid" style="margin-top:14px">{% csrf_token %}<input type="hidden" name="id" value="{{ q.pk|default:'' }}">
+  <fieldset class="form-grid wide" style="border:0;padding:0;margin:0;grid-column:1/-1"{% if not can_manage %} disabled{% endif %}>
+  <div class="field"><label>Name *<input class="input" name="name" value="{{ q.name|default:'' }}" required maxlength="80"></label></div>
+  <div class="field"><label>Shown in the portal as<input class="input" name="portal_label" value="{{ q.portal_label|default:'' }}" placeholder="Blank = hidden from clients"></label></div>
+  <div class="field wide"><label>Description<input class="input" name="description" value="{{ q.description|default:'' }}"></label></div>
+  <div class="field wide"><label>Trigger words (comma-separated)<textarea class="textarea" name="keywords" rows="2">{{ q.keywords|default:'' }}</textarea></label></div>
+  <div class="field"><label>Escalate to<select class="select" name="escalate_to"><option value="">—</option>{% for o in rows %}{% if o.pk != q.pk %}<option value="{{ o.pk }}"{% if q.escalate_to_id == o.pk %} selected{% endif %}>{{ o.name }}</option>{% endif %}{% endfor %}</select></label></div>
+  <div class="field"><label>Color<input class="input" type="color" name="color" value="{{ q.color|default:'#2c5cc5' }}"></label></div>
+  <div class="field"><label>Order<input class="input" type="number" min="0" name="sort" value="{{ q.sort|default:0 }}"></label></div>
+  <div class="field" style="display:flex;flex-direction:column;gap:6px">
+    <label class="check"><input type="checkbox" class="checkbox" name="sla_enabled"{% if not q or q.sla_enabled %} checked{% endif %}>Track SLA</label>
+    <label class="check"><input type="checkbox" class="checkbox" name="is_default"{% if q.is_default %} checked{% endif %}>Default queue</label>
+    <input type="hidden" name="active" value="off"><label class="check"><input type="checkbox" class="checkbox" name="active"{% if not q or q.active %} checked{% endif %}>On</label></div>
+  </fieldset>
+  {% if can_manage %}<div style="display:flex;gap:8px;grid-column:1/-1"><button class="btn primary">{% if q %}Save{% else %}Add queue{% endif %}</button>
+    {% if q %}<button class="btn danger" name="action" value="delete" formnovalidate>Delete</button>{% endif %}</div>{% endif %}
+</form>

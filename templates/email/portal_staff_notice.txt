@@ -1,0 +1,5 @@
+{{ what }}
+
+{{ detail }}
+
+Open it: {{ link }}

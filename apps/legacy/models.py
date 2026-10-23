@@ -31,3 +31,19 @@ class ImportRun(models.Model):
     @property
     def warnings(self):
         return sum(len(s.get("warnings", [])) for s in (self.summary or []))
+
+
+class LegacySetting(models.Model):
+    """Every setting from the old Weststar One, kept for reference (Settings › Old system settings).
+    `mapped_to` is the new setting it was copied into, if the new app has one."""
+    key = models.CharField(max_length=191, unique=True)
+    value = models.TextField(blank=True)          # plain settings
+    secret_value = EncryptedField()               # passwords / keys (decrypted from the old app, encrypted again here)
+    is_secret = models.BooleanField(default=False)
+    decrypt_failed = models.BooleanField(default=False)
+    mapped_to = models.CharField(max_length=191, blank=True)
+    copied = models.BooleanField(default=False)   # False when the new app already had its own value
+    imported_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["key"]

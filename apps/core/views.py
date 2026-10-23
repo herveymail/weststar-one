@@ -52,7 +52,7 @@ def refresh() -> HttpResponse:
 
 
 @login_required
-def module_list(request, slug, embedded_filter=None, template="core/module_list.html", extra=None):
+def module_list(request, slug, embedded_filter=None, template="core/module_list.html", extra=None, base_filter=None):
     m = module_or_404(slug)
     guard(request, m, "view")
     qs = scoped(request, m)
@@ -60,6 +60,8 @@ def module_list(request, slug, embedded_filter=None, template="core/module_list.
     qs = qs.filter(archived_at__isnull=not archived)
     if embedded_filter:
         qs = qs.filter(**embedded_filter)
+    if base_filter:
+        qs = qs.filter(**base_filter)
     counts, status = {}, request.GET.get("status", "")
     if m.status_field:
         counts = {r[m.status_field]: r["n"] for r in qs.values(m.status_field).annotate(n=Count("id"))}
@@ -81,7 +83,8 @@ def module_list(request, slug, embedded_filter=None, template="core/module_list.
     related = [f for f in m.list_fields if m.model._meta.get_field(f).is_relation]
     qs = qs.select_related(*related)
     page = Paginator(qs, 50 if not embedded_filter else 25).get_page(request.GET.get("page"))
-    rows = [{"obj": o, "cells": [cell(o, f) for f in m.list_fields]} for o in page.object_list]
+    row_url = (extra or {}).get("row_url", "")
+    rows = [{"obj": o, "cells": [cell(o, f) for f in m.list_fields], "url": row_url.format(id=o.pk) if row_url else ""} for o in page.object_list]
     ctx = {
         "m": m, "rows": rows, "page": page, "q": q, "status": status, "archived": archived, "sort": sort,
         "columns": [(f, field_label(m.model, f)) for f in m.list_fields],
@@ -273,9 +276,19 @@ def health(request):
     return HttpResponse("ok", content_type="text/plain")
 
 
+def _portal_error(request, status, heading, text):
+    from apps.portal.views import _ctx
+    request.portal_user = getattr(request, "portal_user", None)
+    return render(request, "portal/error.html", _ctx(request, heading=heading, text=text), status=status)
+
+
 def forbidden(request, exception=None):
+    if request.path.startswith("/client-portal/"):
+        return _portal_error(request, 403, "You don't have access to this page", "Ask your company's portal admin, or contact us, if you need it.")
     return render(request, "core/403.html", status=403)
 
 
 def not_found(request, exception=None):
+    if request.path.startswith("/client-portal/"):
+        return _portal_error(request, 404, "We couldn't find that page", "It may have been moved, or it isn't shared with your account.")
     return render(request, "core/404.html", status=404)

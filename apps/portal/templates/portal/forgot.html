@@ -1,0 +1,11 @@
+{% extends "portal/plain.html" %}
+{% block title %}Reset your password{% endblock %}
+{% block card %}
+<h1 style="font-size:22px">Reset your password</h1>
+{% if sent %}<div class="banner ok" role="status">If that email has a portal account, we sent a link to choose a new password. It expires in 1 hour.</div>
+{% else %}<p class="muted" style="margin:0">We'll email you a link to choose a new password.</p>
+<form method="post" class="stack">{% csrf_token %}
+  <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" class="input" required autofocus></div>
+  <button class="btn primary">Send reset link</button></form>{% endif %}
+<a href="/client-portal/login/" class="small">Back to sign in</a>
+{% endblock %}

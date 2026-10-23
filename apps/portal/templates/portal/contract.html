@@ -1,0 +1,30 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}{{ c.name }}{% endblock %}
+{% block main_extra %} narrow{% endblock %}
+{% block content %}
+<a href="/client-portal/contracts/">← Contracts</a>
+<section class="card pad stack">
+  <div class="row"><h1 class="grow" style="font-size:22px">{{ c.name }}</h1><span class="pill{% if c.status == 'Active' %} done{% elif c.status == 'Sent' %} wait{% endif %}">{% if c.status == "Sent" %}Waiting for your signature{% else %}{{ c.status }}{% endif %}</span></div>
+  <div class="kv">{% if c.number %}<span>Contract #</span><span>{{ c.number }}</span>{% endif %}<span>Type</span><span>{{ c.type }}</span>
+    <span>Term</span><span>{{ c.start_date|date:"M j, Y"|default:"On signing" }} – {{ c.end_date|date:"M j, Y"|default:"ongoing" }}{% if c.auto_renew %} · renews automatically{% endif %}</span>
+    {% if c.monthly_rate %}<span>Monthly</span><span>{{ c.monthly_rate|dollars }}</span>{% endif %}
+    {% if c.included_hours %}<span>Included hours</span><span>{{ c.included_hours|floatformat:"-2" }} / month</span>{% endif %}
+    {% if c.overage_rate %}<span>Extra hours</span><span>{{ c.overage_rate|dollars }}/h</span>{% endif %}</div>
+  {% if c.scope %}<h3>Scope</h3><div class="doc">{{ c.scope }}</div>{% endif %}
+  {% if c.terms %}<h3>Terms</h3><div class="doc">{{ c.terms }}</div>{% endif %}
+</section>
+{% if signature %}<div class="banner ok">Signed by {{ signature.signed_name }}{% if signature.signed_title %}, {{ signature.signed_title }}{% endif %} on {{ signature.created_at|date:"M j, Y g:i A" }}.</div>{% endif %}
+{% if c.status == "Sent" %}
+<section class="card pad stack">
+  <h2>Sign this agreement</h2>
+  {% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+  <form method="post" class="stack">{% csrf_token %}
+    <div class="row" style="align-items:flex-start">
+      <div class="field" style="flex:1 1 240px"><label for="nm">Full name</label><input id="nm" name="name" class="input" autocomplete="name" value="{{ pu.name }}"></div>
+      <div class="field" style="flex:1 1 200px"><label for="ti">Title</label><input id="ti" name="title" class="input" autocomplete="organization-title" placeholder="e.g. Office Manager"></div></div>
+    <label class="check"><input type="checkbox" name="agree" value="1"><span>I have read this agreement and I'm authorized to sign it for {{ pu.client.name }}. Typing my name above is my signature.</span></label>
+    <div><button class="btn primary">Sign Agreement</button></div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

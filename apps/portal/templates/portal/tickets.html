@@ -1,0 +1,33 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}Tickets{% endblock %}
+{% block content %}
+<div class="grid2">
+  <section class="card" style="overflow:hidden">
+    <div class="row pad"><h1 class="grow" style="font-size:22px">My Tickets</h1>
+      <span class="seg">{% for k, l in "all:All,open:Open,closed:Closed"|split_pairs %}<a href="?f={{ k }}" class="{% if f == k %}on{% endif %}">{{ l }}</a>{% endfor %}</span></div>
+    <div class="table-wrap"><table class="t">
+      <thead><tr><th>Ticket</th><th>Subject</th><th>Priority</th><th>Status</th><th>Updated</th></tr></thead>
+      <tbody>{% for t in rows %}<tr><td class="muted small">{{ t.number }}</td><td><a class="row-a" href="/client-portal/tickets/{{ t.pk }}/">{{ t.subject }}</a>{% if t.contact_name and t.contact_email != pu.email %}<div class="small muted">{{ t.contact_name }}</div>{% endif %}</td>
+        <td>{{ t.priority }}</td><td>{% include "portal/_status.html" with s=t.status %}</td><td class="small muted">{{ t.updated_at|ago }}</td></tr>
+      {% empty %}<tr><td colspan="5" class="muted">No tickets here.</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </section>
+
+  {% if can.submit_tickets %}
+  <section class="card pad stack" id="new">
+    <h2>Submit a Ticket</h2>
+    {% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+    <form method="post" enctype="multipart/form-data" class="stack">{% csrf_token %}
+      {% if queues %}<div class="field"><label for="q">What do you need help with?</label><select id="q" name="queue" class="select"><option value="">Something else</option>{% for q in queues %}<option value="{{ q.pk }}">{{ q.portal_label }}</option>{% endfor %}</select></div>{% endif %}
+      <div class="field"><label for="subject">Subject</label><input id="subject" name="subject" class="input" maxlength="255" required placeholder="Short summary"></div>
+      <div class="field"><label for="priority">How urgent is it?</label><select id="priority" name="priority" class="select">{% for k, l in priorities %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="details">Details</label><textarea id="details" name="details" class="textarea" placeholder="What happened? Any error message? Which computer?"></textarea></div>
+      <div class="field"><label for="files">Screenshots or files</label><input id="files" name="files" type="file" multiple><span class="help">Up to 10 files, 25 MB each.</span></div>
+      {% if coworkers %}<div class="field"><label for="notify">Also notify (coworkers)</label><select id="notify" name="notify" class="select" multiple size="3">{% for c in coworkers %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select><span class="help">Hold Ctrl (Cmd on Mac) to pick more than one.</span></div>{% endif %}
+      <button class="btn primary">Submit ticket</button>
+      {% if company_phone %}<p class="small muted" style="margin:0">For an emergency, call {{ company_phone }}.</p>{% endif %}
+    </form>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

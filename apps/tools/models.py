@@ -52,6 +52,12 @@ class SecureMessage(Record):
     direction = models.CharField(max_length=10, choices=C("Inbound", "Outbound"), default="Outbound")
     status = models.CharField(max_length=10, choices=C("Unread", "Read", "Archived"), default="Unread")
     body = EncryptedField("Message")
+    # Threads: replies point at the first message of the conversation.
+    thread = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE, related_name="replies", editable=False)
+    portal_user = models.ForeignKey("portal.PortalUser", null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False,
+                                    help_text="Empty = for everyone at the client with message access.")
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False)
+    client_read_at = models.DateTimeField(null=True, blank=True, editable=False)
 
     def __str__(self):
         return self.subject

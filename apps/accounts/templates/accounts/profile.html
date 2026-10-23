@@ -9,6 +9,13 @@
       <button name="look" value="graphite" class="tile" style="text-align:left;cursor:pointer;{% if user.look == 'graphite' %}outline:2px solid var(--accent){% endif %}" aria-pressed="{% if user.look == 'graphite' %}true{% else %}false{% endif %}"><span class="strong">Look 2 · Graphite</span><span class="small muted">Dark, slim icon bar with pop-out sections</span></button>
     </form>
   </section>
+  <section class="card pad stack">
+    <h2>Ticket screen</h2><p class="desc" style="margin:0">Both are from the old Weststar One. You can switch any time.</p>
+    <form method="post" class="tiles">{% csrf_token %}
+      <button name="tickets_ui" value="classic" class="tile" style="text-align:left;cursor:pointer;{% if user.tickets_ui == 'classic' %}outline:2px solid var(--accent){% endif %}" aria-pressed="{% if user.tickets_ui == 'classic' %}true{% else %}false{% endif %}"><span class="strong">Classic</span><span class="small muted">Views, queues, clients and agents on the left; each ticket opens as a full page</span></button>
+      <button name="tickets_ui" value="grid" class="tile" style="text-align:left;cursor:pointer;{% if user.tickets_ui == 'grid' %}outline:2px solid var(--accent){% endif %}" aria-pressed="{% if user.tickets_ui == 'grid' %}true{% else %}false{% endif %}"><span class="strong">Grid</span><span class="small muted">Sortable table with filters and bulk actions; tickets open beside the list</span></button>
+    </form>
+  </section>
   <section class="card pad stack"><h2>Details</h2>
     <form method="post" class="form-grid">{% csrf_token %}
       {% for f in form %}<div class="field"><label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{{ f.errors }}</div>{% endfor %}

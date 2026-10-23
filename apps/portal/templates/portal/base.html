@@ -1,0 +1,29 @@
+{% load static ws %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="same-origin">
+  <meta name="robots" content="noindex">
+  <meta name="htmx-config" content='{"allowEval":false,"includeIndicatorStyles":false,"selfRequestsOnly":true}'>
+  <title>{% block title %}Client Portal{% endblock %} · {{ company }}</title>
+  <link rel="icon" href="{% static 'core/favicon.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{% static 'portal/portal.css' %}">
+</head>
+<body>
+{% block body %}
+<header class="top">
+  <nav aria-label="Portal">
+    <a href="/client-portal/" class="brand"><span class="logo">{{ company|initials|slice:":1" }}</span>{{ company }}</a>
+    {% for key, label, url in nav %}<a href="{{ url }}" class="nav-a{% if active == key %} on{% endif %}"{% if active == key %} aria-current="page"{% endif %}>{{ label }}{% if key == "tickets" and open_count %} <span class="badge">{{ open_count }}</span>{% endif %}{% if key == "messages" and unread_count %} <span class="badge red">{{ unread_count }}</span>{% endif %}</a>{% endfor %}
+    <span class="grow"></span>
+    <details class="menu"><summary class="btn small">{{ pu.name }} ▾</summary>
+      <div class="menu-pop"><a href="/client-portal/profile/">My profile</a>
+        <form method="post" action="/client-portal/logout/">{% csrf_token %}<button>Sign out</button></form></div></details>
+  </nav>
+</header>
+<main class="wrap{% block main_extra %}{% endblock %}">{% block content %}{% endblock %}</main>
+{% endblock %}
+</body>
+</html>

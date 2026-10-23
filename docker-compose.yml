@@ -43,6 +43,7 @@ services:
     environment: &appenv
       DEBUG: "false"
       APP_URL: https://${DOMAIN:?set DOMAIN in .env}
+      PORTAL_URL: ${PORTAL_URL:-}
       SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
       APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?set APP_ENCRYPTION_KEY in .env}
       APP_ENCRYPTION_KEYS_OLD: ${APP_ENCRYPTION_KEYS_OLD:-}
@@ -78,7 +79,7 @@ services:
     restart: unless-stopped
     depends_on: [app]
     ports: ["80:80", "443:443"]
-    environment: { DOMAIN: "${DOMAIN}" }
+    environment: { DOMAIN: "${DOMAIN}", PORTAL_DOMAIN: "${PORTAL_DOMAIN:-}" }
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddydata:/data

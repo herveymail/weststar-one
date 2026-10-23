@@ -1,0 +1,35 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}{{ t.number }}{% endblock %}
+{% block main_extra %} narrow{% endblock %}
+{% block content %}
+<a href="/client-portal/tickets/">← My Tickets</a>
+{% if new %}<div class="banner ok" role="status">Thanks! We got your ticket. You'll get an email when we reply.</div>{% endif %}
+<section class="card pad stack" style="gap:8px">
+  <div class="row"><span class="muted">{{ t.number }}</span>{% include "portal/_status.html" with s=t.status %}<span class="muted">{{ t.priority }}{% if t.assigned_to %} · {{ t.assigned_to.get_short_name }} is on it{% endif %}</span></div>
+  <h1 style="font-size:22px">{{ t.subject }}</h1>
+  {% if t.is_open %}<div class="row small muted">{% if t.response_due_at and not t.first_response_at %}<span>✓ We aim to respond by {{ t.response_due_at|when }}</span>{% endif %}{% if t.resolve_due_at %}<span>Target resolution: {{ t.resolve_due_at|when }}</span>{% endif %}</div>{% endif %}
+  {% if t.resolution %}<div class="banner ok" style="font-weight:400"><b>How it was fixed:</b> {{ t.resolution }}</div>{% endif %}
+</section>
+{% if t.details or loose %}
+<section class="card msg"><div><b>{% if t.contact_email == pu.email %}You{% else %}{{ t.contact_name|default:"Request" }}{% endif %}</b> <span class="muted small">· {{ t.created_at|when }}</span></div>
+  {% if t.details %}<p class="body">{{ t.details }}</p>{% endif %}
+  {% for u in loose %}<a class="file" href="/client-portal/files/{{ u.pk }}/">📎 {{ u.original_name }} · {{ u.size|filesizeformat }}</a>{% endfor %}</section>
+{% endif %}
+{% for m in msgs %}
+<section class="card msg{% if m.author_id %} staff{% endif %}">
+  <div><b>{% if m.portal_user_id == pu.pk %}You{% else %}{{ m.who }}{% endif %}</b>{% if m.author_id %} <span class="small" style="color:var(--p-dark);font-weight:600">{{ company }}</span>{% endif %} <span class="muted small">· {{ m.created_at|when }}</span></div>
+  <p class="body">{{ m.body }}</p>
+  {% for u in m.files %}<a class="file" href="/client-portal/files/{{ u.pk }}/">📎 {{ u.original_name }} · {{ u.size|filesizeformat }}</a>{% endfor %}
+</section>
+{% endfor %}
+{% if can_reply %}
+<section class="card pad">
+  <form method="post" enctype="multipart/form-data" class="stack">{% csrf_token %}
+    <label for="rep" class="lbl">{% if t.is_open %}Reply{% else %}Reopen &amp; reply{% endif %}</label>
+    <textarea id="rep" name="body" class="textarea" placeholder="Add details or answer our question…"></textarea>
+    <div class="row"><label class="small">Attach files <input type="file" name="files" multiple></label><span class="grow"></span><button class="btn primary">{% if t.is_open %}Send reply{% else %}Reopen &amp; send{% endif %}</button></div>
+  </form>
+</section>
+{% else %}<p class="muted">This ticket is closed. <a href="/client-portal/tickets/#new">Open a new ticket</a> if you still need help.</p>{% endif %}
+{% if related %}<section class="card pad stack" style="gap:6px"><b>Help articles that might help</b>{% for a in related %}<a href="/client-portal/help/{{ a.pk }}/">{{ a.title }}</a>{% endfor %}</section>{% endif %}
+{% endblock %}

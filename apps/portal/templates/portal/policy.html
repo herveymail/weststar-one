@@ -1,0 +1,14 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}{{ p.name }}{% endblock %}
+{% block main_extra %} narrow{% endblock %}
+{% block content %}
+<a href="/client-portal/policies/">← Policies</a>
+<section class="card pad stack">
+  <h1 style="font-size:22px">{{ p.name }}{% if p.version %} <span class="muted" style="font-size:15px">v{{ p.version }}</span>{% endif %}</h1>
+  {% if p.body %}<div class="doc">{{ p.body }}</div>{% else %}<p class="muted" style="margin:0">Ask us for a copy of this policy.</p>{% endif %}
+  {% if p.my_ack %}<div class="banner ok">You acknowledged this on {{ p.my_ack.created_at|date:"M j, Y g:i A" }}.</div>
+  {% else %}<form method="post" class="stack">{% csrf_token %}
+    <label class="check"><input type="checkbox" name="agree" value="1" required><span>I have read and understand this policy.</span></label>
+    <div><button class="btn primary">I acknowledge</button></div></form>{% endif %}
+</section>
+{% endblock %}

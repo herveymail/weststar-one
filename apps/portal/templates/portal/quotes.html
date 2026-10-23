@@ -1,0 +1,13 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}Quotes{% endblock %}
+{% block content %}
+<section class="card" style="overflow:hidden">
+  <div class="pad"><h1 style="font-size:22px">Quotes</h1></div>
+  <div class="table-wrap"><table class="t">
+    <thead><tr><th>Quote</th><th>Description</th><th>Date</th><th>Total</th><th>Status</th></tr></thead>
+    <tbody>{% for q in rows %}<tr><td><a class="row-a" href="/client-portal/quotes/{{ q.pk }}/">{{ q.number }}</a></td><td>{{ q.scope|truncatechars:60|default:"—" }}</td><td>{{ q.quote_date|date:"M j, Y" }}</td><td>{{ q.total|dollars }}</td>
+      <td>{% if q.status == "Sent" %}<span class="pill wait">Waiting for you</span>{% elif q.status == "Accepted" or q.status == "Invoiced" %}<span class="pill done">{{ q.status }}</span>{% else %}<span class="pill">{{ q.status }}</span>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="5" class="muted">No quotes.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}

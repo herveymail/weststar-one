@@ -36,6 +36,8 @@
 </div>
 {% elif tab == "Tickets" %}
 <section class="card" style="overflow:hidden">{% include "crm/_ticket_rows.html" %}</section>
+{% elif tab == "Portal" %}
+<div hx-get="/clients/{{ c.pk }}/portal/" hx-trigger="load" hx-swap="outerHTML"><div class="empty">Loading…</div></div>
 {% elif tab == "Files" %}
 <div hx-get="/files/client/{{ c.pk }}/" hx-trigger="load" hx-swap="outerHTML"><div class="empty">Loading…</div></div>
 {% elif slug %}

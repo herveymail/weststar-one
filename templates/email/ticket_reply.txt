@@ -1,0 +1,9 @@
+{{ m.body }}
+
+—
+{{ m.author_name }}
+{{ company }}
+
+Ticket {{ t.number }}: {{ t.subject }}
+See the whole conversation or reply in your portal: {{ link }}
+You can also just reply to this email.

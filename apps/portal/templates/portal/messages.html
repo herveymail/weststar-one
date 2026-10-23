@@ -1,0 +1,19 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}Secure Messages{% endblock %}
+{% block content %}
+<div class="grid2">
+  <section class="card" style="overflow:hidden">
+    <div class="pad"><h1 style="font-size:22px">Secure Messages</h1><p class="muted small" style="margin:4px 0 0">Private and encrypted. Good for passwords or anything you don't want in email.</p></div>
+    {% for m in rows %}<a class="list-a" href="/client-portal/messages/{{ m.pk }}/"><span class="grow{% if m.unread %} strong{% endif %}">{{ m.subject }}</span>{% if m.unread %}<span class="badge red">New</span>{% endif %}<span class="muted small">{{ m.last_at|ago }}</span></a>
+    {% empty %}<p class="pad muted" style="margin:0">No messages yet.</p>{% endfor %}
+  </section>
+  <section class="card pad stack">
+    <h2>New Secure Message</h2>
+    {% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+    <form method="post" class="stack">{% csrf_token %}
+      <div class="field"><label for="ms">Subject</label><input id="ms" name="subject" class="input" maxlength="255" required></div>
+      <div class="field"><label for="mb">Message</label><textarea id="mb" name="body" class="textarea" required></textarea></div>
+      <button class="btn primary">Send securely</button></form>
+  </section>
+</div>
+{% endblock %}

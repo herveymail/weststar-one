@@ -31,7 +31,7 @@ from apps.core.audit import audit
 from apps.core.crypto import encrypt
 from apps.core.models import Counter
 from apps.crm.models import Asset, Client, ClientNote, Contact, Network, Project
-from apps.helpdesk.models import Ticket, TicketMessage, TimeEntry
+from apps.helpdesk.models import Queue, Ticket, TicketMessage, TimeEntry
 from apps.hr.models import Employee, TimeclockEntry, TimeOffRequest
 from apps.sales.models import Campaign, Lead
 from apps.tools.models import CalendarEvent, Domain, InventoryItem, KbArticle, MileageTrip, SecureMessage, Workflow
@@ -290,11 +290,13 @@ class Importer:
                 self.log("Importing from the old Weststar One…")
                 self.users()
                 self.crm()
+                self.portal()
                 self.billing()
                 self.tools()
                 self.hr()
                 self.tickets()
                 self.files()
+                self.settings()
                 self.bump_counters()
                 audit(None, "import", "import", run.pk, f"{'Dry run' if dry_run else 'Import'} from old Weststar One: {sum(x.imported for x in self.steps)} records", area="admin",
                       user=run.requested_by)
@@ -601,10 +603,18 @@ class Importer:
             cid = R("clients", r.get("msg_client_id"))
             if not cid:
                 return None
-            return {"client": cid, "subject": s(r.get("msg_subject")) or "(no subject)", "direction": "Inbound" if r.get("msg_direction") == "inbound" else "Outbound",
+            out = r.get("msg_direction") != "inbound"
+            return {"client": cid, "subject": s(r.get("msg_subject")) or "(no subject)", "direction": "Outbound" if out else "Inbound",
                     "status": "Archived" if yes(r.get("msg_archived")) else "Read" if yes(r.get("msg_read")) else "Unread",
+                    "portal_user": R("portal_users", r.get("msg_portal_user_id")), "author": R("users", r.get("msg_staff_user_id") or r.get("msg_user_id")),
+                    "client_read_at": ts(r.get("msg_read_at")) if out else None,
                     "_secrets": {"body": encrypt(txt(r["msg_body"])) if r.get("msg_body") else None}, "created_at": ts(r.get("msg_created_at"))}
-        self.upsert("messages", SecureMessage, self.read("secure_messages", "msg_id"), "msg_id", message, "secure messages")
+        msgs = self.read("secure_messages", "msg_id")
+        self.upsert("messages", SecureMessage, msgs, "msg_id", message, "secure messages")
+        for r in msgs:
+            root = R("messages", r.get("msg_thread_id"))
+            if root and str(r.get("msg_thread_id")) != str(r["msg_id"]):
+                SecureMessage.objects.filter(legacy_id=int(r["msg_id"])).update(thread_id=root)
         certs = self.read("certificates", "cert_id")
         today = timezone.localdate()
 
@@ -668,8 +678,72 @@ class Importer:
                     "status": "Approved" if yes(r.get("tc_approved")) else "Submitted" if r.get("tc_clock_out") else "Open", "notes": s(r.get("tc_notes"))}
         self.upsert("timeclock", TimeclockEntry, self.read("hr_timeclock", "tc_id"), "tc_id", clock)
 
+    def portal(self):
+        """Portal groups and the people who sign in to the client portal (their old passwords keep working)."""
+        from apps.portal.models import PortalGroup, PortalUser
+        R = self.ref
+        perms = {"billing": "billing", "contracts": "contracts", "assets": "assets", "submit_tickets": "submit_tickets",
+                 "all_tickets": "all_tickets", "messages": "send_messages", "kb": "kb", "policies": "policies"}
+        groups = self.read("portal_groups", "pg_id") if self.has("portal_groups") else []
+        for r in groups:  # match by name so the 5 standard groups made here aren't doubled
+            PortalGroup.objects.filter(name__iexact=str(r.get("pg_name") or ""), legacy_id__isnull=True).update(legacy_id=int(r["pg_id"]))
+
+        def group(r, w):
+            def flag(k):
+                return yes(r.get(f"pg_can_view_{perms[k]}", r.get(f"pg_can_{perms[k]}")))
+            return {"name": s(r.get("pg_name"), 200) or f"Group {r['pg_id']}", "description": s(r.get("pg_description"), 255),
+                    **{f"can_{k}": flag(k) for k in perms}}
+        self.upsert("portal_groups", PortalGroup, groups, "pg_id", group, "portal groups")
+        users = self.read("portal_users", "portal_user_id") if self.has("portal_users") else []
+        for r in users:
+            em = email(r.get("portal_email"))
+            if em:
+                PortalUser.objects.filter(email__iexact=em, legacy_id__isnull=True).update(legacy_id=int(r["portal_user_id"]))
+
+        def user(r, w):
+            em, cid = email(r.get("portal_email")), R("clients", r.get("portal_client_id"))
+            if not em or not cid:
+                w.append(f"portal user {r['portal_user_id']}: {'no client' if em else 'no valid email'}")
+                return None
+            if PortalUser.objects.filter(email__iexact=em).exclude(legacy_id=int(r["portal_user_id"])).exists():
+                w.append(f"portal user {em}: that email is already used by another portal account")
+                return None
+            raw_hash = str(r.get("portal_password") or "")
+            pw = "bcrypt$" + re.sub(r"^\$2[ay]\$", "$2b$", raw_hash) if re.match(r"^\$2[aby]\$", raw_hash) else ""
+
+            def flag(k):
+                v = r.get(f"portal_can_view_{perms[k]}", r.get(f"portal_can_{perms[k]}"))
+                return yes(v)
+            contact = R("contacts", r.get("portal_contact_id"))
+            if not contact:
+                from apps.crm.models import Contact
+                contact = Contact.objects.filter(client_id=cid, email__iexact=em).values_list("pk", flat=True).first()
+            return {"client": cid, "contact": contact, "name": s(r.get("portal_name"), 200) or em.split("@")[0], "email": em, "password": pw,
+                    "role": "admin" if "admin" in (str(r.get("portal_role") or ""), str(r.get("portal_admin_role") or "")) else "standard",
+                    "group": R("portal_groups", r.get("portal_group_id")), "is_active": yes(r.get("portal_active")),
+                    "last_login": ts(r.get("portal_last_login")), **{f"can_{k}": flag(k) for k in perms},
+                    "created_at": ts(r.get("portal_created_at"))}
+        self.upsert("portal_users", PortalUser, users, "portal_user_id", user, "portal users")
+
+    def queues(self):
+        rows = self.read("ticket_queues", "tq_id") if self.has("ticket_queues") else []
+        for r in rows:
+            Queue.objects.filter(name__iexact=str(r.get("tq_name") or ""), legacy_id__isnull=True).update(legacy_id=int(r["tq_id"]))
+
+        def queue(r, w):
+            color = str(r.get("tq_color") or "")
+            return {"name": s(r.get("tq_name"), 80) or f"Queue {r['tq_id']}", "description": s(r.get("tq_description"), 255),
+                    "color": color if re.fullmatch(r"#[0-9a-fA-F]{6}", color) else "#2c5cc5", "sla_enabled": yes(r.get("tq_sla")),
+                    "keywords": txt(r.get("tq_keywords")) or "", "portal_label": s(r.get("tq_portal_label"), 120),
+                    "is_default": yes(r.get("tq_is_default")), "active": yes(r.get("tq_active")), "sort": int_(r.get("tq_sort")) or 0}
+        self.upsert("queues", Queue, rows, "tq_id", queue, "ticket queues")
+        for r in rows:  # escalation targets need every queue first
+            if r.get("tq_escalate_to"):
+                Queue.objects.filter(legacy_id=int(r["tq_id"])).update(escalate_to_id=self.ref("queues", r["tq_escalate_to"]))
+
     def tickets(self):
         R = self.ref
+        self.queues()
         rows = self.read("tickets", "ticket_id")
 
         def ticket(r, w):
@@ -682,13 +756,21 @@ class Importer:
                     "billable": True if r.get("ticket_billable") is None else yes(r.get("ticket_billable")), "due_date": day(r.get("ticket_due_date")),
                     "response_due_at": ts(r.get("ticket_sla_response_due")), "first_response_at": ts(r.get("ticket_first_response_at")),
                     "resolved_at": ts(r.get("ticket_resolved_at")), "closed_at": ts(r.get("ticket_closed_at")), "sla_breached": yes(r.get("ticket_sla_breached")),
+                    "queue": R("queues", r.get("ticket_queue_id")), "cc": txt(r.get("ticket_cc")) or "", "resolution": txt(r.get("ticket_resolution")) or "",
+                    "snoozed_until": ts(r.get("ticket_snoozed_until")),
+                    "resolve_due_at": ts(r.get("ticket_sla_resolve_due") or r.get("ticket_sla_resolution_due")),
                     "created_at": ts(r.get("ticket_created_at")), "updated_at": ts(r.get("ticket_updated_at")) or ts(r.get("ticket_created_at"))}
         self.upsert("tickets", Ticket, rows, "ticket_id", ticket)
+        for r in rows:  # merged tickets point at a ticket that may come later in the list
+            target = R("tickets", r.get("ticket_merged_into"))
+            if target:
+                Ticket.objects.filter(legacy_id=int(r["ticket_id"])).exclude(pk=target).update(merged_into_id=target)
 
         # Messages: the original request is shown from the ticket itself; old replies become messages.
         user_names = {int(u["user_id"]): str(u.get("user_name") or "") for u in self.read("users", "user_id")}
         contact_names = {int(c["contact_id"]): str(c.get("contact_name") or "") for c in self.read("contacts", "contact_id")}
         replies = self.read("ticket_replies", "reply_id")
+        ticket_contact = dict(Ticket.objects.filter(legacy_id__isnull=False).values_list("pk", "contact_name"))
         step = Step("ticket messages", source=len(replies))
         for r in replies:
             tid = R("tickets", r.get("reply_ticket_id"))
@@ -696,10 +778,15 @@ class Importer:
                 step.skipped += 1
                 continue
             frm = str(r.get("reply_from") or "staff")
+            # Old automatic messages (idle nudges, workflow changes, AI notes) are events, never shown to the client.
+            kind = "event" if frm == "system" else {"note": "note", "work": "work"}.get(str(r.get("reply_type") or ""), "reply")
+            name = user_names.get(int_(r.get("reply_user_id")) or 0) or contact_names.get(int_(r.get("reply_contact_id")) or 0) or ""
+            if not name and frm == "client":
+                name = ticket_contact.get(tid, "") or "Client"
             TicketMessage.objects.update_or_create(legacy_id=int(r["reply_id"]), defaults={
-                "ticket_id": tid, "kind": "note" if r.get("reply_type") in ("note", "work") else "reply", "body": txt(r.get("reply_body")) or "",
+                "ticket_id": tid, "kind": kind, "body": txt(r.get("reply_body")) or "",
                 "author_id": R("users", r.get("reply_user_id")),
-                "author_name": (user_names.get(int_(r.get("reply_user_id")) or 0) or contact_names.get(int_(r.get("reply_contact_id")) or 0) or "")[:200],
+                "author_name": name[:200],
                 "via": "web" if frm == "staff" else frm[:20], "created_at": ts(r.get("reply_created_at")) or timezone.now(),
             })
             step.imported += 1
@@ -790,6 +877,73 @@ class Importer:
             if waiting:
                 step.warnings.append(f"{waiting} {kind} file(s) not brought over yet: import again with the zipped uploads folder")
             self._done(step)
+
+    def settings(self):
+        """Every old setting: kept in LegacySetting, and copied into the new setting when there is one
+        and it hasn't been set here yet. Old passwords/keys are decrypted with the old APP_KEY."""
+        from apps.core.models import Setting
+        from apps.core.settings_catalog import ALL_FIELDS
+
+        from .crypto import decrypt_setting_value
+        from .models import LegacySetting
+        from .settings_map import DAY_KEYS, DAY_NAMES, MAP, SECRET_KEY_RX, SKIP_RX
+
+        rows = self.read("settings", "setting_key") if self.has("settings") else []
+        old = {str(r["setting_key"]): ("" if r.get("setting_value") is None else str(r["setting_value"])) for r in rows}
+        step = Step("settings", source=len(old))
+        bad_secrets = []
+
+        def put(new_key, value, secret, legacy_row):
+            if value is None or value.strip() in ("", "NULL") or (new_key in ALL_FIELDS and ALL_FIELDS[new_key]["type"] == "bool" and value not in ("true", "false")):
+                return
+            if Setting.objects.filter(key=new_key).exclude(value="").exists():
+                legacy_row.copied = Setting.get(new_key, "") == value[:20000]  # same as before (an earlier import) or changed here
+                return  # changed here already — keep it
+            Setting.put(new_key, value[:20000], secret=secret or ALL_FIELDS.get(new_key, {}).get("type") == "secret")
+            legacy_row.copied = True
+
+        for key, raw in sorted(old.items()):
+            if SKIP_RX.match(key):
+                step.skipped += 1
+                continue
+            secret = raw.startswith("enc1:") or bool(SECRET_KEY_RX.search(key))
+            value, failed = raw, False
+            if raw.startswith("enc1:"):
+                try:
+                    value = decrypt_setting_value(raw, self.app_key) if self.app_key else None
+                except LegacyDecryptError:
+                    value = None
+                if value is None:
+                    failed = True
+                    bad_secrets.append(key)
+            row = LegacySetting.objects.filter(key=key).first() or LegacySetting(key=key)
+            row.is_secret, row.decrypt_failed = secret, failed
+            if secret:
+                row.value, row.secret_value = "", (value or "")
+            else:
+                row.value, row.secret_value = value or "", ""
+            target = MAP.get(key)
+            row.mapped_to = target[0] if target else ""
+            row.copied = False
+            if target and value is not None:
+                put(target[0], target[1](value.strip() if not secret else value), secret, row)
+            row.save()
+            step.imported += 1
+        # combined values
+        addr = ", ".join(x for x in [old.get("company_address", ""), old.get("company_city", ""), " ".join(filter(None, [old.get("company_state", ""), old.get("company_zip", "")]))] if x and x != "NULL")
+        if addr and not Setting.get("company.address", ""):
+            Setting.put("company.address", addr)
+        days = [DAY_NAMES[i] for i, k in enumerate(DAY_KEYS) if old.get(k) == "1"]
+        if days and not Setting.get("helpdesk.days", ""):
+            Setting.put("helpdesk.days", ",".join(days))
+        if old.get("company_email") and not Setting.get("email.support_address", ""):
+            Setting.put("email.support_address", old.get("imap_user") or old["company_email"])
+        for k in ("company_address", "company_city", "company_state", "company_zip") + tuple(DAY_KEYS):
+            LegacySetting.objects.filter(key=k).update(mapped_to={"helpdesk_day": "helpdesk.days"}.get(k[:12], "company.address"), copied=True)
+        if bad_secrets:
+            step.warnings.append(f"{len(bad_secrets)} saved password(s)/key(s) couldn't be unlocked ({', '.join(bad_secrets[:8])}"
+                                 f"{'…' if len(bad_secrets) > 8 else ''}). Add the old config.php and import again, or type them in Settings.")
+        self._done(step)
 
     def bump_counters(self):
         """Carry the old prefixes/padding over (unless already set here) and move each counter past

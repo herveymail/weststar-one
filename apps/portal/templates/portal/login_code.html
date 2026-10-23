@@ -1,0 +1,11 @@
+{% extends "portal/plain.html" %}
+{% block title %}Enter your code{% endblock %}
+{% block card %}
+<h1 style="font-size:22px">Enter your code</h1>
+<p class="muted" style="margin:0">Open your authenticator app and type the 6-digit code.</p>
+{% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+<form method="post" class="stack">{% csrf_token %}
+  <div class="field"><label for="code">Code</label><input id="code" name="code" class="input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required autofocus style="font-size:20px;letter-spacing:.2em"></div>
+  <button class="btn primary">Continue</button></form>
+<form method="post" action="/client-portal/logout/">{% csrf_token %}<button class="link-btn small">Use a different account</button></form>
+{% endblock %}

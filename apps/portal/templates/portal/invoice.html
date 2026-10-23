@@ -1,0 +1,20 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}{{ inv.number }}{% endblock %}
+{% block main_extra %} narrow{% endblock %}
+{% block content %}
+<a href="/client-portal/invoices/">← Invoices</a>
+<section class="card pad stack">
+  <div class="row"><h1 class="grow" style="font-size:22px">Invoice {{ inv.number }}</h1>{% if inv.status == "Paid" %}<span class="pill done">Paid</span>{% elif inv.status == "Overdue" %}<span class="pill bad">Overdue</span>{% else %}<span class="pill wait">{{ inv.status }}</span>{% endif %}</div>
+  <div class="kv"><span>Date</span><span>{{ inv.invoice_date|date:"M j, Y" }}</span><span>Due</span><span>{{ inv.due_date|date:"M j, Y" }}</span><span>Billed to</span><span>{{ inv.client.name }}</span></div>
+  {% if inv.scope %}<p style="margin:0;white-space:pre-wrap">{{ inv.scope }}</p>{% endif %}
+  <div class="table-wrap"><table class="t">
+    <thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th style="text-align:right">Amount</th></tr></thead>
+    <tbody>{% for l in lines %}<tr><td>{{ l.description }}</td><td>{{ l.qty|floatformat:"-2" }}</td><td>{{ l.rate|dollars }}</td><td style="text-align:right">{{ l.line_total|dollars }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <div class="kv" style="max-width:340px;margin-left:auto"><span>Subtotal</span><span style="text-align:right">{{ inv.subtotal|dollars }}</span><span>Tax</span><span style="text-align:right">{{ inv.tax_amount|dollars }}</span>
+    <span><b>Total</b></span><span style="text-align:right"><b>{{ inv.total|dollars }}</b></span><span>Paid</span><span style="text-align:right">{{ inv.amount_paid|dollars }}</span>
+    <span><b>Balance</b></span><span style="text-align:right"><b>{{ balance|dollars }}</b></span></div>
+  {% if inv.notes %}<p class="muted" style="margin:0;white-space:pre-wrap">{{ inv.notes }}</p>{% endif %}
+  {% if balance > 0 %}<div class="banner info" style="font-weight:400">Online card payment is coming soon. To pay now{% if company_phone %}, call us at <b>{{ company_phone }}</b> or{% endif %} reply to your invoice email.</div>{% endif %}
+</section>
+{% endblock %}

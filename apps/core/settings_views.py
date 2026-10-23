@@ -13,7 +13,7 @@ from apps.accounts.views import my_security_view, security_log_view, users_view
 from .audit import audit
 from .models import AuditLog, JobRun, Setting
 from .permissions import AREAS, can
-from .settings_catalog import SETTINGS, field_specs, find
+from .settings_catalog import DEFAULTS, SETTINGS, field_specs, find
 
 
 @login_required
@@ -53,6 +53,15 @@ def settings_page(request, page):
         return audit_view(request)
     if target == "jobs":
         return render(request, "core/jobs.html", {"jobs": _jobs()})
+    if target == "queues":
+        from apps.helpdesk.admin_views import queues_page
+        return queues_page(request)
+    if target == "portal_groups":
+        from apps.portal.staff_views import groups_page
+        return groups_page(request)
+    if target == "old_settings":
+        from apps.legacy.views import old_settings
+        return old_settings(request)
     if target == "import":
         from apps.legacy.views import import_page
         return import_page(request)
@@ -94,9 +103,34 @@ def settings_page(request, page):
             f["is_set"] = bool(row and row.value)
             f["value"] = ""
         else:
-            f["value"] = row.value if row else ""
+            f["value"] = row.value if row else DEFAULTS.get(f["key"], "")
         values.append(f)
-    return render(request, "core/settings_page.html", {"group": group, "item": item, "fields": values, "can_manage": can(request.user, "admin", "manage")})
+    ctx = {"group": group, "item": item, "fields": values, "can_manage": can(request.user, "admin", "manage")}
+    if item[0] == "email_in":
+        from apps.helpdesk.models import InboundEmail
+        ctx["inbound"] = InboundEmail.objects.select_related("ticket")[:25]
+        ctx["last_fetch"] = Setting.get("email.last_fetch", "")
+    return render(request, "core/settings_page.html", ctx)
+
+
+@login_required
+def email_test(request):
+    """Settings › Email buttons: send a test email / check the support mailbox."""
+    if request.method != "POST" or not can(request.user, "admin", "manage"):
+        raise PermissionDenied
+    if request.POST.get("what") == "inbox":
+        from apps.helpdesk.inbound import test_connection
+        problem = test_connection()
+        ok_text = "Signed in to the mailbox. Email to ticket can be turned on."
+        back = "/settings/email_in/"
+    else:
+        from . import mail
+        to = request.POST.get("to", "").strip() or request.user.email
+        problem = mail.test(to)
+        ok_text = f"Test email sent to {to}."
+        back = "/settings/email/"
+    (messages.error if problem else messages.success)(request, problem or ok_text)
+    return redirect(back)
 
 
 def audit_view(request):

@@ -1,0 +1,32 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<section class="hero">
+  <div style="flex:1 1 420px"><h1>Welcome back, {{ pu.first_name }}!</h1><p>{{ pu.client.name }}{% if welcome %} · {{ welcome }}{% else %} · Need help? Open a ticket and we'll get right on it.{% endif %}</p></div>
+  {% if can.submit_tickets %}<a class="btn light" href="/client-portal/tickets/#new">New Ticket</a>{% endif %}
+  {% if company_phone %}<a class="btn ghost" href="tel:{{ company_phone }}">Call Us {{ company_phone }}</a>{% endif %}
+</section>
+<div class="stats">
+  <div class="card stat"><div class="l">Open Tickets</div><div class="v">{{ open_count }}</div></div>
+  {% if balance is not None %}<div class="card stat"><div class="l">Balance Due</div><div class="v"{% if balance > 0 %} style="color:var(--bad)"{% endif %}>{{ balance|dollars }}</div></div>{% endif %}
+  {% if active_contracts is not None %}<div class="card stat"><div class="l">Active Contracts</div><div class="v">{{ active_contracts }}</div></div>{% endif %}
+  {% if asset_count is not None %}<div class="card stat"><div class="l">Assets</div><div class="v">{{ asset_count }}</div></div>{% endif %}
+</div>
+<div class="grid2">
+  <section class="card" style="overflow:hidden">
+    <div class="row pad" style="padding-bottom:10px"><h2 class="grow">Recent Tickets</h2><a href="/client-portal/tickets/">View All</a></div>
+    {% for t in recent %}<a class="list-a" href="/client-portal/tickets/{{ t.pk }}/"><span class="muted small" style="width:100px">{{ t.number }}</span><span class="grow strong">{{ t.subject }}</span>{% include "portal/_status.html" with s=t.status %}</a>
+    {% empty %}<p class="pad muted" style="margin:0">No tickets yet.</p>{% endfor %}
+  </section>
+  <div class="stack">
+    {% if unpaid %}<section class="card pad stack"><h2>Unpaid Invoices</h2>
+      {% for i in unpaid %}<div class="row"><a class="grow" href="/client-portal/invoices/{{ i.pk }}/">{{ i.number }} · due {{ i.due_date|date:"M j" }}</a><b>{{ i.total|dollars }}</b></div>{% endfor %}</section>{% endif %}
+    {% if quotes_waiting %}<section class="card pad stack"><h2>Quotes to approve</h2>
+      {% for q in quotes_waiting %}<div class="row"><span class="grow">{{ q.number }}{% if q.scope %} · {{ q.scope|truncatechars:40 }}{% endif %}</span><b>{{ q.total|dollars }}</b><a class="btn small" href="/client-portal/quotes/{{ q.pk }}/">Review</a></div>{% endfor %}</section>{% endif %}
+    {% if to_sign %}<section class="card pad stack"><h2>Contracts to sign</h2>
+      {% for c in to_sign %}<div class="row"><span class="grow">{{ c.name }}</span><a class="btn small" href="/client-portal/contracts/{{ c.pk }}/">Review &amp; sign</a></div>{% endfor %}</section>{% endif %}
+    {% if policies_due %}<section class="card pad stack"><h2>Policies to acknowledge</h2>
+      {% for p in policies_due %}<div class="row"><span class="grow">{{ p.name }}{% if p.version %} v{{ p.version }}{% endif %}</span><a href="/client-portal/policies/{{ p.pk }}/">Read &amp; acknowledge</a></div>{% endfor %}</section>{% endif %}
+  </div>
+</div>
+{% endblock %}

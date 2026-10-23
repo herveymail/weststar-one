@@ -154,3 +154,56 @@ def initials(name):
 def upto(value, delimiter=","):
     """'3 hours, 12 minutes' -> '3 hours' (shorter timesince)."""
     return str(value).split(delimiter)[0]
+
+
+@register.filter
+def st_class(status):
+    """Old Weststar One status pill colors."""
+    return {"New": "st-new", "Open": "st-open", "In progress": "st-open", "Resolved": "st-res", "Closed": "st-closed"}.get(status, "st-pend")
+
+
+@register.filter
+def p_class(priority):
+    return {"Critical": "p-crit", "High": "p-high", "Medium": "p-med"}.get(priority, "p-low")
+
+
+@register.filter
+def short_pri(priority):
+    return {"Critical": "Crit", "Medium": "Med"}.get(priority, priority)
+
+
+@register.filter
+def avatar_color(pk):
+    colors = ["#2c5cc5", "#12805c", "#a35b00", "#5a3fc0", "#0b6e8f", "#b83a8a", "#c2410c", "#0f766e"]
+    try:
+        return colors[int(pk or 0) % len(colors)]
+    except (TypeError, ValueError):
+        return colors[0]
+
+
+@register.filter
+def grid_status(status):
+    """Grid tab a status belongs to: Open / In progress / Pending / Closed."""
+    if status in ("New", "Open"):
+        return "Open"
+    if status in ("Resolved", "Closed"):
+        return "Closed"
+    return "In progress" if status == "In progress" else "Pending"
+
+
+@register.filter
+def hours(minutes):
+    m = int(minutes or 0)
+    return f"{m / 60:.2f}".rstrip("0").rstrip(".") + "h"
+
+
+@register.filter
+def split_pairs(value):
+    """"a:A,b:B" → [("a", "A"), ("b", "B")] for small fixed option lists in templates."""
+    return [tuple(p.split(":", 1)) for p in str(value).split(",") if ":" in p]
+
+
+@register.filter
+def can_flag(obj, perm):
+    """{{ group|can_flag:"billing" }} → group.can_billing"""
+    return bool(getattr(obj, f"can_{perm}", False)) if obj else False

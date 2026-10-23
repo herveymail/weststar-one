@@ -1,0 +1,15 @@
+{% extends "portal/plain.html" %}
+{% block title %}Sign in{% endblock %}
+{% block card %}
+<div><h1 style="font-size:22px">Sign in to your portal</h1><p class="muted" style="margin:4px 0 0">Your IT support, one sign-in away.</p></div>
+{% if expired %}<div class="banner info">You were signed out after a while without activity. Sign in again.</div>{% endif %}
+{% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+{% if sent %}<div class="banner ok" role="status">If that email has a portal account, a sign-in link is on its way. It works once and expires in 15 minutes.</div>{% endif %}
+<form method="post" class="stack">{% csrf_token %}
+  <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" class="input" autocomplete="username" required autofocus></div>
+  <div class="field"><label for="pw">Password</label><input id="pw" name="password" type="password" class="input" autocomplete="current-password"></div>
+  <button class="btn primary" name="action" value="password">Sign in</button>
+  {% if magic %}<button class="btn" name="action" value="link" formnovalidate>Email me a sign-in link instead</button>{% endif %}
+</form>
+<a href="/client-portal/forgot/" class="small">Forgot your password?</a>
+{% endblock %}

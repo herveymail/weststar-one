@@ -6,6 +6,7 @@ from apps.helpdesk import views as hd
 from apps.files import views as fv
 from apps.hr import views as hr
 from apps.legacy import views as lv
+from apps.portal import staff_views as psv
 
 from . import settings_views as sv
 from . import views
@@ -24,11 +25,16 @@ urlpatterns = [
     path("search/", views.jump, name="jump"),
     path("tickets/", hd.tickets, name="tickets"),
     path("tickets/new/", hd.ticket_new, name="ticket_new"),
-    path("tickets/<int:pk>/", hd.tickets, name="ticket"),
-    path("tickets/<int:pk>/pane/", hd.ticket_pane, name="ticket_pane"),
+    path("tickets/ui/", hd.switch_ui, name="tickets_ui"),
+    path("tickets/bulk/", hd.bulk, name="tickets_bulk"),
+    path("tickets/<int:pk>/", hd.ticket_detail, name="ticket"),
+    path("tickets/<int:pk>/panel/", hd.ticket_panel, name="ticket_panel"),
     path("tickets/<int:pk>/update/", hd.ticket_update, name="ticket_update"),
     path("tickets/<int:pk>/message/", hd.ticket_message, name="ticket_message"),
-    path("tickets/<int:pk>/time/", hd.ticket_time, name="ticket_time"),
+    path("tickets/<int:pk>/timer/", hd.ticket_timer, name="ticket_timer"),
+    path("tickets/<int:pk>/snooze/", hd.ticket_snooze, name="ticket_snooze"),
+    path("tickets/<int:pk>/merge/", hd.ticket_merge, name="ticket_merge"),
+    path("tickets/<int:pk>/resolve/", hd.ticket_resolve, name="ticket_resolve"),
     path("clients/", crm.clients, name="clients"),
     path("clients/<int:pk>/", crm.client_detail, name="client"),
     path("my-hr/", hr.my_hr, name="my_hr"),
@@ -43,7 +49,11 @@ urlpatterns = [
     path("settings/import/run/<int:pk>/", lv.import_status, name="import_status"),
     path("settings/import/run/<int:pk>/import/", lv.import_again, name="import_again"),
     path("settings/import/run/<int:pk>/discard/", lv.import_discard, name="import_discard"),
+    path("settings/email/test/", sv.email_test, name="email_test"),
     path("settings/<slug:page>/", sv.settings_page, name="settings_page"),
+    path("m/messages/", psv.messages_list, name="messages"),
+    path("messages/<int:pk>/", psv.message_thread, name="message"),
+    path("clients/<int:pk>/portal/", psv.client_portal, name="client_portal"),
     path("m/<slug:slug>/", views.module_list, name="module"),
     path("m/<slug:slug>/new/", views.module_edit, name="module_new"),
     path("m/<slug:slug>/<int:pk>/", views.module_edit, name="module_edit"),

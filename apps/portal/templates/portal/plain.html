@@ -1,0 +1,8 @@
+{% extends "portal/base.html" %}
+{% block body %}
+<div class="login-wrap"><div class="login-card stack">
+  <div class="row" style="justify-content:center"><span class="logo">{{ company|slice:":1" }}</span><b style="font-size:18px">{{ company }}</b></div>
+  <section class="card pad stack">{% block card %}{% endblock %}</section>
+  <p class="small muted" style="text-align:center;margin:0">Client portal{% if company_phone %} · Need help now? Call {{ company_phone }}{% endif %} · <a href="/login/">Staff sign-in</a></p>
+</div></div>
+{% endblock %}

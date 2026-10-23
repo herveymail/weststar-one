@@ -1,0 +1,19 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}Help Center{% endblock %}
+{% block content %}
+<section class="card pad stack">
+  <h1 style="font-size:22px">How can we help you?</h1>
+  <form method="get" class="row" role="search"><label for="hq" class="sr">Search help articles</label><input id="hq" name="q" value="{{ q }}" class="input" style="flex:1" placeholder="Search help articles…"><button class="btn primary">Search</button></form>
+</section>
+<div class="grid2">
+  <div class="stack">
+    {% for cat, items in cats %}<section class="card" style="overflow:hidden"><div class="pad" style="padding-bottom:6px"><h2>{{ cat }}</h2></div>
+      {% for a in items %}<a class="list-a" href="/client-portal/help/{{ a.pk }}/">{{ a.title }}</a>{% endfor %}</section>
+    {% empty %}<p class="muted">{% if q %}Nothing matches "{{ q }}".{% else %}No help articles yet.{% endif %}</p>{% endfor %}
+  </div>
+  <div class="stack">
+    {% if popular %}<section class="card pad stack" style="gap:6px"><h2>Popular Articles</h2>{% for a in popular %}<a href="/client-portal/help/{{ a.pk }}/">{{ a.title }}</a>{% endfor %}</section>{% endif %}
+    <section class="card pad stack"><h2>Still need help?</h2><p class="muted" style="margin:0">Open a ticket and our team will help.</p>{% if can.submit_tickets %}<a class="btn primary" href="/client-portal/tickets/#new">Submit a Ticket</a>{% endif %}</section>
+  </div>
+</div>
+{% endblock %}

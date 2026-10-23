@@ -1,0 +1,13 @@
+{% load ws %}
+<aside class="hd-rail" aria-label="Ticket views">
+  {% if t %}<a href="/tickets/" class="hd-rail-i" style="font-weight:600;margin-bottom:8px">← Back to tickets</a>{% endif %}
+  <div class="lbl">Views</div>
+  {% for k, label, n in views %}<a href="/tickets/?view={{ k }}" class="hd-rail-i{% if view == k %} active{% endif %}">{{ label }}<span class="n">{{ n }}</span></a>{% endfor %}
+  {% if queues %}<div class="lbl">Queues</div>
+  {% for r in queues %}<a href="/tickets/?queue={{ r.q.pk }}" class="hd-rail-i{% if view == r.key %} active{% endif %}"><span class="hd-qdot" style="background:{{ r.q.color }}"></span>{{ r.q.name }}<span class="n">{{ r.n }}</span></a>{% endfor %}{% endif %}
+  {% if rail_clients %}<div class="lbl">Clients</div>
+  {% for c in rail_clients %}<a href="/tickets/?client={{ c.client_id }}" class="hd-rail-i{% if view == c.key %} active{% endif %}">{{ c.client__name }}<span class="n">{{ c.n }}</span></a>{% endfor %}{% endif %}
+  <div class="lbl">Agents</div>
+  {% for a in agents %}<a href="/tickets/?agent={{ a.u.pk }}" class="hd-rail-i{% if view == a.key %} active{% endif %}">{{ a.u.name }}<span class="n">{{ a.n }}</span></a>{% endfor %}
+  <form method="post" action="/tickets/ui/" style="margin-top:16px">{% csrf_token %}<input type="hidden" name="ui" value="grid"><button class="link-btn small">Switch to the grid view</button></form>
+</aside>

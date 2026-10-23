@@ -1,0 +1,8 @@
+{% load ws %}<form method="post" class="stack" style="margin-top:12px">{% csrf_token %}<input type="hidden" name="id" value="{{ g.pk|default:'' }}">
+  <fieldset class="stack" style="border:0;padding:0;margin:0"{% if not can_manage %} disabled{% endif %}>
+  <div class="form-grid"><div class="field"><label>Name *<input class="input" name="name" value="{{ g.name|default:'' }}" required></label></div>
+    <div class="field"><label>Description<input class="input" name="description" value="{{ g.description|default:'' }}"></label></div></div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px 18px">{% for p, label in perms %}<label class="check"><input type="checkbox" class="checkbox" name="can_{{ p }}"{% if g|can_flag:p %} checked{% endif %}>{{ label }}</label>{% endfor %}</div>
+  </fieldset>
+  {% if can_manage %}<div style="display:flex;gap:8px"><button class="btn primary">{% if g %}Save{% else %}Add group{% endif %}</button>{% if g %}<button class="btn danger" name="action" value="delete" formnovalidate>Delete</button>{% endif %}</div>{% endif %}
+</form>

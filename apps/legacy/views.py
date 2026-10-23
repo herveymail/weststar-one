@@ -123,3 +123,36 @@ def import_discard(request, pk):
         discard_files(run)
         messages.success(request, "The uploaded backup files were deleted.")
     return redirect(f"/settings/import/?run={run.pk}")
+
+
+@login_required
+def old_settings(request):
+    """Settings › Old system settings: every old setting and where it went in the new app."""
+    _need_admin(request)
+    from apps.core.models import Setting
+    from apps.core.settings_catalog import all_pages, field_specs
+
+    from .models import LegacySetting
+
+    page_of = {}
+    for _g, _t, item in all_pages():
+        if isinstance(item[3], list):
+            for f in field_specs(item):
+                page_of[f["key"]] = (item[0], item[1])
+    f = request.GET.get("f", "all")
+    q = request.GET.get("q", "").strip()[:100]
+    qs = LegacySetting.objects.all()
+    if q:
+        qs = qs.filter(key__icontains=q)
+    rows, counts = [], {"all": 0, "copied": 0, "kept": 0, "unused": 0, "empty": 0}
+    current = dict(Setting.objects.filter(key__in=[r.mapped_to for r in qs if r.mapped_to]).values_list("key", "is_secret"))
+    for r in qs:
+        empty = not r.is_secret and r.value.strip() in ("", "NULL")
+        state = "empty" if empty else "unused" if not r.mapped_to else ("copied" if r.copied else "kept")
+        counts["all"] += 1
+        counts[state] += 1
+        if f != "all" and f != state:
+            continue
+        shown = ("•••• (saved encrypted)" if not r.decrypt_failed else "locked — needs the old config.php") if r.is_secret else (r.value[:160] or "—")
+        rows.append({"key": r.key, "value": shown, "state": state, "to": r.mapped_to, "page": page_of.get(r.mapped_to), "set_here": r.mapped_to in current})
+    return render(request, "legacy/old_settings.html", {"rows": rows, "f": f, "q": q, "counts": counts})

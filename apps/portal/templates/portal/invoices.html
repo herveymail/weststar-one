@@ -1,0 +1,15 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}Invoices{% endblock %}
+{% block content %}
+<section class="card" style="overflow:hidden">
+  <div class="row pad"><h1 class="grow" style="font-size:22px">Invoices</h1>
+    <span class="seg">{% for k, l in "all:All,unpaid:Unpaid,paid:Paid"|split_pairs %}<a href="?f={{ k }}" class="{% if f == k %}on{% endif %}">{{ l }}</a>{% endfor %}</span></div>
+  <div class="table-wrap"><table class="t">
+    <thead><tr><th>Invoice</th><th>Date</th><th>Due</th><th>Total</th><th>Balance</th><th>Status</th></tr></thead>
+    <tbody>{% for i in rows %}<tr><td><a class="row-a" href="/client-portal/invoices/{{ i.pk }}/">{{ i.number }}</a></td><td>{{ i.invoice_date|date:"M j, Y" }}</td><td>{{ i.due_date|date:"M j, Y" }}</td>
+      <td>{{ i.total|dollars }}</td><td>{% if i.balance > 0 %}<b>{{ i.balance|dollars }}</b>{% else %}—{% endif %}</td>
+      <td>{% if i.status == "Paid" %}<span class="pill done">Paid</span>{% elif i.status == "Overdue" %}<span class="pill bad">Overdue</span>{% else %}<span class="pill wait">{{ i.status }}</span>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="6" class="muted">No invoices here.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}

@@ -24,6 +24,8 @@ class User(AbstractBaseUser):
     title = models.CharField(max_length=100, blank=True)
     phone = models.CharField(max_length=50, blank=True)
     look = models.CharField(max_length=20, choices=[("indigo", "Look 1 · Indigo Clean"), ("graphite", "Look 2 · Graphite")], default="indigo")
+    tickets_ui = models.CharField("Ticket screen", max_length=10, choices=[("classic", "Classic (views on the left, full ticket page)"),
+                                                                           ("grid", "Grid (sortable table, ticket opens beside it)")], default="classic")
     is_active = models.BooleanField(default=True)  # False = archived (cannot sign in)
 
     # Two-factor (TOTP). Seeds are encrypted with APP_ENCRYPTION_KEY.

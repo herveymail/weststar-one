@@ -1,0 +1,1 @@
+{% if s == "New" %}<span class="pill new">New</span>{% elif s in "Resolved Closed" %}<span class="pill done">{{ s }}</span>{% elif s == "Open" or s == "In progress" %}<span class="pill open">{{ s }}</span>{% else %}<span class="pill wait">{{ s }}</span>{% endif %}

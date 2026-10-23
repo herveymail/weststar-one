@@ -1,0 +1,7 @@
+Hi {{ u.first_name }},
+
+You have a new secure message from {{ company }}. For your privacy it isn't included in this email.
+
+Read it in the client portal: {{ link }}
+
+— {{ company }}

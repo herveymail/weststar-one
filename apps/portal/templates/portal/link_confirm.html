@@ -1,0 +1,6 @@
+{% extends "portal/plain.html" %}
+{% block title %}Sign in{% endblock %}
+{% block card %}
+<h1 style="font-size:22px">Sign in as {{ who.name }}?</h1>
+<form method="post" class="stack">{% csrf_token %}<button class="btn primary">Sign in to the portal</button></form>
+{% endblock %}

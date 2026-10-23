@@ -1,0 +1,14 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}{{ root.subject }}{% endblock %}
+{% block main_extra %} narrow{% endblock %}
+{% block content %}
+<a href="/client-portal/messages/">← Secure Messages</a>
+<h1 style="font-size:22px">{{ root.subject }}</h1>
+{% for m in items %}
+<section class="card msg{% if m.direction == 'Outbound' %} staff{% endif %}">
+  <div><b>{% if m.direction == "Outbound" %}{% if m.author %}{{ m.author.name }}{% else %}{{ company }}{% endif %}{% elif m.portal_user_id == pu.pk %}You{% else %}{% if m.portal_user %}{{ m.portal_user.name }}{% else %}Your team{% endif %}{% endif %}</b> <span class="muted small">· {{ m.created_at|when }}</span></div>
+  <p class="body">{{ m.text }}</p>
+</section>
+{% endfor %}
+<section class="card pad"><form method="post" class="stack">{% csrf_token %}<label for="rb" class="lbl">Reply</label><textarea id="rb" name="body" class="textarea" required></textarea><div><button class="btn primary">Send securely</button></div></form></section>
+{% endblock %}

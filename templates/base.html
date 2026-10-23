@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="{% static 'core/styles.css' %}">
   <link rel="stylesheet" href="{% static 'core/app.css' %}">
+  <link rel="stylesheet" href="{% static 'helpdesk/tickets.css' %}">
   <script src="{% static 'core/htmx-2.0.4.min.js' %}" defer></script>
   <script src="{% static 'core/app.js' %}" defer></script>
 </head>
@@ -81,7 +82,7 @@
       </div>
     </header>
     {% if messages %}<div class="flash">{% for m in messages %}<div role="status" class="banner {% if m.level_tag == 'error' %}{% else %}info{% endif %}">{{ m }}</div>{% endfor %}</div>{% endif %}
-    <main id="content" class="page">{% block content %}{% endblock %}</main>
+    <main id="content" class="{% block main_class %}page{% endblock %}">{% block content %}{% endblock %}</main>
   </div>
 </div>
 <div id="modal"></div>

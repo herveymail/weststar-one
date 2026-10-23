@@ -1,0 +1,44 @@
+{% load ws %}
+<section class="card" style="overflow:hidden">
+  <div style="padding:16px 18px 8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 style="flex:1">Client portal access</h2>
+    <span class="small muted">Portal address: <a href="{{ portal_url }}" target="_blank" rel="noopener">{{ portal_url }}</a></span></div>
+  {% if not mail_ok %}<div class="banner info" style="margin:0 18px 10px">Email sending isn't set up yet (Settings › Email sending), so invitations and sign-in links can't be emailed.</div>{% endif %}
+  <div class="table-wrap"><table class="grid">
+    <thead><tr><th>Person</th><th>Access</th><th>Status</th><th>Last sign-in</th><th></th></tr></thead>
+    <tbody>{% for u in users %}<tr>
+      <td><b>{{ u.name }}</b><div class="small muted">{{ u.email }}</div></td>
+      <td class="small">{% if u.role == "admin" %}<span class="pill info">Client admin</span> {% endif %}{{ u.group.name|default:"Own settings" }}</td>
+      <td>{% if not u.is_active %}<span class="pill">Off</span>{% elif u.locked_until and u.locked_until > now %}<span class="pill bad">Locked</span>{% elif not u.has_password %}<span class="pill warn">Invited</span>{% else %}<span class="pill good">Active</span>{% endif %}{% if u.mfa_enabled %} <span class="pill">2FA</span>{% endif %}</td>
+      <td class="small">{{ u.last_login|date:"M j, Y"|default:"Never" }}</td>
+      <td style="text-align:right">{% if can_edit %}<details class="pop"><summary class="btn small">Manage</summary><div class="pop-body" style="min-width:320px;right:0">
+        <form method="post" action="/clients/{{ c.pk }}/portal/" class="stack">{% csrf_token %}<input type="hidden" name="user" value="{{ u.pk }}">
+          <label class="small">Name<input class="input" name="name" value="{{ u.name }}"></label>
+          <label class="small">Group<select class="select" name="group"><option value="">No group (use the boxes below)</option>{% for g in groups %}<option value="{{ g.pk }}"{% if u.group_id == g.pk %} selected{% endif %}>{{ g.name }}</option>{% endfor %}</select></label>
+          <div style="display:flex;flex-wrap:wrap;gap:4px 12px">{% for p, label in perms %}<label class="check small"><input type="checkbox" class="checkbox" name="can_{{ p }}"{% if u|can_flag:p %} checked{% endif %}>{{ label }}</label>{% endfor %}</div>
+          <label class="check small"><input type="checkbox" class="checkbox" name="role" value="admin"{% if u.role == "admin" %} checked{% endif %}>Client admin (sees all company tickets, can invite coworkers)</label>
+          <button class="btn small primary" name="action" value="save">Save</button></form>
+        <form method="post" action="/clients/{{ c.pk }}/portal/" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">{% csrf_token %}<input type="hidden" name="user" value="{{ u.pk }}">
+          <button class="btn small" name="action" value="{% if u.has_password %}reset{% else %}invite{% endif %}">{% if u.has_password %}Email password reset{% else %}Resend invitation{% endif %}</button>
+          {% if u.locked_until %}<button class="btn small" name="action" value="unlock">Unlock</button>{% endif %}
+          {% if u.mfa_enabled %}<button class="btn small" name="action" value="mfa_off">Turn off 2FA</button>{% endif %}
+          <button class="btn small" name="action" value="toggle">{% if u.is_active %}Turn off access{% else %}Turn access back on{% endif %}</button>
+          <button class="btn small danger" name="action" value="delete">Remove</button></form>
+      </div></details>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="5" class="muted">Nobody from {{ c.name }} can sign in to the portal yet.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% if can_edit %}
+<section class="card pad stack">
+  <h3>Give someone portal access</h3>
+  <form method="post" action="/clients/{{ c.pk }}/portal/" class="form-grid">{% csrf_token %}<input type="hidden" name="action" value="add">
+    {% if contacts %}<div class="field"><label>From contacts<select class="select" name="contact"><option value="">— or type below —</option>{% for ct in contacts %}<option value="{{ ct.pk }}">{{ ct.name }} · {{ ct.email }}</option>{% endfor %}</select></label></div>{% endif %}
+    <div class="field"><label>Name<input class="input" name="name"></label></div>
+    <div class="field"><label>Email<input class="input" type="email" name="email"></label></div>
+    <div class="field"><label>Group<select class="select" name="group">{% for g in groups %}<option value="{{ g.pk }}"{% if g.name == "Help Desk / End User" %} selected{% endif %}>{{ g.name }}</option>{% endfor %}<option value="">No group</option></select></label></div>
+    <div class="field" style="display:flex;flex-direction:column;gap:6px;justify-content:flex-end">
+      <label class="check"><input type="checkbox" class="checkbox" name="role" value="admin">Client admin</label>
+      <label class="check"><input type="checkbox" class="checkbox" name="invite" checked>Email them an invitation now</label></div>
+    <div style="grid-column:1/-1"><button class="btn primary">Add</button></div>
+  </form>
+</section>
+{% endif %}

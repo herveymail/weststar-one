@@ -1,0 +1,29 @@
+{% load ws %}{# conversation, oldest first; `panel` switches to the compact grid style #}
+{% if t.details or loose_files %}
+<div class="{% if panel %}tkg-msg{% else %}hd-msg{% endif %}">
+  {% if not panel %}<span class="av sm" style="background:{{ t.client_id|avatar_color }}">{{ t.contact_name|default:"?"|initials }}</span>{% endif %}
+  <div style="min-width:0;flex:1">
+    <div class="who"><b>{{ t.contact_name|default:"Request" }}</b> <span class="chip-t client">Request</span> <span class="muted small">· {{ t.source|lower }} · {{ t.created_at|when }}</span></div>
+    {% if t.details %}<p class="body">{{ t.details }}</p>{% endif %}
+    {% if loose_files %}<div class="files">{% for u in loose_files %}{% include "helpdesk/_file.html" %}{% endfor %}</div>{% endif %}
+  </div>
+</div>
+{% endif %}
+{% for m in msgs %}
+  {% if m.kind == "event" %}{% if not panel %}<div class="hd-sys">{{ m.body }} · {{ m.created_at|ago }}</div>{% endif %}
+  {% else %}
+  <div class="{% if panel %}tkg-msg{% else %}hd-msg{% endif %}{% if m.kind == 'note' %} note{% elif m.kind == 'work' %} work{% elif m.author_id %} agent{% endif %}">
+    {% if not panel %}<span class="av sm" style="background:{% if m.author_id %}#0b3d6e{% else %}{{ t.client_id|avatar_color }}{% endif %}">{{ m.who|initials }}</span>{% endif %}
+    <div style="min-width:0;flex:1">
+      <div class="who"><b>{{ m.who }}</b>
+        {% if m.kind == "note" %}<span class="chip-t note">{% if panel %}Admins only{% else %}Private note{% endif %}</span>
+        {% elif m.kind == "work" %}<span class="chip-t">Work log</span>
+        {% elif m.author_id %}<span class="chip-t reply">{% if panel %}Public{% else %}Reply{% endif %}</span>{% if m.via == "email" %}<span class="chip-t sent">Emailed</span>{% endif %}
+        {% else %}<span class="chip-t client">Client reply</span>{% endif %}
+        <span class="muted small">· {% if m.via == "portal" %}portal · {% endif %}{{ m.created_at|when }}</span></div>
+      <p class="body">{{ m.body }}</p>
+      {% if m.files %}<div class="files">{% for u in m.files %}{% include "helpdesk/_file.html" %}{% endfor %}</div>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+{% endfor %}

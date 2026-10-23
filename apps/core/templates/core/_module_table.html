@@ -15,7 +15,7 @@
           {% for c in r.cells %}
           <td{% if c.kind == "num" %} class="num"{% endif %}>
             {% if forloop.first %}
-              {% if row_url %}<a class="row-link" href="/clients/{{ r.obj.pk }}/">{{ c.text }}</a>
+              {% if r.url %}<a class="row-link" href="{{ r.url }}">{{ c.text }}</a>
               {% else %}<a class="row-link" href="#" hx-get="/m/{{ m.slug }}/{{ r.obj.pk }}/" hx-target="#modal">{{ c.text }}</a>{% endif %}
             {% elif c.kind == "pill" %}<span class="pill {{ c.tone }}">{{ c.text }}</span>
             {% elif c.kind == "muted" %}<span class="muted">{{ c.text }}</span>

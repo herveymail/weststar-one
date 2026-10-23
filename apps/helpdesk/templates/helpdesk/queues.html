@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% load ws %}
+{% block title %}Helpdesk queues · Settings{% endblock %}
+{% block content %}
+<div class="page-head"><div class="titles"><a href="/settings/" class="link-btn">{% icon "back" 16 %}Settings</a><h1>Helpdesk queues</h1>
+  <p class="desc">New tickets go to the first queue whose trigger words appear in the subject or message, otherwise to the default queue. Queues with a portal name appear in the client portal as “What do you need help with?”.</p></div></div>
+<div class="stack" style="max-width:900px">
+{% for q in rows %}
+<details class="card pad"{% if not q.active %} style="opacity:.7"{% endif %}>
+  <summary style="display:flex;gap:10px;align-items:center;cursor:pointer"><span style="width:12px;height:12px;border-radius:3px;background:{{ q.color }}"></span><b style="flex:1">{{ q.name }}</b>
+    {% if q.is_default %}<span class="pill info">Default</span>{% endif %}{% if q.portal_label %}<span class="pill">Portal: {{ q.portal_label }}</span>{% endif %}{% if not q.active %}<span class="pill">Off</span>{% endif %}<span class="small muted">{{ q.open }} open</span></summary>
+  {% include "helpdesk/_queue_form.html" %}
+</details>
+{% empty %}<div class="banner info">No queues yet. The import brings your old queues across, or add one below.</div>{% endfor %}
+{% if can_manage %}<details class="card pad"{% if not rows %} open{% endif %}><summary style="cursor:pointer"><b>Add a queue</b></summary>{% with q=None %}{% include "helpdesk/_queue_form.html" %}{% endwith %}</details>{% endif %}
+</div>
+{% endblock %}

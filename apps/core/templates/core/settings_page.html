@@ -23,4 +23,29 @@
   </form>
   <p class="small muted" style="margin:0">Fields with a lock are stored encrypted and are never shown again after saving.</p>
 </section>
+{% if item.0 == "email" and can_manage %}
+<section class="card pad stack" style="max-width:760px">
+  <h2>Send a test email</h2>
+  <form method="post" action="/settings/email/test/" class="row" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">{% csrf_token %}<input type="hidden" name="what" value="send">
+    <div class="field" style="flex:1 1 260px"><label for="tt">Send to</label><input id="tt" name="to" type="email" class="input" value="{{ request.user.email }}"></div>
+    <button class="btn">Send test email</button></form>
+  <p class="small muted" style="margin:0">Google Workspace: use smtp.gmail.com, port 587, the full mailbox address as the username, and an <b>app password</b> (Google Account › Security › 2-Step Verification › App passwords), not the normal password.</p>
+</section>
+{% endif %}
+{% if item.0 == "email_in" %}
+<section class="card pad stack" style="max-width:760px">
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 style="flex:1">Mailbox</h2>
+    {% if can_manage %}<form method="post" action="/settings/email/test/">{% csrf_token %}<input type="hidden" name="what" value="inbox"><button class="btn">Test connection</button></form>{% endif %}</div>
+  <p class="small muted" style="margin:0">{% if last_fetch %}Last checked {{ last_fetch }}.{% else %}Not checked yet.{% endif %} The first check starts from that moment, so older email in the mailbox is not turned into tickets.
+    Replies find their ticket by the ticket number in the subject or by the email thread. Auto-replies, out-of-office and bounces are skipped.</p>
+  <p class="small muted" style="margin:0"><b>Turn off email fetching in the old Weststar One first</b>, or both apps will make a ticket for every email.</p>
+</section>
+<section class="card" style="max-width:760px;overflow:hidden">
+  <div class="pad" style="padding-bottom:4px"><h2>Recent email</h2></div>
+  <div class="table-wrap"><table class="grid"><thead><tr><th>Received</th><th>From</th><th>Subject</th><th>What happened</th></tr></thead><tbody>
+  {% for e in inbound %}<tr><td class="small">{{ e.received_at|date:"M j g:i A" }}</td><td class="small">{{ e.from_name|default:e.from_address }}</td><td>{{ e.subject|truncatechars:60 }}</td>
+    <td class="small">{% if e.ticket %}<a href="/tickets/{{ e.ticket_id }}/">{{ e.get_result_display }} {{ e.ticket.number }}</a>{% else %}{{ e.get_result_display }}{% endif %}{% if e.note %} <span class="muted">· {{ e.note }}</span>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="4" class="muted">No email yet.</td></tr>{% endfor %}</tbody></table></div>
+</section>
+{% endif %}
 {% endblock %}

@@ -66,6 +66,13 @@ ALLOWED_HOSTS = [h.strip() for h in env("ALLOWED_HOSTS", _app.hostname or "local
 if DEBUG or TESTING:
     ALLOWED_HOSTS += ["localhost", "127.0.0.1", "testserver"]
 CSRF_TRUSTED_ORIGINS = [f"{_app.scheme}://{_app.netloc}"]
+# Optional own address for the client portal (e.g. https://portal.weststarmsp.com). Otherwise APP_URL/client-portal/.
+PORTAL_URL = env("PORTAL_URL", "").rstrip("/")
+if PORTAL_URL:
+    _p = urlparse(PORTAL_URL)
+    ALLOWED_HOSTS.append(_p.hostname)
+    CSRF_TRUSTED_ORIGINS.append(f"{_p.scheme}://{_p.netloc}")
+PORTAL_BASE = (PORTAL_URL or APP_URL) + "/client-portal"
 
 # Behind Caddy/nginx: trust exactly one proxy hop for the client IP and the https flag.
 TRUST_PROXY = env_bool("TRUST_PROXY", False)
@@ -88,6 +95,7 @@ INSTALLED_APPS = [
     "apps.tools",
     "apps.hr",
     "apps.files",
+    "apps.portal",
     "apps.legacy",
 ]
 
@@ -100,6 +108,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "apps.accounts.middleware.SessionGuardMiddleware",
+    "apps.portal.auth.PortalSessionMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]

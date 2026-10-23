@@ -57,15 +57,103 @@
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target.matches('textarea[name="body"]')) { e.preventDefault(); e.target.form?.requestSubmit(); }
   });
+  // Ticket composer: Reply / Private note / Work log change the hint, placeholder, button and colors.
+  const KIND = {
+    reply: { ph: 'Write your reply to the client… Ctrl+Enter to send.', btn: 'Send reply' },
+    note: { ph: 'Only your team sees private notes…', btn: 'Add note' },
+    work: { ph: 'What did you do? Only your team sees work logs…', btn: 'Log work' },
+  };
+  function setKind(form, kind) {
+    const k = KIND[kind] || KIND.reply, ta = form.querySelector('textarea[name="body"]');
+    const radio = form.querySelector(`input[name="kind"][value="${kind}"]`); if (radio) radio.checked = true;
+    if (ta) { ta.placeholder = kind === 'reply' ? (ta.dataset.replyPlaceholder || k.ph) : k.ph; ta.classList.toggle('note', kind !== 'reply'); }
+    const send = form.querySelector('[data-send]'); if (send) send.textContent = k.btn;
+    const hint = form.querySelector('[data-hint]'); if (hint) hint.textContent = hint.dataset[kind] || '';
+    const cc = form.querySelector('[data-cc-row]'); if (cc) cc.hidden = kind !== 'reply';
+    form.classList.toggle('is-note', kind !== 'reply');
+  }
   document.addEventListener('change', (e) => {
-    if (e.target.matches('input[name="kind"]')) {
+    if (e.target.matches('input[name="kind"]')) setKind(e.target.form, e.target.value);
+    if (e.target.matches('[data-saved-reply]') && e.target.value) {
       const ta = e.target.form.querySelector('textarea[name="body"]');
-      const note = e.target.value === 'note';
-      ta.classList.toggle('note', note);
-      ta.placeholder = note ? 'Only your team sees internal notes…' : ta.dataset.replyPlaceholder;
-      const send = e.target.form.querySelector('[data-send]');
-      if (send) send.textContent = note ? 'Add note' : 'Save reply';
+      ta.value = (ta.value ? ta.value + '\n\n' : '') + e.target.value; e.target.value = ''; ta.focus();
     }
+    if (e.target.matches('[data-files]')) showFiles(e.target);
+    if (e.target.matches('select[data-autosubmit]') || e.target.closest('form[data-autosubmit-form]')) (e.target.form || e.target.closest('form')).requestSubmit();
+    if (e.target.matches('[data-tick], [data-tick-all]')) {
+      if (e.target.matches('[data-tick-all]')) $$('[data-tick]').forEach((c) => (c.checked = e.target.checked));
+      updateBulk();
+    }
+    if (e.target.matches('select[data-bulk]') && e.target.value !== '-') {
+      const f = $('#bulk'); $('[data-bulk-action]', f).value = e.target.dataset.bulk; $('[data-bulk-value]', f).value = e.target.value; f.requestSubmit();
+    }
+  });
+  document.addEventListener('click', (e) => {
+    const m = e.target.closest('[data-mode]');
+    if (m) { const f = $('form[data-composer]'); if (f) { setKind(f, m.dataset.mode); setTimeout(() => f.querySelector('textarea').focus(), 0); } }
+    if (e.target.closest('[data-bulk-close]')) {
+      const f = $('#bulk'); const n = $$('[data-tick]:checked').length;
+      if (n && window.confirm(`Close ${n} ticket(s)?`)) { $('[data-bulk-action]', f).value = 'close'; f.requestSubmit(); }
+    }
+    if (e.target.closest('[data-bulk-clear]')) { $$('[data-tick], [data-tick-all]').forEach((c) => (c.checked = false)); updateBulk(); }
+    // Grid: click a row (not its checkbox) to open the ticket beside the list.
+    const row = e.target.closest('tr[data-open]');
+    if (row && !e.target.closest('input, select, button') && !(e.ctrlKey || e.metaKey)) { e.preventDefault(); openPanel(row.dataset.open); }
+    if (e.target.closest('[data-close-panel]')) closePanel();
+  });
+  function updateBulk() {
+    const f = $('#bulk'); if (!f) return;
+    const n = $$('[data-tick]:checked').length; f.hidden = n === 0; $('[data-bulk-count]', f).textContent = n;
+  }
+  function showFiles(input) {
+    const out = input.form && input.form.querySelector('[data-file-names]');
+    if (out) out.textContent = Array.from(input.files).map((f) => f.name).join(', ');
+  }
+  function addFiles(input, files) {
+    const dt = new DataTransfer(); Array.from(input.files).forEach((f) => dt.items.add(f)); Array.from(files).forEach((f) => dt.items.add(f));
+    input.files = dt.files; showFiles(input);
+  }
+  document.addEventListener('dragover', (e) => { const d = e.target.closest('[data-drop]'); if (d) { e.preventDefault(); d.classList.add('over'); } });
+  document.addEventListener('dragleave', (e) => { const d = e.target.closest('[data-drop]'); if (d) d.classList.remove('over'); });
+  document.addEventListener('drop', (e) => {
+    const d = e.target.closest('[data-drop]'); if (!d) return;
+    e.preventDefault(); d.classList.remove('over'); addFiles($('[data-files]', d), e.dataTransfer.files);
+  });
+  document.addEventListener('paste', (e) => {
+    const f = e.target.closest && e.target.closest('form[data-composer]'); if (!f || !e.clipboardData) return;
+    const imgs = Array.from(e.clipboardData.files || []).filter((x) => x.type.startsWith('image/'));
+    if (imgs.length) { e.preventDefault(); addFiles($('[data-files]', f), imgs.map((x, i) => new File([x], `screenshot-${Date.now()}-${i}.png`, { type: x.type }))); }
+  });
+  function openPanel(id) {
+    if (!window.htmx) { window.location.href = `/tickets/${id}/`; return; }
+    $$('tr[data-open]').forEach((r) => r.classList.toggle('sel', r.dataset.open === String(id)));
+    window.htmx.ajax('GET', `/tickets/${id}/panel/`, { target: '#panel', swap: 'outerHTML' }).then(() => $('#split')?.classList.add('has-panel'));
+    const u = new URL(window.location.href); u.searchParams.set('open', id); window.history.replaceState(null, '', u);
+  }
+  function closePanel() {
+    const p = $('#panel'); if (p) { p.outerHTML = '<div id="panel" hidden></div>'; }
+    $('#split')?.classList.remove('has-panel'); $$('tr.sel').forEach((r) => r.classList.remove('sel'));
+    const u = new URL(window.location.href); u.searchParams.delete('open'); window.history.replaceState(null, '', u);
+  }
+  // Running timers tick every second.
+  setInterval(() => $$('[data-since]').forEach((el) => {
+    const s = Math.max(0, Math.floor(Date.now() / 1000) - Number(el.dataset.since));
+    el.textContent = `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  }), 1000);
+  // Keyboard, like the old app. Classic page: R reply, N note. Grid: j/k move, Enter open, x tick, / search, n new, Esc close.
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.target.closest('input, textarea, select, [contenteditable]')) return;
+    const f = $('form[data-composer]');
+    if (f && (e.key === 'r' || e.key === 'n') && !$('[data-grid]')) { e.preventDefault(); setKind(f, e.key === 'r' ? 'reply' : 'note'); f.querySelector('textarea').focus(); return; }
+    if (!$('[data-grid]')) return;
+    const rows = $$('tr[data-open]'); let i = rows.findIndex((r) => r.classList.contains('kb'));
+    if (e.key === 'j' || e.key === 'k') { e.preventDefault(); rows[i]?.classList.remove('kb'); i = Math.min(rows.length - 1, Math.max(0, i + (e.key === 'j' ? 1 : -1))); rows[i]?.classList.add('kb'); rows[i]?.scrollIntoView({ block: 'nearest' }); }
+    else if ((e.key === 'Enter' || e.key === 'o') && rows[i]) { e.preventDefault(); openPanel(rows[i].dataset.open); }
+    else if (e.key === 'x' && rows[i]) { const c = $('[data-tick]', rows[i]); c.checked = !c.checked; updateBulk(); }
+    else if (e.key === '/') { e.preventDefault(); $('[data-slash]')?.focus(); }
+    else if (e.key === 'n') { $('button[hx-get="/tickets/new/"]')?.click(); }
+    else if (e.key === 'r' && f) { e.preventDefault(); setKind(f, 'reply'); f.querySelector('textarea').focus(); }
+    else if (e.key === 'Escape') closePanel();
   });
 
   // Line items: add a row by cloning the empty form Django provides.

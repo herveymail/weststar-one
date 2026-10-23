@@ -1,0 +1,15 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}Assets{% endblock %}
+{% block content %}
+<h1 style="font-size:22px">My Assets</h1>
+{% for type, items in groups %}
+<section class="card" style="overflow:hidden">
+  <div class="pad" style="padding-bottom:6px"><h2>{{ type }} <span class="muted small">{{ items|length }}</span></h2></div>
+  <div class="table-wrap"><table class="t">
+    <thead><tr><th>Name</th><th>Make / model</th><th>Serial</th><th>Operating system</th><th>Warranty</th></tr></thead>
+    <tbody>{% for a in items %}<tr><td class="strong">{{ a.name }}</td><td>{{ a.make }} {{ a.model }}</td><td class="small">{{ a.serial|default:"—" }}</td><td>{{ a.os|default:"—" }}</td>
+      <td>{% if a.warranty_expires %}<span{% if a.warranty_expires < today %} style="color:var(--bad);font-weight:600"{% endif %}>{{ a.warranty_expires|date:"M j, Y" }}{% if a.warranty_expires < today %} (expired){% endif %}</span>{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% empty %}<p class="muted">No assets on file. Ask us if you'd like an inventory.</p>{% endfor %}
+{% endblock %}

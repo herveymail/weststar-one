@@ -1,6 +1,9 @@
-# Automatic HTTPS (Let's Encrypt) for your domain; everything is passed to the app.
-{$DOMAIN} {
+# Automatic HTTPS (Let's Encrypt). DOMAIN is the staff app; PORTAL_DOMAIN (optional) is the client portal's
+# own address, e.g. portal.weststarmsp.com — clients never see the staff app's address.
+{$DOMAIN} {$PORTAL_DOMAIN} {
 	encode zstd gzip
+	header -Server
+
 	# Settings › Import accepts the old backup and uploads folder (can be several GB);
 	# everything else is limited to 100 MB.
 	@import path /settings/import/*
@@ -11,12 +14,24 @@
 	request_body @other {
 		max_size 100MB
 	}
-	header -Server
-	reverse_proxy app:8000 {
-		header_up X-Forwarded-Proto {scheme}
-		transport http {
-			read_timeout 2h
-			write_timeout 2h
+
+	# On the portal's own address every page is a portal page: / → /client-portal/, /tickets/ → /client-portal/tickets/ …
+	@portalhost expression `{http.request.host} != "{$DOMAIN}"`
+	handle @portalhost {
+		@notportal not path /client-portal/* /static/* /health/
+		rewrite @notportal /client-portal{uri}
+		reverse_proxy app:8000 {
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	handle {
+		reverse_proxy app:8000 {
+			header_up X-Forwarded-Proto {scheme}
+			transport http {
+				read_timeout 2h
+				write_timeout 2h
+			}
 		}
 	}
 }

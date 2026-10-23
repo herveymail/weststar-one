@@ -1,0 +1,33 @@
+{% load ws %}
+<form id="compose" class="{% if panel %}tkg-compose{% else %}hd-card hd-compose{% endif %}" hx-post="/tickets/{{ t.pk }}/message/" hx-encoding="multipart/form-data"
+      {% if panel %}hx-target="#panel" hx-swap="outerHTML"{% else %}hx-swap="none"{% endif %} data-composer>
+  {% if panel %}<input type="hidden" name="ctx" value="panel">{% endif %}
+  <div class="row">
+    <div class="mode-tabs" role="radiogroup" aria-label="Message type">
+      <label><input type="radio" name="kind" value="reply" class="sr" checked>{% if panel %}Reply to client{% else %}✉ Reply (emails client){% endif %}</label>
+      <label class="note-tab"><input type="radio" name="kind" value="note" class="sr">{% if panel %}Internal note{% else %}🔒 Private note{% endif %}</label>
+      {% if not panel %}<label><input type="radio" name="kind" value="work" class="sr">Work log</label>{% endif %}
+    </div>
+    <span class="spacer"></span>
+    {% if saved_replies %}<label class="sr" for="sr-{{ t.pk }}">Saved reply</label>
+    <select id="sr-{{ t.pk }}" class="select" style="width:auto" data-saved-reply>
+      <option value="">Saved reply…</option>{% for r in saved_replies %}<option value="{{ r.body }}">{{ r.title }}</option>{% endfor %}
+    </select>{% endif %}
+  </div>
+  <p class="small muted" style="margin:0" data-hint data-reply="Emailed to {{ t.contact_email|default:'the requester' }} and shown in the client portal." data-note="Private. Only staff can see this." data-work="Records work done. Only staff can see this.">Emailed to {{ t.contact_email|default:"the requester" }} and shown in the client portal.</p>
+  <label for="body-{{ t.pk }}" class="sr">Message</label>
+  <textarea id="body-{{ t.pk }}" name="body" class="textarea" rows="{% if panel %}3{% else %}4{% endif %}"
+    data-reply-placeholder="Write your reply to the client… Ctrl+Enter to send."
+    placeholder="Write your reply to the client… Ctrl+Enter to send."></textarea>
+  <div class="opt-row">
+    <label class="f lbl">Time spent<select name="minutes" class="select">{% for v, l in time_choices %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></label>
+    <label class="f lbl">Work type<select name="work_type" class="select">{% for w in work_types %}<option>{{ w }}</option>{% endfor %}</select></label>
+    <label class="f lbl">Status after send<select name="status_after" class="select"><option value="">— keep {{ t.status }} —</option>{% for s in statuses %}{% if s != t.status %}<option>{{ s }}</option>{% endif %}{% endfor %}</select></label>
+    <label class="check"><input type="checkbox" name="billable" value="1"{% if t.billable %} checked{% endif %}> Billable</label>
+  </div>
+  <div data-cc-row><label for="cc-{{ t.pk }}" class="sr">Cc</label><input id="cc-{{ t.pk }}" name="cc" class="input" placeholder="Cc (optional, comma-separated){% if t.cc %} · already copied: {{ t.cc }}{% endif %}"></div>
+  <label class="drop" data-drop>Drag &amp; drop files, paste a screenshot, or <u>click to browse</u> · up to 25 MB each
+    <input type="file" name="files" multiple class="sr" data-files></label>
+  <span class="small muted" data-file-names></span>
+  <div class="row"><span class="small muted">{% if not panel %}R = reply · N = note · {% endif %}Ctrl+Enter sends</span><span class="spacer"></span><button class="btn primary" data-send>Send reply</button></div>
+</form>

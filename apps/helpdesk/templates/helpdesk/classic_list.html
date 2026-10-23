@@ -1,0 +1,45 @@
+{% extends "base.html" %}{% load ws %}
+{% block title %}Tickets · {{ app_name }}{% endblock %}
+{% block main_class %}{% endblock %}
+{% block content %}
+<div class="hd">
+  {% include "helpdesk/_rail.html" %}
+  <div class="hd-main">
+    <div class="hd-top">
+      <h1>{{ title }} <small>{{ page.paginator.count }}</small></h1>
+      <span class="spacer"></span>
+      <form method="get" class="row" role="search">
+        {% if view and ':' not in view %}<input type="hidden" name="view" value="{{ view }}">{% endif %}
+        <label for="tq" class="sr">Search tickets</label>
+        <input id="tq" name="q" value="{{ q }}" class="input" style="width:250px" placeholder="Search subject or #number…">
+        <label for="ts" class="sr">Sort</label>
+        <select id="ts" name="sort" class="select" style="width:auto" data-autosubmit>
+          {% for k, l in "priority:Priority,newest:Newest,oldest:Oldest,updated:Recently updated"|split_pairs %}<option value="{{ k }}"{% if sort == k %} selected{% endif %}>{{ l }}</option>{% endfor %}
+        </select>
+        <button class="btn" aria-label="Search">{% icon "search" 16 %}</button>
+      </form>
+      {% if can_tickets_edit %}<button class="btn primary" hx-get="/tickets/new/" hx-target="#modal">{% icon "plus" 16 %}New ticket</button>{% endif %}
+    </div>
+    {% for t in page %}
+    <a href="/tickets/{{ t.pk }}/" class="hd-row">
+      <span class="av" style="background:{{ t.client_id|avatar_color }}">{% if t.client %}{{ t.client.name|initials }}{% else %}{{ t.contact_name|default:"?"|initials }}{% endif %}</span>
+      <span style="min-width:0">
+        <span class="subj"><span class="psq {{ t.priority|p_class }}" title="{{ t.priority }}"></span>{{ t.subject }}{% for c in t.sla_chips %}<span class="sla {{ c.tone }}">{{ c.text }}</span>{% endfor %}</span>
+        <span class="meta" style="display:block">{{ t.contact_name|default:"—" }} · {{ t.client.name|default:"No client" }} · #{{ t.number }}{% if t.queue %} · {{ t.queue.name }}{% endif %} · {{ t.source|lower }} · {{ t.created_at|ago }}</span>
+      </span>
+      <span class="st {{ t.status|st_class }}">{{ t.status }}</span>
+      <span>{% if t.assigned_to %}{{ t.assigned_to.name }}{% else %}<span class="muted">Unassigned</span>{% endif %}</span>
+      <span class="small {% if t.due_date and t.due_date < now.date and t.is_open %}late{% else %}muted{% endif %}">{% if t.due_date and t.is_open %}Due {{ t.due_date|date:"M j" }}{% else %}{{ t.updated_at|ago }}{% endif %}</span>
+    </a>
+    {% empty %}
+    <div class="hd-card empty">No tickets match this view.</div>
+    {% endfor %}
+    {% if page.paginator.num_pages > 1 %}
+    <div class="row muted" style="justify-content:space-between">
+      <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+      <span>{% if page.has_previous %}<a href="{% qs_replace page=page.previous_page_number %}">← Prev</a>{% endif %}{% if page.has_next %} · <a href="{% qs_replace page=page.next_page_number %}">Next →</a>{% endif %}</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

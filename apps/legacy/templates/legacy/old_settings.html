@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% load ws %}
+{% block title %}Old system settings · Settings{% endblock %}
+{% block content %}
+<div class="page-head"><div class="titles"><a href="/settings/" class="link-btn">{% icon "back" 16 %}Settings</a><h1>Old system settings</h1>
+  <p class="desc">Every setting from the old Weststar One, brought over by the import. “Copied” went into the new setting shown. “Kept yours” means you'd already set it here. “Not used yet” has no place in the new app yet — it's saved so nothing is lost.</p></div></div>
+{% if not counts.all %}<div class="banner info">Nothing here yet. Run the import (Settings › Import from old Weststar One) and the old settings will show up.</div>{% endif %}
+<form method="get" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+  <div class="tabs">{% for k, l in "all:All,copied:Copied,kept:Kept yours,unused:Not used yet"|split_pairs %}<a class="tab{% if f == k %} on{% endif %}" href="?f={{ k }}&q={{ q|urlencode }}">{{ l }}{% if k == "all" %} {{ counts.all }}{% elif k == "copied" %} {{ counts.copied }}{% elif k == "kept" %} {{ counts.kept }}{% else %} {{ counts.unused }}{% endif %}</a>{% endfor %}</div>
+  <input type="hidden" name="f" value="{{ f }}"><label class="sr" for="oq">Search</label><input id="oq" class="input" name="q" value="{{ q }}" placeholder="Search setting names" style="max-width:260px">
+</form>
+<div class="card" style="overflow:hidden"><div class="table-wrap"><table class="grid">
+  <thead><tr><th>Old setting</th><th>Old value</th><th>In the new app</th></tr></thead>
+  <tbody>{% for r in rows %}<tr><td class="small" style="font-family:var(--mono,monospace)">{{ r.key }}</td><td class="small" style="max-width:380px;overflow-wrap:anywhere">{{ r.value }}</td>
+    <td class="small">{% if r.state == "empty" %}<span class="muted">Empty in the old app</span>{% elif r.state == "unused" %}<span class="pill">Not used yet</span>{% else %}<span class="pill {% if r.state == 'copied' %}good{% else %}info{% endif %}">{% if r.state == "copied" %}Copied{% else %}Kept yours{% endif %}</span>
+      {% if r.page %}<a href="/settings/{{ r.page.0 }}/">{{ r.page.1 }}</a>{% else %}<span class="muted">{{ r.to }}</span>{% endif %}{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="3" class="muted">Nothing matches.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

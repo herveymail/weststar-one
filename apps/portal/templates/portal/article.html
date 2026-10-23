@@ -1,0 +1,9 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}{{ a.title }}{% endblock %}
+{% block main_extra %} narrow{% endblock %}
+{% block content %}
+<a href="/client-portal/help/">← Help Center</a>
+<section class="card pad stack"><h1 style="font-size:22px">{{ a.title }}</h1>{% if a.category %}<span class="muted small">{{ a.category }}</span>{% endif %}
+  <div style="white-space:pre-wrap;line-height:1.65">{{ a.body }}</div></section>
+<section class="card pad row"><span class="grow">Still stuck?</span>{% if can.submit_tickets %}<a class="btn primary" href="/client-portal/tickets/#new">Submit a Ticket</a>{% endif %}</section>
+{% endblock %}

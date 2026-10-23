@@ -1,0 +1,14 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}Contracts{% endblock %}
+{% block content %}
+<section class="card" style="overflow:hidden">
+  <div class="pad"><h1 style="font-size:22px">Your Contracts</h1></div>
+  <div class="table-wrap"><table class="t">
+    <thead><tr><th>Contract</th><th>Type</th><th>Term</th><th>Monthly</th><th>Status</th></tr></thead>
+    <tbody>{% for c in rows %}<tr><td><a class="row-a" href="/client-portal/contracts/{{ c.pk }}/">{{ c.name }}</a>{% if c.number %}<div class="small muted">{{ c.number }}</div>{% endif %}</td><td>{{ c.type }}</td>
+      <td class="small">{{ c.start_date|date:"M j, Y"|default:"—" }} – {{ c.end_date|date:"M j, Y"|default:"ongoing" }}</td><td>{{ c.monthly_rate|dollars }}</td>
+      <td>{% if c.status == "Sent" %}<a class="btn small primary" href="/client-portal/contracts/{{ c.pk }}/">Review &amp; Sign</a>{% elif c.status == "Active" %}<span class="pill done">Active</span>{% else %}<span class="pill">{{ c.status }}</span>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="5" class="muted">No contracts.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}

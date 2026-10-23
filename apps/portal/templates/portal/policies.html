@@ -1,0 +1,9 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}Policies{% endblock %}
+{% block content %}
+<section class="card" style="overflow:hidden">
+  <div class="pad"><h1 style="font-size:22px">Policies</h1><p class="muted" style="margin:4px 0 0">Your company's IT and security policies. Please read and acknowledge each one.</p></div>
+  {% for p in rows %}<a class="list-a" href="/client-portal/policies/{{ p.pk }}/"><span class="grow strong">{{ p.name }}{% if p.version %} <span class="muted small">v{{ p.version }}</span>{% endif %}</span>{% if p.my_ack %}<span class="pill done">Acknowledged {{ p.my_ack.created_at|date:"M j" }}</span>{% else %}<span class="pill wait">Read &amp; acknowledge</span>{% endif %}</a>
+  {% empty %}<p class="pad muted" style="margin:0">No policies right now.</p>{% endfor %}
+</section>
+{% endblock %}

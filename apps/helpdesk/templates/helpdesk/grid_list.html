@@ -1,0 +1,53 @@
+{% extends "base.html" %}{% load ws %}
+{% block title %}Tickets · {{ app_name }}{% endblock %}
+{% block main_class %}{% endblock %}
+{% block content %}
+<div class="tkg" data-grid>
+  <div class="row">
+    <h1 style="font-size:20px">Tickets <small class="muted" style="font-size:13px;font-weight:500">{{ page.paginator.count }}</small></h1>
+    <form method="post" action="/tickets/ui/">{% csrf_token %}<input type="hidden" name="ui" value="classic"><button class="chip">↺ Switch back to classic</button></form>
+    <details class="pop"><summary class="chip" aria-label="Keyboard shortcuts">?</summary><div class="pop-body small">
+      <b>Keyboard</b><br>j / k move · Enter opens · x ticks · Esc closes the panel · / searches · n new ticket · r reply</div></details>
+    <span class="spacer"></span>
+    <form method="get" role="search">{% for k, v in f.items %}{% if v %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}<input type="hidden" name="tab" value="{{ tab }}">
+      <label for="gq" class="sr">Search tickets</label><input id="gq" name="q" value="{{ q }}" class="input" style="width:280px" placeholder="Search tickets, clients…  ( / )" data-slash></form>
+  </div>
+
+  <nav class="tkg-tabs" aria-label="Status">
+    {% for k, label, n in tabs %}<a href="{% qs_replace tab=k page='' open='' %}" class="{% if tab == k %}on{% endif %}">{{ label }}<span class="n">{{ n }}</span></a>{% endfor %}
+  </nav>
+
+  <form class="tkg-bar" method="get" data-autosubmit-form>
+    <input type="hidden" name="tab" value="{{ tab }}">{% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+    <span class="lbl">Views</span>
+    {% for k, label in chips %}<a class="chip{% if chip == k %} on{% endif %}" href="{% if chip == k %}{% qs_replace chip='' page='' %}{% else %}{% qs_replace chip=k page='' %}{% endif %}">{{ label }}</a>{% endfor %}
+    <span style="width:10px"></span>
+    <label class="sr" for="fc">Company</label><select id="fc" name="company" class="select"><option value="">Company: All</option>{% for c in clients %}<option value="{{ c.pk }}"{% if f.company == c.pk|stringformat:'s' %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select>
+    <label class="sr" for="fq">Queue</label><select id="fq" name="queue" class="select"><option value="">Queue: All</option>{% for x in queues %}<option value="{{ x.pk }}"{% if f.queue == x.pk|stringformat:'s' %} selected{% endif %}>{{ x.name }}</option>{% endfor %}</select>
+    <label class="sr" for="fa">Assignee</label><select id="fa" name="assignee" class="select"><option value="">Assignee: All</option>{% for u in users %}<option value="{{ u.pk }}"{% if f.assignee == u.pk|stringformat:'s' %} selected{% endif %}>{{ u.name }}</option>{% endfor %}</select>
+    <label class="sr" for="fb">Created by</label><select id="fb" name="created_by" class="select"><option value="">Created by: All</option>{% for u in users %}<option value="{{ u.pk }}"{% if f.created_by == u.pk|stringformat:'s' %} selected{% endif %}>{{ u.name }}</option>{% endfor %}</select>
+    <label class="sr" for="fp">Priority</label><select id="fp" name="priority" class="select"><option value="">Priority: All</option>{% for p in priorities %}<option{% if f.priority == p %} selected{% endif %}>{{ p }}</option>{% endfor %}</select>
+    {% if f.company or f.queue or f.assignee or f.created_by or f.priority or chip %}<a href="?tab={{ tab }}" class="link-btn small">× Clear</a>{% endif %}
+    <span class="spacer"></span>
+    <a class="btn small" href="{{ request.get_full_path }}">⟳ Refresh</a>
+    {% if can_tickets_edit %}<button type="button" class="btn small primary" hx-get="/tickets/new/" hx-target="#modal">{% icon "plus" 14 %}New ticket</button>{% endif %}
+  </form>
+
+  {% if can_tickets_edit %}
+  <form class="tkg-bulk" id="bulk" hx-post="/tickets/bulk/" hx-swap="none" hidden>
+    <b data-bulk-count>0</b> selected
+    <input type="hidden" name="action" value="" data-bulk-action><input type="hidden" name="value" value="" data-bulk-value>
+    <label class="sr" for="ba">Assign</label><select id="ba" class="select" style="width:auto" data-bulk="assign"><option value="-">Assign ▾</option><option value="">Unassigned</option>{% for u in users %}<option value="{{ u.pk }}">{{ u.name }}</option>{% endfor %}</select>
+    <label class="sr" for="bs">Set status</label><select id="bs" class="select" style="width:auto" data-bulk="status"><option value="-">Set status ▾</option>{% for s in statuses %}<option>{{ s }}</option>{% endfor %}</select>
+    <label class="sr" for="bq">Move to queue</label><select id="bq" class="select" style="width:auto" data-bulk="queue"><option value="-">Move to queue ▾</option><option value="">No queue</option>{% for x in queues %}<option value="{{ x.pk }}">{{ x.name }}</option>{% endfor %}</select>
+    <button type="button" class="btn small danger" data-bulk-close>Close…</button>
+    <button type="button" class="link-btn small" data-bulk-clear>Clear</button>
+  </form>
+  {% endif %}
+
+  <div class="tkg-split{% if open_pk and t %} has-panel{% endif %}" id="split">
+    {% include "helpdesk/_grid_table.html" %}
+    {% if open_pk and t %}{% include "helpdesk/_panel.html" %}{% else %}<div id="panel" hidden></div>{% endif %}
+  </div>
+</div>
+{% endblock %}

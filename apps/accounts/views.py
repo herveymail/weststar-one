@@ -235,6 +235,10 @@ class ProfileForm(forms.ModelForm):
 @login_required
 def profile_view(request):
     user = request.user
+    if request.method == "POST" and request.POST.get("tickets_ui") in ("classic", "grid"):
+        User.objects.filter(pk=user.pk).update(tickets_ui=request.POST["tickets_ui"])
+        messages.success(request, "Ticket screen changed.")
+        return redirect("/profile/")
     if request.method == "POST" and request.POST.get("look") in ("indigo", "graphite"):
         User.objects.filter(pk=user.pk).update(look=request.POST["look"])
         messages.success(request, "Look changed.")
