@@ -42,7 +42,8 @@ jobs:
           mariadb -h127.0.0.1 -uroot -proot legacy < tests/fixtures/legacy-schema.sql
       - run: ruff check --select E,F,W,B --ignore E501,B904,B023,E741,B007 apps weststar tests
       - run: python -m pytest
-      - run: python manage.py makemigrations --check --dry-run
+      - name: No missing database migrations
+        run: out=$(python manage.py makemigrations --check --dry-run 2>&1) || { echo "::error::$(echo "$out" | tail -5 | tr '\n' ' ')"; exit 1; }
         env: { SECRET_KEY: ci-only-0000000000000000000000000000000000000, APP_ENCRYPTION_KEY: "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=" }
       - run: pip install pip-audit && pip-audit -r requirements.txt -r requirements-dev.txt
       - run: sudo apt-get install -y shellcheck && shellcheck -S warning install.sh update.sh deploy/*.sh
