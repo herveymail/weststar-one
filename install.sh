@@ -115,6 +115,14 @@ ask "Time zone" "America/Denver" TIMEZONE
 ask "Your name (first admin)" "Casey Hervey" ADMIN_NAME
 ask "Your email (first admin)" "" ADMIN_EMAIL
 [[ "$ADMIN_EMAIL" == *@*.* ]] || die "That doesn't look like an email address."
+while true; do
+    ask_secret "Choose your admin password (12+ characters, hidden)" ADMIN_PW
+    if [ ${#ADMIN_PW} -lt 12 ]; then warn "Use at least 12 characters (a short sentence works well)."; continue; fi
+    ask_secret "Type it again" ADMIN_PW2
+    [ "$ADMIN_PW" = "$ADMIN_PW2" ] && break
+    warn "Those didn't match. Try again."
+done
+unset ADMIN_PW2
 ADMIN_DOMAIN="${ADMIN_EMAIL##*@}"
 
 echo ""; info "Google Workspace sign-in lets staff use their company Google login."
@@ -260,8 +268,12 @@ mark 4
 
 # ════════════════════════════════════════════
 step 5 "Configuring Application"
-ADMIN_OUT=$(docker compose exec -T app python manage.py create_admin --email "$ADMIN_EMAIL" --name "$ADMIN_NAME" 2>&1) || die "Couldn't create the admin: ${ADMIN_OUT}"
-TEMP_PW=$(printf '%s\n' "$ADMIN_OUT" | sed -n 's/.*(shown once): //p' | head -1)
+# The password goes in through standard input, so it never shows up in the process list or logs.
+until ADMIN_OUT=$(printf '%s\n' "$ADMIN_PW" | docker compose exec -T app python manage.py create_admin --email "$ADMIN_EMAIL" --name "$ADMIN_NAME" --password-stdin 2>&1); do
+    warn "That password wasn't accepted: $(printf '%s' "$ADMIN_OUT" | tail -1 | sed 's/^CommandError: //')"
+    ask_secret "Choose a different admin password (hidden)" ADMIN_PW
+done
+unset ADMIN_PW
 success "Admin account created for ${ADMIN_EMAIL}."
 {
     printf '{'
@@ -365,7 +377,7 @@ echo -e "${GREEN}  ╚═══════════════════�
 echo ""
 echo -e "  Open:            ${BOLD}https://${DOMAIN}${NC}"
 echo -e "  Admin email:     ${BOLD}${ADMIN_EMAIL}${NC}"
-[ -n "${TEMP_PW:-}" ] && echo -e "  Temp password:   ${BOLD}${TEMP_PW}${NC}   ${DIM}(you'll choose your own, then set up 2FA)${NC}"
+echo -e "  Password:        ${BOLD}the one you chose in step 1${NC}   ${DIM}(you'll set up two-factor at first sign-in)${NC}"
 [ "$USE_GOOGLE" = yes ] && echo -e "  Staff sign in with ${BOLD}Sign in with Google${NC} — add them first in Settings › Staff users."
 echo -e "  Update later:    ${BOLD}sudo ./update.sh${NC}"
 echo -e "  Backups:         ${BOLD}${APP_DIR}/backups${NC}  ${DIM}(restore: ./deploy/restore.sh)${NC}"

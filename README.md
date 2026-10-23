@@ -100,7 +100,7 @@ can sign in. That's how you control who gets in and what role they have.
 ```sh
 cp .env.example .env && nano .env     # fill in DOMAIN, SECRET_KEY, DB_PASSWORD, APP_ENCRYPTION_KEY
 docker compose up -d --build
-docker compose exec app python manage.py create_admin --email you@weststarmsp.com --name "Your Name"
+docker compose exec app python manage.py create_admin --email you@weststarmsp.com --name "Your Name"   # prints a temporary password
 ```
 
 ## Bring over the old Weststar One
