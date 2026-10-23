@@ -44,15 +44,15 @@
   <nav class="side" id="main-nav" aria-label="Main">
     <a href="/" class="brand"><span class="logo">W</span>{{ app_name }}</a>
     {% for g in nav %}
-      {% if g.group %}
+      {% if g.group and g.items|length > 1 %}
       <div class="nav-group" data-group="{{ g.group }}">
-        <button type="button" class="nav-section" aria-expanded="true">{{ g.group }}{% icon "chevron" 14 %}</button>
+        <button type="button" class="nav-section" aria-expanded="true">{{ g.group }}<span class="count">{{ g.items|length }}</span>{% icon "chevron" 14 %}</button>
         <div class="nav-items">
       {% endif %}
       {% for i in g.items %}
         <a href="{{ i.url }}" class="nav-item{% if i.active %} on{% endif %}"{% if i.active %} aria-current="page"{% endif %}>{% icon i.id %}{{ i.label }}{% if i.id == "tickets" and open_ticket_count %}<span class="badge">{{ open_ticket_count }}</span>{% endif %}</a>
       {% endfor %}
-      {% if g.group %}</div></div>{% endif %}
+      {% if g.group and g.items|length > 1 %}</div></div>{% endif %}
     {% endfor %}
   </nav>
   {% endif %}

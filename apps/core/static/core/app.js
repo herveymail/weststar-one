@@ -21,14 +21,20 @@
   function hide(popSel, btnSel) { const p = $(popSel); if (p) p.hidden = true; $(btnSel)?.setAttribute('aria-expanded', 'false'); }
   $('#user-btn')?.addEventListener('click', () => { const p = $('#user-pop'); p.hidden = !p.hidden; $('#user-btn').setAttribute('aria-expanded', String(!p.hidden)); });
 
-  // Look 1: collapsible sidebar sections, remembered per browser.
-  const closed = store.get('ws.nav.closed', {});
-  $$('.nav-group').forEach((g) => {
-    const name = g.dataset.group, btn = $('.nav-section', g);
-    const apply = () => { g.classList.toggle('closed', !!closed[name]); btn.setAttribute('aria-expanded', String(!closed[name])); };
-    apply();
-    btn.addEventListener('click', () => { closed[name] = !closed[name]; store.set('ws.nav.closed', closed); apply(); });
+  // Look 1: folded sidebar groups — one open at a time (the one you're in), so the menu never needs scrolling.
+  const groups = $$('.nav-group');
+  const openOne = (target) => groups.forEach((g) => {
+    const on = g === target;
+    g.classList.toggle('closed', !on);
+    $('.nav-section', g).setAttribute('aria-expanded', String(on));
   });
+  const current = groups.find((g) => $('.nav-item.on', g)) || groups.find((g) => g.dataset.group === store.get('ws.nav.open', '')) || null;
+  openOne(current);
+  groups.forEach((g) => $('.nav-section', g).addEventListener('click', () => {
+    const wasOpen = !g.classList.contains('closed');
+    openOne(wasOpen ? null : g);
+    store.set('ws.nav.open', wasOpen ? '' : g.dataset.group);
+  }));
 
   // Look 2: icon bar fly-outs.
   function closeFly() { $$('.fly').forEach((f) => (f.hidden = true)); $$('[data-fly]').forEach((b) => b.setAttribute('aria-expanded', 'false')); const s = $('#fly-shade'); if (s) s.hidden = true; }
