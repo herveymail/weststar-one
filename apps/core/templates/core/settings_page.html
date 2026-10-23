@@ -32,6 +32,22 @@
   <p class="small muted" style="margin:0">Google Workspace: use smtp.gmail.com, port 587, the full mailbox address as the username, and an <b>app password</b> (Google Account › Security › 2-Step Verification › App passwords), not the normal password.</p>
 </section>
 {% endif %}
+{% if item.0 == "payments" %}
+<section class="card pad stack" style="max-width:760px">
+  <h2>Stripe webhook</h2>
+  <p style="margin:0">In Stripe › Developers › Webhooks, add an endpoint with this URL, then paste its signing secret above:</p>
+  <p style="margin:0"><code style="user-select:all">{{ webhook_url }}</code></p>
+  <p class="small muted" style="margin:0">Events: checkout.session.completed, checkout.session.async_payment_succeeded, checkout.session.async_payment_failed, payment_intent.succeeded, payment_intent.processing, payment_intent.payment_failed, charge.refunded, payment_method.detached. Payments still record without it, but bank (ACH) payments and refunds only update through the webhook.</p>
+</section>
+{% endif %}
+{% if item.0 == "signin" %}
+<section class="card pad stack" style="max-width:760px">
+  <h2>Google Workspace sign-in</h2>
+  <p style="margin:0">In Google Cloud Console › APIs &amp; Services › Credentials, open your OAuth client (the same one the old Weststar One used) and add this <b>Authorized redirect URI</b>:</p>
+  <p style="margin:0"><code style="user-select:all">{{ google_redirect }}</code></p>
+  <p class="small muted" style="margin:0">Sign-in turns on when the client ID, client secret and allowed domains are all filled in. Staff marked “Must sign in with Google” (Staff users) can't use a password. Everyone needs a staff account here first — Google sign-in never creates accounts on its own, same as before.</p>
+</section>
+{% endif %}
 {% if item.0 == "email_in" %}
 <section class="card pad stack" style="max-width:760px">
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 style="flex:1">Mailbox</h2>

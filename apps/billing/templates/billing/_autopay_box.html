@@ -1,0 +1,30 @@
+{% load ws %}
+<div class="split" style="margin-bottom:14px">
+<section class="card pad" style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:12px">
+  <div style="display:flex;gap:10px;align-items:center"><h2 style="flex:1">AutoPay</h2>
+    {% if c.autopay_enabled %}<span class="pill good">On</span>{% else %}<span class="pill">Off</span>{% endif %}</div>
+  {% if c.autopay_method_id %}
+    <div><b>{{ c.autopay_label }}</b>{% if c.autopay_enrolled_at %} <span class="small muted">· since {{ c.autopay_enrolled_at|date:"M j, Y" }}</span>{% endif %}</div>
+    {% if c.autopay_last_attempt_at %}<div class="small">Last charge {{ c.autopay_last_attempt_at|date:"M j, g:i A" }}: {% if c.autopay_last_status == "failed" %}<span style="color:var(--bad)">failed — {{ c.autopay_last_error }}</span>{% else %}{{ c.autopay_last_status|default:"—" }}{% endif %}</div>{% endif %}
+  {% else %}<p class="muted" style="margin:0">No card or bank account on file. Send the client a setup link, or they can set it up in the client portal (Invoices › Set up AutoPay).</p>{% endif %}
+  {% if not stripe_ok %}<div class="banner info" style="margin:0">Stripe isn't connected yet — add the keys in Settings › Payments &amp; AutoPay.</div>
+  {% elif can_billing_edit %}
+  <form method="post" action="/clients/{{ c.pk }}/autopay/" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">{% csrf_token %}<input type="hidden" name="action" value="link">
+    <label class="small" style="flex:1 1 240px">Email a setup link to<input class="input" name="to" value="{{ billing_to }}" placeholder="billing@client.com (blank = just show me the link)"></label>
+    <button class="btn">{% if c.autopay_method_id %}Send link to change card{% else %}Send AutoPay setup link{% endif %}</button></form>
+  {% if c.autopay_method_id %}
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    {% if open_invoices %}<form method="post" action="/clients/{{ c.pk }}/autopay/" style="display:flex;gap:8px">{% csrf_token %}<input type="hidden" name="action" value="charge">
+      <label class="sr" for="chg">Invoice</label><select id="chg" class="select" name="invoice">{% for i in open_invoices %}<option value="{{ i.pk }}">{{ i.number }} · {{ i.balance|dollars }}</option>{% endfor %}</select>
+      <button class="btn primary">Charge card on file now</button></form>{% endif %}
+    <form method="post" action="/clients/{{ c.pk }}/autopay/">{% csrf_token %}<input type="hidden" name="action" value="off"><button class="btn danger">Turn off AutoPay</button></form>
+  </div>{% endif %}
+  {% endif %}
+</section>
+<section class="card" style="flex:1 1 320px;min-width:0;overflow:hidden">
+  <div style="padding:16px 18px 8px;display:flex;gap:8px;align-items:center"><h2 style="flex:1">Recent payments</h2>{% if can_billing_edit %}<button class="btn small" hx-get="/m/payments/new/" hx-target="#modal">Record payment</button>{% endif %}</div>
+  <div class="table-wrap"><table class="grid"><tbody>{% for p in recent_payments %}<tr><td class="small">{{ p.paid_on|date:"M j, Y" }}</td><td class="small">{{ p.invoice.number }}</td><td class="small">{{ p.method }}{% if p.source == "autopay" %} · AutoPay{% elif p.source == "online" %} · online{% endif %}</td>
+    <td style="text-align:right">{{ p.amount|dollars }}{% if p.status != "Succeeded" %} <span class="pill {{ p.status|pill_tone }}">{{ p.status }}</span>{% endif %}</td></tr>
+  {% empty %}<tr><td class="muted">No payments yet.</td></tr>{% endfor %}</tbody></table></div>
+</section>
+</div>

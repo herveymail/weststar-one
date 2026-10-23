@@ -7,6 +7,7 @@ from apps.files import views as fv
 from apps.hr import views as hr
 from apps.legacy import views as lv
 from apps.portal import staff_views as psv
+from apps.billing import views as bv
 
 from . import settings_views as sv
 from . import views
@@ -54,6 +55,8 @@ urlpatterns = [
     path("m/messages/", psv.messages_list, name="messages"),
     path("messages/<int:pk>/", psv.message_thread, name="message"),
     path("clients/<int:pk>/portal/", psv.client_portal, name="client_portal"),
+    path("clients/<int:pk>/autopay/", bv.client_autopay, name="client_autopay"),
+    path("stripe/webhook/", bv.stripe_webhook, name="stripe_webhook"),
     path("m/<slug:slug>/", views.module_list, name="module"),
     path("m/<slug:slug>/new/", views.module_edit, name="module_new"),
     path("m/<slug:slug>/<int:pk>/", views.module_edit, name="module_edit"),

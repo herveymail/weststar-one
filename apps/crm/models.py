@@ -26,9 +26,27 @@ class Client(Record):
     sla_resolution_hours = models.PositiveIntegerField("SLA resolution (hours)", default=24)
     account_alert = models.CharField(max_length=255, blank=True, help_text="Shown in red on every ticket for this client.")
     notes = models.TextField("Internal notes", blank=True)
+    # Stripe / AutoPay (the card or bank account itself stays at Stripe; only its ids and last 4 are kept here)
+    stripe_customer_id = models.CharField(max_length=64, blank=True, editable=False)
+    autopay_enabled = models.BooleanField("AutoPay", default=False, editable=False)
+    autopay_method_id = models.CharField(max_length=64, blank=True, editable=False)
+    autopay_method_type = models.CharField(max_length=20, blank=True, editable=False)  # card / us_bank_account
+    autopay_brand = models.CharField(max_length=30, blank=True, editable=False)
+    autopay_last4 = models.CharField(max_length=4, blank=True, editable=False)
+    autopay_enrolled_at = models.DateTimeField(null=True, blank=True, editable=False)
+    autopay_last_attempt_at = models.DateTimeField(null=True, blank=True, editable=False)
+    autopay_last_status = models.CharField(max_length=20, blank=True, editable=False)
+    autopay_last_error = models.CharField(max_length=255, blank=True, editable=False)
 
     class Meta:
         ordering = ["name"]
+
+    @property
+    def autopay_label(self) -> str:
+        if not self.autopay_method_id:
+            return ""
+        kind = "Bank account" if self.autopay_method_type == "us_bank_account" else (self.autopay_brand or "Card").title()
+        return f"{kind} ending {self.autopay_last4}" if self.autopay_last4 else kind
 
     def __str__(self):
         return self.name

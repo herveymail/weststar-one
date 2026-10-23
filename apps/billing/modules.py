@@ -1,6 +1,6 @@
 from apps.core.registry import Module, register
 
-from .models import (BankTransaction, Contract, Expense, Invoice, InvoiceLine, Policy, Quote, QuoteLine, RecurringInvoice,
+from .models import (BankTransaction, Payment, Contract, Expense, Invoice, InvoiceLine, Policy, Quote, QuoteLine, RecurringInvoice,
                      RecurringLine, Renewal, TrainingAssignment, Vendor)
 
 register(Module("invoices", Invoice, "Invoices", "Invoice", "billing", "Bill clients and track what is owed.",
@@ -25,3 +25,6 @@ register(Module("expenses", Expense, "Expenses", "Expense", "billing", "Costs an
                 ["spent_on", "vendor", "category", "amount", "billable"], ["description", "category"], primary_action="Add expense", ordering=["-spent_on", "-id"]))
 register(Module("vendors", Vendor, "Vendors", "Vendor", "billing", "Suppliers, distributors and their account reps.",
                 ["name", "category", "contact_name", "phone"], ["name", "contact_name"], primary_action="Add vendor", ordering=["name"]))
+register(Module("payments", Payment, "Payments", "Payment", "billing", "Money received: checks, cards, bank payments and AutoPay. Recording one updates the invoice.",
+                ["paid_on", "client", "invoice", "amount", "method", "status", "source"], ["reference", "note", "invoice__number"], "status",
+                primary_action="Record payment", ordering=["-paid_on", "-id"]))

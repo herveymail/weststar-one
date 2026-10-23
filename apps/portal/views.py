@@ -310,18 +310,105 @@ def invoices(request):
         qs = qs.filter(status__in=UNPAID)
     elif f == "paid":
         qs = qs.filter(status="Paid")
-    return render(request, "portal/invoices.html", _ctx(request, rows=qs.annotate(balance=F("total") - F("amount_paid")), f=f))
+    pu.client.refresh_from_db()
+    return render(request, "portal/invoices.html", _ctx(request, rows=qs.annotate(open_balance=F("total") - F("amount_paid")), f=f, client=pu.client,
+                                                        autopay_available=Setting.get("autopay.enabled", "true") != "false"))
 
 
 @portal_login_required("billing", "billing")
 def invoice(request, pk):
+    from apps.billing import payments, stripe_api
     pu = request.portal_user
     inv = get_object_or_404(Invoice, pk=pk, client=pu.client, archived_at__isnull=True)
     if inv.status in ("Draft", "Void"):
         raise Http404
     if inv.status == "Sent":
         Invoice.objects.filter(pk=inv.pk).update(status="Viewed")
-    return render(request, "portal/invoice.html", _ctx(request, inv=inv, lines=inv.lines.all(), balance=(inv.total or 0) - (inv.amount_paid or 0)))
+    msg, error = "", ""
+    if request.GET.get("session"):
+        try:
+            msg = payments.finish_checkout(request.GET["session"][:200], expect_client=pu.client)
+        except stripe_api.StripeError as e:
+            error = f"We couldn't confirm the payment yet ({e}). If you were charged, it will show here shortly."
+        inv.refresh_from_db()
+    elif request.GET.get("cancelled"):
+        error = "Payment cancelled — nothing was charged."
+    if request.method == "POST":
+        if not stripe_api.configured():
+            error = "Online payment isn't available right now. Please call us."
+        elif not _rate_ok(f"ppay:{pu.pk}", 20, 3600):
+            error = "Too many tries — please wait a bit."
+        else:
+            base = f"{settings.PORTAL_BASE}/invoices/{inv.pk}/"
+            try:
+                return redirect(payments.checkout_pay(inv, base, base + "?cancelled=1", save_for_autopay=request.POST.get("autopay") == "1"))
+            except stripe_api.StripeError as e:
+                error = str(e)
+    pays = inv.payments.filter(archived_at__isnull=True).exclude(status="Failed").order_by("-paid_on", "-id")
+    client = pu.client
+    client.refresh_from_db()
+    return render(request, "portal/invoice.html", _ctx(request, inv=inv, lines=inv.lines.all(), balance=inv.balance, pays=pays, msg=msg, error=error,
+                                                      can_pay=stripe_api.configured(), client=client))
+
+
+@portal_login_required("billing", "billing")
+def autopay(request):
+    """Billing › AutoPay: put a card or bank account on file, change it, or turn AutoPay off."""
+    from apps.billing import payments, stripe_api
+    pu = request.portal_user
+    client = pu.client
+    msg, error = "", ""
+    if request.GET.get("session"):
+        try:
+            msg = payments.finish_checkout(request.GET["session"][:200], expect_client=client)
+        except stripe_api.StripeError as e:
+            error = str(e)
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "off" and client.autopay_method_id:
+            payments.turn_off(client, by=f"{pu.name} (portal)")
+            _notify_staff(f"AutoPay turned off by {pu.name}", f"{client.name} turned off AutoPay in the portal.", f"/clients/{client.pk}/?tab=Invoices")
+            msg = "AutoPay is off and your card was removed."
+        elif action == "setup":
+            if not stripe_api.configured():
+                error = "AutoPay setup isn't available right now. Please call us."
+            else:
+                base = f"{settings.PORTAL_BASE}/autopay/"
+                try:
+                    return redirect(payments.checkout_setup(client, base, base))
+                except stripe_api.StripeError as e:
+                    error = str(e)
+    client.refresh_from_db()
+    open_invoices = Invoice.objects.filter(client=client, status__in=UNPAID, archived_at__isnull=True).order_by("due_date")
+    return render(request, "portal/autopay.html", _ctx(request, client=client, msg=msg, error=error, open_invoices=open_invoices,
+                                                       timing=Setting.get("autopay.timing", "immediate"), can_pay=stripe_api.configured()))
+
+
+def autopay_link(request, token):
+    """Setup link emailed by staff — works without a portal account, once, for 7 days."""
+    from apps.billing import payments, stripe_api
+    link = payments.find_link(token)
+    if request.GET.get("session"):
+        t = payments.find_link(token)
+        if t:
+            try:
+                done = payments.finish_checkout(request.GET["session"][:200], expect_client=t.client)
+            except stripe_api.StripeError:
+                done = ""
+            if done:
+                type(t).objects.filter(pk=t.pk).update(used_at=timezone.now())
+                return render(request, "portal/autopay_link.html", _ctx(request, done=True, c=t.client))
+    if link is None:
+        return render(request, "portal/link_bad.html", _ctx(request), status=410)
+    if request.method == "POST":
+        if not _rate_ok(f"aplink:{client_ip(request)}", 20, 3600):
+            raise PermissionDenied
+        base = f"{settings.PORTAL_BASE}/autopay/link/{token}/"
+        try:
+            return redirect(payments.checkout_setup(link.client, base, base))
+        except stripe_api.StripeError as e:
+            return render(request, "portal/autopay_link.html", _ctx(request, c=link.client, error=str(e), link=link))
+    return render(request, "portal/autopay_link.html", _ctx(request, c=link.client, link=link))
 
 
 @portal_login_required("billing", "billing")

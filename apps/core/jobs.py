@@ -96,7 +96,13 @@ def fetch_email():
     return fetch()
 
 
+def autopay():
+    from apps.billing.payments import run_autopay
+    return run_autopay()
+
+
 JOBS = {
+    "autopay": {"label": "AutoPay: charge cards on file", "every_minutes": 15, "run": autopay},
     "fetch-email": {"label": "Email to ticket (support mailbox)", "every_minutes": 1, "run": fetch_email},
     "sla-watch": {"label": "SLA watch", "every_minutes": 5, "run": sla_watch},
     "wake-snoozed": {"label": "Bring back snoozed tickets", "every_minutes": 5, "run": wake_snoozed},

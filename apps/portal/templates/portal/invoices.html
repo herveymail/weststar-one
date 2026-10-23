@@ -1,6 +1,9 @@
 {% extends "portal/base.html" %}{% load ws %}
 {% block title %}Invoices{% endblock %}
 {% block content %}
+{% if autopay_available %}<section class="card pad row autopay-strip">
+  <span class="grow">{% if client.autopay_enabled %}<b>AutoPay is on</b> · {{ client.autopay_label }}{% else %}<b>AutoPay is off.</b> <span class="muted">Pay invoices automatically with a card or bank account.</span>{% endif %}</span>
+  <a class="btn{% if not client.autopay_enabled %} primary{% endif %}" href="/client-portal/autopay/">{% if client.autopay_enabled %}Manage AutoPay{% else %}Set up AutoPay{% endif %}</a></section>{% endif %}
 <section class="card" style="overflow:hidden">
   <div class="row pad"><h1 class="grow" style="font-size:22px">Invoices</h1>
     <span class="seg">{% for k, l in "all:All,unpaid:Unpaid,paid:Paid"|split_pairs %}<a href="?f={{ k }}" class="{% if f == k %}on{% endif %}">{{ l }}</a>{% endfor %}</span></div>

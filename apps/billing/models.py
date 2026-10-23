@@ -72,12 +72,81 @@ class Invoice(LinedDocument):
     amount_paid = money(verbose_name="Paid")
     scope = models.TextField("Description of work", blank=True)
     notes = models.TextField("Notes to client", blank=True)
+    autopay_attempts = models.PositiveIntegerField(default=0, editable=False)
+    autopay_next_at = models.DateTimeField(null=True, blank=True, editable=False)
+    autopay_error = models.CharField(max_length=255, blank=True, editable=False)
+    # Paid in the old app with no matching payment record (kept so the paid total never drops on import).
+    paid_outside = models.DecimalField(max_digits=12, decimal_places=2, default=0, editable=False)
 
     class Meta:
         ordering = ["-invoice_date", "-id"]
 
     def __str__(self):
         return self.number or f"Invoice {self.pk}"
+
+    @property
+    def balance(self):
+        return (self.total or Decimal(0)) - (self.amount_paid or Decimal(0))
+
+    def apply_payments(self):
+        """Paid amount and status from the payments recorded against this invoice."""
+        from django.db.models import Sum
+        paid = (self.payments.filter(archived_at__isnull=True, status="Succeeded").aggregate(s=Sum("amount"))["s"] or Decimal(0)) + (self.paid_outside or 0)
+        status = self.status
+        if self.status not in ("Draft", "Void"):
+            if paid >= (self.total or 0) and (self.total or 0) > 0:
+                status = "Paid"
+            elif paid > 0:
+                status = "Partial"
+            elif self.status in ("Paid", "Partial"):
+                status = "Sent"
+        Invoice.objects.filter(pk=self.pk).update(amount_paid=paid, status=status)
+        self.amount_paid, self.status = paid, status
+
+
+class Payment(Record):
+    METHODS = C("Card", "Bank account (ACH)", "Check", "Cash", "Bank transfer", "Trade account", "Other")
+    client = models.ForeignKey(Client, on_delete=models.PROTECT, related_name="payments", editable=False)
+    invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT, related_name="payments")
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    method = models.CharField(max_length=30, choices=METHODS, default="Check")
+    paid_on = models.DateField("Date")
+    reference = models.CharField("Check # / reference", max_length=255, blank=True)
+    status = models.CharField(max_length=12, choices=C("Succeeded", "Pending", "Failed", "Refunded"), default="Succeeded")
+    source = models.CharField(max_length=10, choices=C("staff", "online", "autopay"), default="staff", editable=False)
+    stripe_payment_intent = models.CharField(max_length=64, blank=True, editable=False, db_index=True)
+    receipt_url = models.URLField(max_length=500, blank=True, editable=False)
+    note = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ["-paid_on", "-id"]
+
+    def __str__(self):
+        return f"${self.amount} on {self.invoice}"
+
+    def save(self, *args, **kwargs):
+        if self.invoice_id:
+            self.client_id = self.invoice.client_id
+        super().save(*args, **kwargs)
+        self.invoice.apply_payments()
+
+
+class StripeEvent(models.Model):
+    """Stripe webhook events already handled (Stripe can send the same event more than once)."""
+    event_id = models.CharField(max_length=80, unique=True)
+    type = models.CharField(max_length=80)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class AutoPayLink(models.Model):
+    """A one-use link a client can open (no portal login needed) to put a card or bank account on file."""
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="+")
+    token_hash = models.CharField(max_length=64, unique=True)
+    created_by = models.ForeignKey("accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True, blank=True)
+    legacy_id = models.BigIntegerField(null=True, blank=True, unique=True)
 
 
 class InvoiceLine(Line):

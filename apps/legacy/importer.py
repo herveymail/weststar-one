@@ -292,6 +292,7 @@ class Importer:
                 self.crm()
                 self.portal()
                 self.billing()
+                self.payments()
                 self.tools()
                 self.hr()
                 self.tickets()
@@ -678,6 +679,88 @@ class Importer:
                     "status": "Approved" if yes(r.get("tc_approved")) else "Submitted" if r.get("tc_clock_out") else "Open", "notes": s(r.get("tc_notes"))}
         self.upsert("timeclock", TimeclockEntry, self.read("hr_timeclock", "tc_id"), "tc_id", clock)
 
+    def payments(self):
+        """Payments (checks, online and AutoPay), the Stripe account keys, and each client's card on file at Stripe."""
+        from apps.billing.models import AutoPayLink, Invoice, Payment
+        from apps.core.models import Setting
+
+        from .crypto import decrypt_setting_value
+        R = self.ref
+        # Stripe keys (payment_gateways) — only filled if not set here
+        for g in (self.read("payment_gateways", "gateway_id") if self.has("payment_gateways") else []):
+            if str(g.get("gateway_type")) != "stripe" or not yes(g.get("gateway_enabled")):
+                continue
+            for col, key, secret in (("gateway_public_key", "stripe.publishable_key", False), ("gateway_secret_key", "stripe.secret_key", True),
+                                     ("gateway_webhook_secret", "stripe.webhook_secret", True)):
+                raw = str(g.get(col) or "")
+                try:
+                    val = decrypt_setting_value(raw, self.app_key) if raw.startswith("enc1:") else raw
+                except LegacyDecryptError:
+                    val = ""
+                if raw.startswith("enc1:") and not self.app_key:
+                    val = ""
+                if val and not Setting.get(key, ""):
+                    Setting.put(key, val, secret=secret)
+                elif raw and not val:
+                    self.log(f"  (Stripe {col.split('_')[1]} key couldn't be unlocked — add the old config.php, or paste it in Settings › Payments)")
+        # Cards on file (stay at Stripe; only the ids and last 4 come across)
+        clients = self.read("clients", "client_id")
+        step = Step("autopay cards", source=sum(1 for r in clients if r.get("client_stripe_customer_id")))
+        for r in clients:
+            cid = R("clients", r.get("client_id"))
+            cus = str(r.get("client_stripe_customer_id") or "")
+            if not cid or not cus:
+                continue
+            c = Client.objects.get(pk=cid)
+            if c.stripe_customer_id and c.stripe_customer_id != cus:
+                step.kept += 1
+                continue
+            pm = str(r.get("client_autopay_payment_method") or "")
+            Client.objects.filter(pk=cid).update(
+                stripe_customer_id=cus, autopay_enabled=yes(r.get("client_autopay_enabled")) and bool(pm), autopay_method_id=pm,
+                autopay_method_type="us_bank_account" if pm.startswith("ba_") or str(r.get("client_autopay_card_brand") or "").lower() in ("ach", "bank", "us_bank_account") else ("card" if pm else ""),
+                autopay_brand=s(r.get("client_autopay_card_brand"), 30) or "", autopay_last4=s(r.get("client_autopay_card_last4"), 4) or "",
+                autopay_enrolled_at=ts(r.get("client_autopay_enrolled_at")), autopay_last_attempt_at=ts(r.get("client_autopay_last_attempt_at")),
+                autopay_last_status=s(r.get("client_autopay_last_status"), 20) or "", autopay_last_error=s(r.get("client_autopay_last_error"), 255) or "")
+            step.imported += 1
+        self._done(step)
+        # Payments — written directly so the imported paid totals stay exactly as they were
+        rows = self.read("payments", "payment_id") if self.has("payments") else []
+        step = Step("payments", source=len(rows))
+        touched = set()
+        for r in rows:
+            inv = R("invoices", r.get("payment_invoice_id"))
+            amt = num(r.get("payment_amount"))
+            if not inv or not amt:
+                step.skipped += 1
+                continue
+            lid = int(r["payment_id"])
+            m = str(r.get("payment_method") or "").lower()
+            source = {"autopay": "autopay", "online": "online"}.get(str(r.get("payment_source") or ""), "staff")
+            method = ("Check" if "check" in m else "Cash" if "cash" in m else "Trade account" if "trade" in m else
+                      "Bank account (ACH)" if re.search("ach|bank", m) else "Card" if re.search("card|stripe|online|autopay", m) or source != "staff" else "Other")
+            status = "Refunded" if yes(r.get("payment_reversed")) else "Succeeded"
+            data = {"client_id": Invoice.objects.filter(pk=inv).values_list("client_id", flat=True).first(), "invoice_id": inv, "amount": amt,
+                    "method": method, "paid_on": day(r.get("payment_date")) or day(r.get("payment_created_at")) or dt.date(2000, 1, 1),
+                    "reference": (s(r.get("payment_reference"), 255) or s(r.get("payment_txn_id"), 255) or ""), "status": status, "source": source,
+                    "stripe_payment_intent": (str(r.get("payment_txn_id") or "") if str(r.get("payment_txn_id") or "").startswith("pi_") else "")[:64],
+                    "receipt_url": (s(r.get("payment_receipt_url"), 500) or ""), "note": s(r.get("payment_note"), 255) or "",
+                    "archived_at": ts(r.get("payment_voided_at")), "created_by_id": R("users", r.get("payment_recorded_by")),
+                    "created_at": ts(r.get("payment_created_at")) or timezone.now(), "imported_at": timezone.now()}
+            if not Payment.objects.filter(legacy_id=lid).update(**data):
+                Payment.objects.bulk_create([Payment(legacy_id=lid, **data)])
+            touched.add(inv)
+            step.imported += 1
+        # whatever the old app counted as paid beyond its payment records stays counted
+        from django.db.models import Q, Sum
+        for inv in Invoice.objects.filter(Q(pk__in=touched) | Q(legacy_id__isnull=False, amount_paid__gt=0)):
+            got = inv.payments.filter(archived_at__isnull=True, status="Succeeded").aggregate(s=Sum("amount"))["s"] or Decimal(0)
+            Invoice.objects.filter(pk=inv.pk).update(paid_outside=max(Decimal(0), (inv.amount_paid or 0) - got))
+        self._done(step)
+        for r in (self.read("autopay_links", "link_id") if self.has("autopay_links") else []):
+            pass  # old setup links are one-use and short-lived; new ones are sent from the client page
+        _ = AutoPayLink
+
     def portal(self):
         """Portal groups and the people who sign in to the client portal (their old passwords keep working)."""
         from apps.portal.models import PortalGroup, PortalUser
@@ -925,7 +1008,9 @@ class Importer:
             target = MAP.get(key)
             row.mapped_to = target[0] if target else ""
             row.copied = False
-            if target and value is not None:
+            if target and target[1] is None:
+                row.copied = True  # handled below
+            elif target and value is not None:
                 put(target[0], target[1](value.strip() if not secret else value), secret, row)
             row.save()
             step.imported += 1
@@ -936,6 +1021,18 @@ class Importer:
         days = [DAY_NAMES[i] for i, k in enumerate(DAY_KEYS) if old.get(k) == "1"]
         if days and not Setting.get("helpdesk.days", ""):
             Setting.put("helpdesk.days", ",".join(days))
+        # Google Workspace sign-in like the old app: allowed domains = the staff email domains,
+        # and staff who had linked Google must keep using it (sso_require_for_linked).
+        staff = self.read("users", "user_id") if self.has("users") else []
+        if old.get("sso_google_enabled") == "1" and not Setting.get("google.domains", ""):
+            doms = sorted({str(u.get("user_email") or "").rsplit("@", 1)[-1].lower() for u in staff if "@" in str(u.get("user_email") or "")})
+            if doms:
+                Setting.put("google.domains", ", ".join(doms))
+        if old.get("sso_require_for_linked") == "1":
+            for u in staff:
+                if str(u.get("user_sso_provider") or "") == "google":
+                    User.objects.filter(legacy_id=int(u["user_id"]), google_only=False, google_linked_at__isnull=True).update(
+                        google_only=True, google_linked_at=ts(u.get("user_sso_linked_at")))
         if old.get("company_email") and not Setting.get("email.support_address", ""):
             Setting.put("email.support_address", old.get("imap_user") or old["company_email"])
         for k in ("company_address", "company_city", "company_state", "company_zip") + tuple(DAY_KEYS):

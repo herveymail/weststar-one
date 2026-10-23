@@ -100,10 +100,13 @@ MAP = {
     "portal_show_kb": ("portal.show_kb", b), "portal_asset_view": ("portal.show_assets", b),
     "sso_google_client_id": ("google.client_id", same), "sso_google_client_secret": ("google.client_secret", same),
     "security_session_timeout": ("security.idle_minutes", num),
+    "sso_google_enabled": ("google.domains", None), "sso_require_for_linked": ("users.google_only", None),
     "ai_provider": ("ai.provider", same), "ai_model": ("ai.model", same), "ai_api_key": ("ai.api_key", same),
     "msp360_login": ("msp360.login", same), "msp360_password": ("msp360.password", same),
     "datto_api_url": ("rmm.api_url", same), "datto_api_key": ("rmm.api_key", same), "datto_api_secret": ("rmm.api_secret", same),
     "yeastar_url": ("phone.yeastar_host", same), "yeastar_client_id": ("phone.yeastar_client_id", same), "yeastar_client_secret": ("phone.yeastar_secret", same),
+    "autopay_enabled": ("autopay.enabled", b), "autopay_timing": ("autopay.timing", lambda v: "due_date" if "due" in v else "immediate"),
+    "autopay_retry_days": ("autopay.retry_days", num), "autopay_max_attempts": ("autopay.max_attempts", num),
     "backup_s3_endpoint": ("backup.s3_endpoint", same), "backup_s3_bucket": ("backup.s3_bucket", same), "backup_s3_region": ("backup.s3_region", same),
     "backup_s3_prefix": ("backup.s3_prefix", same), "backup_s3_key": ("backup.s3_key", same), "backup_s3_secret": ("backup.s3_secret", same),
 }

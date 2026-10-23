@@ -1,0 +1,14 @@
+{% extends "portal/plain.html" %}
+{% block title %}AutoPay{% endblock %}
+{% block card %}
+{% if done %}
+  <h1 style="font-size:22px">You're all set</h1>
+  <p style="margin:0">AutoPay is on for <b>{{ c.name }}</b>. You'll get an email receipt each time an invoice is paid.</p>
+{% else %}
+  <h1 style="font-size:22px">Set up AutoPay</h1>
+  <p style="margin:0">Pay <b>{{ company }}</b> invoices for <b>{{ c.name }}</b> automatically with a card or bank account.</p>
+  {% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+  <form method="post">{% csrf_token %}<button class="btn primary big" style="width:100%">Continue to secure setup</button></form>
+  <p class="small muted" style="margin:0">You'll enter your details on Stripe's secure page; they're never stored by us. This link works once and expires {{ link.expires_at|date:"M j, Y" }}.</p>
+{% endif %}
+{% endblock %}

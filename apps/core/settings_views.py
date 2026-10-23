@@ -106,6 +106,12 @@ def settings_page(request, page):
             f["value"] = row.value if row else DEFAULTS.get(f["key"], "")
         values.append(f)
     ctx = {"group": group, "item": item, "fields": values, "can_manage": can(request.user, "admin", "manage")}
+    if item[0] == "payments":
+        from django.conf import settings as dj
+        ctx["webhook_url"] = f"{dj.APP_URL}/stripe/webhook/"
+    if item[0] == "signin":
+        from apps.accounts.google import redirect_uri
+        ctx["google_redirect"] = redirect_uri()
     if item[0] == "email_in":
         from apps.helpdesk.models import InboundEmail
         ctx["inbound"] = InboundEmail.objects.select_related("ticket")[:25]

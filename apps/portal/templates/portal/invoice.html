@@ -3,6 +3,19 @@
 {% block main_extra %} narrow{% endblock %}
 {% block content %}
 <a href="/client-portal/invoices/">← Invoices</a>
+{% if msg %}<div class="banner ok" role="status">{{ msg }}</div>{% endif %}
+{% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+{% if balance > 0 %}
+<section class="card pad pay-box">
+  <div class="grow"><div class="muted small">Balance due{% if inv.due_date %} · due {{ inv.due_date|date:"M j, Y" }}{% endif %}</div><div style="font-size:28px;font-weight:700">{{ balance|dollars }}</div>
+    {% if client.autopay_enabled %}<div class="small muted">AutoPay is on — we'll charge your {{ client.autopay_label }}{% if inv.autopay_error %}. Last try didn't go through: {{ inv.autopay_error }}{% endif %}.</div>{% endif %}</div>
+  {% if can_pay %}<form method="post" class="stack" style="gap:8px;align-items:flex-end">{% csrf_token %}
+    <button class="btn primary big">Pay {{ balance|dollars }} now</button>
+    {% if not client.autopay_enabled %}<label class="check small"><input type="checkbox" name="autopay" value="1"><span>Save this card or bank account for AutoPay</span></label>{% endif %}
+    <span class="small muted">Card or bank account · secure checkout by Stripe</span></form>
+  {% else %}<div class="small muted" style="max-width:280px">To pay{% if company_phone %}, call us at <b>{{ company_phone }}</b> or{% endif %} reply to your invoice email.</div>{% endif %}
+</section>
+{% endif %}
 <section class="card pad stack">
   <div class="row"><h1 class="grow" style="font-size:22px">Invoice {{ inv.number }}</h1>{% if inv.status == "Paid" %}<span class="pill done">Paid</span>{% elif inv.status == "Overdue" %}<span class="pill bad">Overdue</span>{% else %}<span class="pill wait">{{ inv.status }}</span>{% endif %}</div>
   <div class="kv"><span>Date</span><span>{{ inv.invoice_date|date:"M j, Y" }}</span><span>Due</span><span>{{ inv.due_date|date:"M j, Y" }}</span><span>Billed to</span><span>{{ inv.client.name }}</span></div>
@@ -15,6 +28,9 @@
     <span><b>Total</b></span><span style="text-align:right"><b>{{ inv.total|dollars }}</b></span><span>Paid</span><span style="text-align:right">{{ inv.amount_paid|dollars }}</span>
     <span><b>Balance</b></span><span style="text-align:right"><b>{{ balance|dollars }}</b></span></div>
   {% if inv.notes %}<p class="muted" style="margin:0;white-space:pre-wrap">{{ inv.notes }}</p>{% endif %}
-  {% if balance > 0 %}<div class="banner info" style="font-weight:400">Online card payment is coming soon. To pay now{% if company_phone %}, call us at <b>{{ company_phone }}</b> or{% endif %} reply to your invoice email.</div>{% endif %}
+  {% if pays %}<h3 style="margin:6px 0 0">Payments</h3>
+  <div class="table-wrap"><table class="t"><tbody>{% for p in pays %}<tr><td>{{ p.paid_on|date:"M j, Y" }}</td><td>{{ p.method }}{% if p.source == "autopay" %} · AutoPay{% endif %}</td>
+    <td>{% if p.status == "Succeeded" %}<span class="pill done">Paid</span>{% elif p.status == "Pending" %}<span class="pill wait">Processing</span>{% else %}<span class="pill">{{ p.status }}</span>{% endif %}</td>
+    <td style="text-align:right">{{ p.amount|dollars }}{% if p.receipt_url %} · <a href="{{ p.receipt_url }}" target="_blank" rel="noopener noreferrer">Receipt</a>{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
 </section>
 {% endblock %}

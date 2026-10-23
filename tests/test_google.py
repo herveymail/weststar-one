@@ -73,3 +73,19 @@ def test_passwords_can_be_limited_to_admins(client):
     admin = make_user("boss@weststarmsp.com", role="admin")
     assert client.post("/login/", {"email": tech.email, "password": PASSWORD}).status_code == 200  # refused
     assert client.post("/login/", {"email": admin.email, "password": PASSWORD}).status_code == 302
+
+
+def test_google_only_staff_cannot_use_password(client, monkeypatch):
+    u = make_user("agarrido@weststarmsp.com", role="sales", google_only=True)
+    assert client.post("/login/", {"email": u.email, "password": PASSWORD}).status_code == 200  # refused
+    r = _go(client, monkeypatch, email=u.email, hd="weststarmsp.com")
+    assert r.status_code == 302
+    u.refresh_from_db()
+    assert u.google_linked_at
+
+
+def test_signin_settings_show_redirect_uri(client):
+    from .helpers import signed_in
+    Setting.put("security.require_mfa", "nobody")
+    signed_in(client, make_user("boss@weststarmsp.com", role="admin"))
+    assert b"/login/google/callback/" in client.get("/settings/signin/").content

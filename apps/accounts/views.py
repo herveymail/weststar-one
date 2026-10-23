@@ -56,7 +56,11 @@ def login_view(request):
 def password_login_allowed(user) -> bool:
     """Settings › Sign-in: once Google sign-in is on, passwords can be limited to admins (break-glass)."""
     from . import google
-    if not google.enabled() or Setting.get("security.password_login", "everyone") == "everyone":
+    if not google.enabled():
+        return True
+    if user.google_only:
+        return False
+    if Setting.get("security.password_login", "everyone") == "everyone":
         return True
     return user.role == "admin"
 
@@ -86,7 +90,7 @@ def google_callback(request):
     passed = google.counts_as_2fa() or not user.mfa_enabled
     security.start_session(request, user, mfa_passed=passed)
     request.session["via_google"] = True
-    User.objects.filter(pk=user.pk).update(failed_logins=0, last_login=timezone.now())
+    User.objects.filter(pk=user.pk).update(failed_logins=0, last_login=timezone.now(), google_linked_at=user.google_linked_at or timezone.now())
     audit(request, "login", "user", user.pk, f"{user.email} signed in with Google", user=user)
     return redirect("/" if passed else "/login/mfa/")
 
@@ -261,7 +265,7 @@ def _temp_password() -> str:
 class UserForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ["name", "email", "role", "hr_access", "title", "phone"]
+        fields = ["name", "email", "role", "hr_access", "google_only", "title", "phone"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "input"}), "email": forms.EmailInput(attrs={"class": "input"}),
             "role": forms.Select(attrs={"class": "select"}), "title": forms.TextInput(attrs={"class": "input"}),

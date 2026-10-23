@@ -45,4 +45,11 @@ def client_detail(request, pk):
     if can(request.user, "billing"):
         owed = client.invoices.filter(archived_at__isnull=True, status__in=["Sent", "Viewed", "Partial", "Overdue"]).aggregate(s=Sum(F("total")), p=Sum("amount_paid"))
         ctx["balance"] = (owed["s"] or 0) - (owed["p"] or 0)
+    if tab == "Invoices" and can(request.user, "billing"):
+        from apps.billing import stripe_api
+        from apps.billing.models import Invoice
+        from apps.billing.payments import _billing_people
+        ctx.update(open_invoices=Invoice.objects.filter(client=client, archived_at__isnull=True, status__in=["Sent", "Viewed", "Partial", "Overdue"]).order_by("due_date"),
+                   stripe_ok=stripe_api.configured(), can_billing_edit=can(request.user, "billing", "edit"), billing_to=", ".join(_billing_people(client)),
+                   recent_payments=client.payments.filter(archived_at__isnull=True).select_related("invoice")[:5])
     return render(request, "crm/client_detail.html", ctx)

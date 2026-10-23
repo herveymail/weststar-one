@@ -66,3 +66,8 @@ table.t { width: 100%; border-collapse: collapse; } .t th { text-align: left; co
 .qr { width: 200px; height: 200px; }
 .codebox { font-family: ui-monospace, Menlo, monospace; background: #f1f5f9; border-radius: 6px; padding: 2px 6px; overflow-wrap: anywhere; }
 @media (max-width: 860px) { .grid2 { grid-template-columns: minmax(0, 1fr); } .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kv { grid-template-columns: minmax(0, 1fr); } }
+.pay-box { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; border-left: 4px solid var(--p); }
+.btn.big { padding: 12px 20px; font-size: 16px; }
+.autopay-strip { align-items: center; gap: 12px; flex-wrap: wrap; }
+.ap-icon { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: #eef2ff; color: var(--p); font-weight: 700; font-size: 18px; flex: none; }
+.ap-icon.on { background: #dcfce7; color: #15803d; }

@@ -51,7 +51,7 @@ NAV = [
     ("CRM & Marketing", "CRM", "clients", [("clients", "Clients", "/clients/", "clients")]),
     ("Sales & Marketing", "Sales", "leads", [("leads", "Leads", "/m/leads/", "sales"), ("marketing", "Marketing", "/m/campaigns/", "sales")]),
     ("Billing", "Billing", "invoices", [
-        ("invoices", "Invoices", "/m/invoices/", "billing"), ("recurring", "Recurring", "/m/recurring/", "billing"),
+        ("invoices", "Invoices", "/m/invoices/", "billing"), ("payments", "Payments", "/m/payments/", "billing"), ("recurring", "Recurring", "/m/recurring/", "billing"),
         ("banking", "Banking", "/m/banking/", "billing"), ("quotes", "Quotes", "/m/quotes/", "billing"),
         ("contracts", "Contracts", "/m/contracts/", "billing"), ("policies", "Policies", "/m/policies/", "billing"),
         ("training", "Security Training", "/m/training/", "billing"), ("renewals", "Renewals", "/m/renewals/", "billing"),

@@ -47,7 +47,9 @@ SETTINGS = [
         ("contract_defaults", "Contract defaults", "Standard terms and legal clauses", [("billing.contract_terms", "Default terms", TA), ("billing.contract_months", "Default length (months)", I), ("billing.contract_auto_renew", "Renew automatically", B),
             ("billing.contract_notice_days", "Cancellation notice (days)", I), ("billing.contract_early_term_pct", "Early termination fee %", I), ("billing.contract_state", "Governing state", T), ("billing.contract_county", "Court county", T),
             ("billing.contract_indemnification", "Indemnification", TA), ("billing.contract_insurance", "Insurance", TA), ("billing.contract_nonsolicitation", "Non-solicitation", TA), ("billing.contract_email_subject", "Contract email subject", T), ("billing.policy_review_months", "Review policies every (months)", I)]),
-        ("payments", "Payments", "Stripe card / ACH payments and AutoPay", [("stripe.publishable_key", "Stripe publishable key", T), ("stripe.secret_key", "Stripe secret key", S), ("stripe.webhook_secret", "Stripe webhook secret", S)]),
+        ("payments", "Payments & AutoPay", "Stripe card / ACH payments and AutoPay", [("stripe.publishable_key", "Stripe publishable key", T), ("stripe.secret_key", "Stripe secret key", S), ("stripe.webhook_secret", "Stripe webhook signing secret (whsec_…)", S),
+            ("autopay.enabled", "AutoPay is on", B), ("autopay.timing", "Charge AutoPay invoices", SEL, ["immediate", "due_date"], "immediate = as soon as the invoice is sent; due_date = on the due date"),
+            ("autopay.retry_days", "If a charge fails, try again after (days)", I), ("autopay.max_attempts", "Stop after this many tries", I)]),
     ]),
     ("people", "People & access", "Who can sign in and what they can do", [
         ("users", "Staff users", "Accounts, roles, H/R access, password and 2FA resets", "users"),
@@ -78,6 +80,7 @@ DEFAULTS = {
     "tickets.email_ack": "true", "tickets.email_on_close": "true", "tickets.auto_add_contacts": "true", "tickets.email_priority": "Medium",
     "chat.notify_new_ticket": "true", "chat.notify_client_replies": "true", "email.imap_host": "imap.gmail.com", "email.imap_port": "993",
     "email.imap_folder": "INBOX", "email.smtp_host": "smtp.gmail.com", "email.smtp_port": "587", "email.fetch_enabled": "false",
+    "autopay.enabled": "true", "autopay.timing": "immediate", "autopay.retry_days": "3", "autopay.max_attempts": "4",
     "tickets.email_new_subject": "[{number}] {subject}", "tickets.email_reply_subject": "Re: [{number}] {subject}", "tickets.email_closed_subject": "[{number}] Resolved: {subject}",
 }
 

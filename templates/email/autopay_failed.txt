@@ -1,0 +1,11 @@
+Hi,
+
+We tried to charge your {{ c.autopay_label|default:"payment method on file" }} for invoice {{ inv.number }} (${{ inv.balance }}), but it didn't go through:
+
+  {{ message }}
+
+{% if give_up %}We won't try again automatically. Please update your payment method or pay the invoice in the client portal.{% else %}We'll try again in {{ retry_days }} day{{ retry_days|pluralize }}. To fix it sooner, update your payment method in the client portal.{% endif %}
+
+Update your payment method: {{ link }}
+
+— {{ company }}

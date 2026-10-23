@@ -41,6 +41,7 @@
 {% elif tab == "Files" %}
 <div hx-get="/files/client/{{ c.pk }}/" hx-trigger="load" hx-swap="outerHTML"><div class="empty">Loading…</div></div>
 {% elif slug %}
+{% if tab == "Invoices" and open_invoices is not None %}{% include "billing/_autopay_box.html" %}{% endif %}
 <div hx-get="?tab={{ tab|urlencode }}" hx-trigger="load" hx-swap="innerHTML" class="stack"><div class="empty">Loading…</div></div>
 {% if tab == "Invoices" and balance is not None %}<p class="muted">Open balance: <b style="color:var(--text)">{{ balance|dollars }}</b>.</p>{% endif %}
 {% else %}
