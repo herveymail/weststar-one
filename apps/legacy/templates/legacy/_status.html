@@ -1,0 +1,28 @@
+{% load ws %}
+<section class="card pad stack" id="import-status"
+  {% if current.status == "queued" or current.status == "running" %}hx-get="/settings/import/run/{{ current.pk }}/" hx-trigger="every 3s" hx-swap="outerHTML"{% endif %}>
+  <div class="row"><h2 style="flex:1">{% if current.dry_run %}Practice run{% else %}Import{% endif %} · {{ current.dump_name|default:"command line" }}</h2>{% include "legacy/_pill.html" with r=current %}</div>
+  {% if current.status == "queued" %}<p class="muted" style="margin:0">Starting in a few seconds…</p>{% endif %}
+  {% if current.status == "done" and current.dry_run %}
+    <div class="banner info">Practice run finished: <b>nothing was saved</b>. Check the counts below{% if current.warnings %} and the items marked "Check"{% endif %}, then import for real.</div>
+    {% if can_manage and current.work_dir %}
+    <div class="row">
+      <form method="post" action="/settings/import/run/{{ current.pk }}/import/">{% csrf_token %}<button class="btn primary">Import now (uses the same files)</button></form>
+      <form method="post" action="/settings/import/run/{{ current.pk }}/discard/">{% csrf_token %}<button class="btn">Delete the uploaded files</button></form>
+    </div>
+    {% endif %}
+  {% elif current.status == "done" %}
+    <div class="banner info">Import finished. Your old data is in. <a href="/tickets/?filter=all">Open tickets</a> · <a href="/clients/">Clients</a></div>
+  {% elif current.status == "failed" %}
+    <div class="banner" role="alert">{{ current.error|default:"The import stopped." }} Nothing from this run was saved; fix the problem and try again.</div>
+  {% endif %}
+  {% if current.summary %}
+  <div class="table-wrap"><table class="grid">
+    <thead><tr><th>What</th><th>In old app</th><th>{% if current.dry_run %}Would import{% else %}Imported{% endif %}</th><th>Kept</th><th>Skipped</th></tr></thead>
+    <tbody>{% for s in current.summary %}<tr><td>{{ s.name|capfirst }}</td><td class="num">{{ s.source }}</td><td class="num">{{ s.imported }}</td><td class="num">{{ s.kept|default:"—" }}</td><td class="num">{{ s.skipped|default:"—" }}</td></tr>
+      {% for w in s.warnings %}<tr><td colspan="5" class="small"><span class="pill warn">Check</span> {{ w }}</td></tr>{% endfor %}{% endfor %}</tbody>
+  </table></div>
+  <p class="small muted" style="margin:0">"Kept" = changed here after an earlier import, so it was left alone. "Skipped" = belongs to something that doesn't exist (e.g. a contact with no client).</p>
+  {% endif %}
+  {% if current.log %}<details{% if current.status == "running" or current.status == "failed" %} open{% endif %}><summary class="small" style="cursor:pointer">Details</summary><pre class="block import-log">{{ current.log }}</pre></details>{% endif %}
+</section>

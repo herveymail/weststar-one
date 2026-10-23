@@ -1,0 +1,63 @@
+{% extends "base.html" %}{% load ws %}
+{% block title %}Import · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="titles"><a href="/settings/" class="link-btn">{% icon "back" 16 %}Settings</a><h1>Import from old Weststar One</h1>
+  <p class="desc">Bring over tickets, clients, billing, H/R and everything else. Safe to repeat: it updates instead of duplicating, and never overwrites what you've changed here.</p></div></div>
+<div class="stack" style="max-width:900px">
+  {% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+  {% if current %}{% include "legacy/_status.html" %}{% endif %}
+
+  {% if can_manage %}
+  <section class="card pad stack">
+    <h2>{% if current %}Start a new import{% else %}1. Upload your old data{% endif %}</h2>
+    <form method="post" enctype="multipart/form-data" class="stack" data-upload-progress>{% csrf_token %}
+      <div class="field">
+        <label for="dump">Old database backup *</label>
+        <input id="dump" name="dump" type="file" class="input" accept=".sql,.gz,.zip" required>
+        <span class="help">The <span class="code">.sql.gz</span> backup from the old Weststar One (Settings › Backups there), or any .sql / .zip export of its database.</span>
+      </div>
+      <div class="field">
+        <label for="uploads">Old uploads folder (zipped)</label>
+        <input id="uploads" name="uploads" type="file" class="input" accept=".zip,.tar,.tgz,.gz">
+        <span class="help">Optional. Zip the <span class="code">uploads</span> folder from the old server to bring ticket attachments and client/project files. You can add it later by importing again.</span>
+      </div>
+      <div class="field">
+        <label for="config">Old config.php</label>
+        <input id="config" name="config" type="file" class="input" accept=".php,text/plain">
+        <span class="help">Optional but recommended: it holds the two keys that keep everyone's 2FA, Wi-Fi passwords and H/R fields. Only those two keys are read from it; the file isn't kept.</span>
+      </div>
+      <details>
+        <summary class="small" style="cursor:pointer">Or paste the two keys instead</summary>
+        <div class="form-grid" style="margin-top:10px">
+          <div class="field"><label for="k1">APP_KEY</label><input id="k1" name="old_app_key" class="input" type="password" autocomplete="off"></div>
+          <div class="field"><label for="k2">ENCRYPTION_KEY</label><input id="k2" name="old_encryption_key" class="input" type="password" autocomplete="off"></div>
+        </div>
+      </details>
+      <div class="row">
+        <button class="btn primary" name="mode" value="practice">Practice run (saves nothing)</button>
+        <button class="btn" name="mode" value="import">Import now</button>
+        <span class="small muted" data-progress hidden></span>
+      </div>
+      <div class="progress" data-progress-bar hidden><span></span></div>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if runs %}
+  <section class="card" style="overflow:hidden">
+    <div style="padding:16px 18px 8px"><h2>History</h2></div>
+    <div class="table-wrap"><table class="grid">
+      <thead><tr><th>Started</th><th>Type</th><th>Backup file</th><th>By</th><th>Records</th><th>Result</th></tr></thead>
+      <tbody>{% for r in runs %}<tr>
+        <td class="small"><a class="row-link" href="?run={{ r.pk }}">{{ r.started_at|date:"M j, g:i A" }}</a></td>
+        <td>{% if r.dry_run %}Practice run{% else %}Import{% endif %}</td>
+        <td class="small">{{ r.dump_name|default:"(command line)" }}</td>
+        <td class="small">{{ r.requested_by.name|default:"—" }}</td>
+        <td class="num">{{ r.total }}</td>
+        <td>{% include "legacy/_pill.html" with r=r %}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

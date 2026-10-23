@@ -5,6 +5,7 @@ from apps.crm import views as crm
 from apps.helpdesk import views as hd
 from apps.files import views as fv
 from apps.hr import views as hr
+from apps.legacy import views as lv
 
 from . import settings_views as sv
 from . import views
@@ -39,6 +40,9 @@ urlpatterns = [
     path("settings/", sv.settings_home, name="settings"),
     path("settings/users/new/", acc.user_edit_view, name="user_new"),
     path("settings/users/<int:pk>/", acc.user_edit_view, name="user_edit"),
+    path("settings/import/run/<int:pk>/", lv.import_status, name="import_status"),
+    path("settings/import/run/<int:pk>/import/", lv.import_again, name="import_again"),
+    path("settings/import/run/<int:pk>/discard/", lv.import_discard, name="import_discard"),
     path("settings/<slug:page>/", sv.settings_page, name="settings_page"),
     path("m/<slug:slug>/", views.module_list, name="module"),
     path("m/<slug:slug>/new/", views.module_edit, name="module_new"),

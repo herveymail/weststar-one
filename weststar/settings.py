@@ -194,6 +194,11 @@ MEDIA_ROOT = Path(env("MEDIA_ROOT", str(BASE_DIR / "media")))
 MEDIA_URL = "/files-not-served-directly/"
 MAX_UPLOAD_MB = int(env("MAX_UPLOAD_MB", "25"))
 FILE_UPLOAD_MAX_MEMORY_SIZE = 3 * 1024 * 1024
+# Large uploads (e.g. the old backup in Settings › Import) are spooled to disk next to the files,
+# not to /tmp (which is in memory inside the container).
+FILE_UPLOAD_TEMP_DIR = str(MEDIA_ROOT / ".upload-tmp")
+if DEBUG:
+    MEDIA_ROOT.joinpath(".upload-tmp").mkdir(parents=True, exist_ok=True)  # in the container, entrypoint.sh makes it
 FILE_UPLOAD_PERMISSIONS = 0o640
 FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o750
 

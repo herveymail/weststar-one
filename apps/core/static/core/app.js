@@ -86,6 +86,32 @@
     r.classList.add('on'); r.setAttribute('aria-pressed', 'true');
   });
 
+  // Big uploads (Settings › Import): send with a progress bar, then follow the redirect.
+  document.addEventListener('submit', (e) => {
+    const form = e.target.closest('form[data-upload-progress]');
+    if (!form || !window.FormData) return;
+    e.preventDefault();
+    const data = new FormData(form);
+    if (e.submitter && e.submitter.name) data.append(e.submitter.name, e.submitter.value);
+    const bar = $('[data-progress-bar]', form), label = $('[data-progress]', form);
+    bar.hidden = false; label.hidden = false;
+    $$('button', form).forEach((b) => (b.disabled = true));
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', form.action || window.location.href);
+    xhr.upload.addEventListener('progress', (ev) => {
+      if (!ev.lengthComputable) return;
+      const pct = Math.round((ev.loaded / ev.total) * 100);
+      $('span', bar).style.width = pct + '%';
+      label.textContent = pct < 100 ? `Uploading… ${pct}%` : 'Upload finished, starting…';
+    });
+    xhr.addEventListener('load', () => {
+      if (xhr.status === 200 && xhr.responseURL) { window.location.href = xhr.responseURL; return; }
+      document.open(); document.write(xhr.responseText); document.close();
+    });
+    xhr.addEventListener('error', () => { label.textContent = 'Upload failed: check your connection and try again.'; $$('button', form).forEach((b) => (b.disabled = false)); });
+    xhr.send(data);
+  });
+
   // After an htmx swap into the drawer, focus the first field.
   document.body.addEventListener('htmx:afterSwap', (e) => {
     if (e.detail.target.id === 'modal') e.detail.target.querySelector('input:not([type=hidden]),select,textarea')?.focus();

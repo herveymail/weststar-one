@@ -1,0 +1,1 @@
+{% if r.status == "queued" %}<span class="pill info">Waiting to start</span>{% elif r.status == "running" %}<span class="pill warn">Running…</span>{% elif r.status == "failed" or r.error %}<span class="pill bad">Failed</span>{% elif r.warnings %}<span class="pill warn">{{ r.warnings }} to check</span>{% else %}<span class="pill good">OK</span>{% endif %}

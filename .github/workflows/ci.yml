@@ -46,3 +46,5 @@ jobs:
         env: { SECRET_KEY: ci-only-0000000000000000000000000000000000000, APP_ENCRYPTION_KEY: "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=" }
       - run: pip install pip-audit && pip-audit -r requirements.txt -r requirements-dev.txt
       - run: sudo apt-get install -y shellcheck && shellcheck -S warning install.sh update.sh deploy/*.sh
+      - name: Caddy config is valid
+        run: docker run --rm -e DOMAIN=one.example.com -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2.8-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile

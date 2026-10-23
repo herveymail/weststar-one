@@ -81,12 +81,18 @@ def cleanup():
     return {"sessions": s + us, "attempts": a}
 
 
+def import_files_cleanup():
+    from apps.legacy.uploaded import cleanup_old_files
+    return {"deleted": cleanup_old_files()}
+
+
 JOBS = {
     "sla-watch": {"label": "SLA watch", "every_minutes": 5, "run": sla_watch},
     "recurring-invoices": {"label": "Recurring invoices", "every_minutes": 60, "run": recurring_invoices},
     "overdue-invoices": {"label": "Mark overdue invoices", "every_minutes": 60, "run": overdue_invoices},
     "auto-close": {"label": "Auto-close resolved tickets", "every_minutes": 60, "run": auto_close},
     "cleanup": {"label": "Clean up old sessions and sign-in records", "every_minutes": 1440, "run": cleanup},
+    "import-files": {"label": "Delete leftover import uploads (after 24 hours)", "every_minutes": 60, "run": import_files_cleanup},
 }
 
 

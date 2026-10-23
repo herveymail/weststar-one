@@ -149,8 +149,10 @@ class Importer:
         self.steps: list[Step] = []
         self._tables = None
 
-    # ── reading the old database ──
+    # ── reading the old database (a live connection, or a DumpSource from an uploaded backup) ──
     def has(self, table):
+        if hasattr(self.conn, "has"):
+            return self.conn.has(table)
         if self._tables is None:
             with self.conn.cursor() as c:
                 c.execute("SHOW TABLES")
@@ -160,6 +162,8 @@ class Importer:
     def read(self, table, order):
         if not self.has(table):
             return []
+        if hasattr(self.conn, "read"):
+            return self.conn.read(table, order)
         import MySQLdb.cursors
         with self.conn.cursor(MySQLdb.cursors.DictCursor) as c:
             if not (re.fullmatch(r"[a-z_]+", table) and re.fullmatch(r"[a-z_]+", order)):
@@ -179,7 +183,10 @@ class Importer:
         try:
             v = fn()
         except (LegacyDecryptError, ValueError):
-            warnings.append(f"Could not decrypt {what} — check the old keys")
+            if not (self.app_key or self.enc_key):
+                warnings.append(f"Couldn't unlock {what}: add the old config.php (or its two keys) and import again")
+            else:
+                warnings.append(f"Couldn't unlock {what} with the keys given: make sure they're from the same old server")
             return None
         return encrypt(v) if v else None
 
@@ -275,9 +282,9 @@ class Importer:
         return set(model.objects.filter(pk__in=ids, imported_at__isnull=False, updated_at__gt=F("imported_at")).values_list("pk", flat=True))
 
     # ── the import ──
-    def run(self, dry_run=False):
+    def run(self, dry_run=False, run=None):
         self.dry_run = dry_run
-        run = ImportRun.objects.create(dry_run=dry_run)
+        run = run or ImportRun.objects.create(dry_run=dry_run)
         try:
             with transaction.atomic():
                 self.log("Importing from the old Weststar One…")
@@ -289,7 +296,8 @@ class Importer:
                 self.tickets()
                 self.files()
                 self.bump_counters()
-                audit(None, "import", "import", run.pk, f"{'Dry run' if dry_run else 'Import'} from old Weststar One: {sum(x.imported for x in self.steps)} records", area="admin")
+                audit(None, "import", "import", run.pk, f"{'Dry run' if dry_run else 'Import'} from old Weststar One: {sum(x.imported for x in self.steps)} records", area="admin",
+                      user=run.requested_by)
                 if dry_run:
                     raise DryRunDone
         except DryRunDone:
@@ -332,7 +340,7 @@ class Importer:
                     changed.append("password")
                 # 2FA seed that couldn't be read last time (old keys added later): fill it in now.
                 if untouched and not existing.mfa_enabled and not existing.totp_secret_enc and r.get("user_totp_secret") and yes(r.get("user_2fa_enabled")):
-                    seed = self.secret(lambda: decrypt_setting(str(r["user_totp_secret"]), self.app_key), step.warnings, f"2FA seed for {em}")
+                    seed = self.secret(lambda: decrypt_setting(str(r["user_totp_secret"]), self.app_key), [], f"2FA seed for {em}")
                     if seed:
                         existing.totp_secret_enc, existing.mfa_enabled = seed, True
                         changed += ["totp_secret_enc", "mfa_enabled"]
@@ -344,7 +352,7 @@ class Importer:
                 continue
             totp = None
             if r.get("user_totp_secret"):
-                totp = self.secret(lambda: decrypt_setting(str(r["user_totp_secret"]), self.app_key), step.warnings, f"2FA seed for {em}")
+                totp = self.secret(lambda: decrypt_setting(str(r["user_totp_secret"]), self.app_key), [], f"2FA seed for {em}")
             elif r.get("user_2fa_secret"):
                 totp = encrypt(str(r["user_2fa_secret"]))
             old_role = str(r.get("user_role") or "")
@@ -365,7 +373,9 @@ class Importer:
                 u.set_unusable_password()
                 step.warnings.append(f"{em}: password could not be carried over — reset it in Staff users")
             if yes(r.get("user_2fa_enabled")) and not totp:
-                step.warnings.append(f"{em}: two-factor was on in the old app but the seed could not be read — they will be asked to set it up again")
+                step.warnings.append(f"{em}: their 2FA couldn't be carried over"
+                                     + (" (add the old config.php and import again to keep it)" if not self.app_key else " (the APP_KEY given doesn't match)")
+                                     + "; otherwise they'll set it up again at next sign-in")
             u.last_login = ts(r.get("user_last_login"))
             u.save()
             User.objects.filter(pk=u.pk).update(imported_at=timezone.now())
@@ -778,7 +788,7 @@ class Importer:
                     u.file.save(name, File(fh), save=True)
                 step.imported += 1
             if waiting:
-                step.warnings.append(f"{waiting} {kind} file(s) waiting: run the import again with --uploads /path/to/old/uploads")
+                step.warnings.append(f"{waiting} {kind} file(s) not brought over yet: import again with the zipped uploads folder")
             self._done(step)
 
     def bump_counters(self):

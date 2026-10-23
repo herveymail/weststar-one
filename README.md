@@ -105,17 +105,24 @@ docker compose exec app python manage.py create_admin --email you@weststarmsp.co
 
 ## Bring over the old Weststar One
 
-The importer reads a copy of the old database and never writes to the old server. It's safe to run as many
-times as you like: it updates records instead of duplicating them, and it never overwrites anything you've
-changed in the new app.
+**In the app (easiest):** go to **Settings › Import from old Weststar One**, then:
 
-The easiest way is the wizard (`sudo bash install.sh`, option 2 when it's already installed). To do it by
-hand:
+1. Choose the old database backup (the `.sql.gz` from the old app, or any `.sql` / `.zip` export).
+2. Optionally add the zipped old `uploads` folder (ticket attachments, client and project files) and the
+   old `config.php`. Only its two keys are read; they keep everyone's 2FA, Wi-Fi passwords and H/R fields.
+3. Click **Practice run**. Nothing is saved, and you see every count and anything to check.
+4. Click **Import now (uses the same files)**.
+
+The work runs in the background with live progress, and the uploaded files and keys are deleted
+afterwards (or after 24 hours if you only did a practice run). Only admins can upload. It's safe to
+repeat: records are updated instead of duplicated, and anything you've changed in the new app is left
+alone. Importing again with just the uploads folder adds the files later.
+
+**From the command line** (the wizard's step 6 does this for you):
 
 1. Put the old app's `APP_KEY` and `ENCRYPTION_KEY` (from its `config/config.php`) into `.env` as
-   `OLD_APP_KEY` and `OLD_ENCRYPTION_KEY`. These unlock 2FA setups, Wi-Fi passwords and H/R fields.
-2. Copy a database dump and the old `uploads/` folder to the server, then run the commands below. The old
-   dump is loaded into a temporary MariaDB container just for the import, and removed afterwards.
+   `OLD_APP_KEY` and `OLD_ENCRYPTION_KEY`.
+2. Run:
 
 ```sh
 ./deploy/import-old.sh /path/to/db_dump.sql.gz /path/to/old/uploads --dry-run   # practice run, saves nothing

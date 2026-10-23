@@ -1,11 +1,22 @@
 # Automatic HTTPS (Let's Encrypt) for your domain; everything is passed to the app.
 {$DOMAIN} {
 	encode zstd gzip
-	request_body {
+	# Settings › Import accepts the old backup and uploads folder (can be several GB);
+	# everything else is limited to 100 MB.
+	@import path /settings/import/*
+	request_body @import {
+		max_size 60GB
+	}
+	@other not path /settings/import/*
+	request_body @other {
 		max_size 100MB
 	}
 	header -Server
 	reverse_proxy app:8000 {
 		header_up X-Forwarded-Proto {scheme}
+		transport http {
+			read_timeout 2h
+			write_timeout 2h
+		}
 	}
 }

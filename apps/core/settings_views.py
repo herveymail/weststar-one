@@ -54,8 +54,8 @@ def settings_page(request, page):
     if target == "jobs":
         return render(request, "core/jobs.html", {"jobs": _jobs()})
     if target == "import":
-        from apps.legacy.models import ImportRun
-        return render(request, "core/import_help.html", {"runs": ImportRun.objects.order_by("-started_at")[:20]})
+        from apps.legacy.views import import_page
+        return import_page(request)
     fields = field_specs(item)
     if request.method == "POST":
         if not can(request.user, "admin", "manage"):
