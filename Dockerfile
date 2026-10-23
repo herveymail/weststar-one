@@ -18,7 +18,7 @@ COPY --chown=root:root . /app
 # Static files are built into the image (served by whitenoise). Dummy keys only for this build step.
 RUN SECRET_KEY=build-only-not-used-at-runtime-000000000000000 APP_ENCRYPTION_KEY=$(python -c "import base64;print(base64.b64encode(b'0'*32).decode())") \
     DB_PASSWORD=x python manage.py collectstatic --noinput -v0 \
-    && chmod +x deploy/entrypoint.sh
+    && chmod -R a+rX,go-w /app && chmod +x deploy/entrypoint.sh
 USER weststar
 EXPOSE 8000
 ENTRYPOINT ["/usr/bin/tini", "--", "/app/deploy/entrypoint.sh"]

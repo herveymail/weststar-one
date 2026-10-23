@@ -201,7 +201,10 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage" if not (DEBUG or TESTING) else "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    # Static files are public (CSS/JS/icons): readable by everyone in the container, unlike uploads,
+    # which use the stricter FILE_UPLOAD_* permissions below.
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage" if not (DEBUG or TESTING) else "django.contrib.staticfiles.storage.StaticFilesStorage",
+                    "OPTIONS": {"file_permissions_mode": 0o644, "directory_permissions_mode": 0o755}},
 }
 
 LOGGING = {
