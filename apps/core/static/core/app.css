@@ -176,3 +176,11 @@ a.kpi:hover { border-color: var(--accent); }
 .today-row { display: flex; gap: 12px; align-items: baseline; padding: 10px 16px; border-top: 1px solid var(--line); font-size: 13px; }
 .today-row b { flex: 0 0 auto; min-width: 48px; }
 .today-row span { flex: 1 1 auto; min-width: 0; }
+
+/* AI on tickets */
+.ai-box { display: flex; flex-direction: column; gap: 10px; }
+.ai-sug, .ai-sum { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 10px; background: var(--sel); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); }
+.ai-sug-h { display: flex; align-items: center; gap: 6px; color: var(--link); }
+.ai-sug-h .small { margin-left: auto; }
+.ai-chips, .ai-act { display: flex; gap: 6px; flex-wrap: wrap; }
+.ai-sum-t { white-space: pre-wrap; font-size: 13px; line-height: 1.5; color: var(--text); }

@@ -38,6 +38,7 @@ urlpatterns = [
     path("tickets/<int:pk>/snooze/", hd.ticket_snooze, name="ticket_snooze"),
     path("tickets/<int:pk>/merge/", hd.ticket_merge, name="ticket_merge"),
     path("tickets/<int:pk>/resolve/", hd.ticket_resolve, name="ticket_resolve"),
+    path("tickets/<int:pk>/ai/", hd.ticket_ai, name="ticket_ai"),
     path("clients/", crm.clients, name="clients"),
     path("clients/<int:pk>/", crm.client_detail, name="client"),
     path("my-hr/", hr.my_hr, name="my_hr"),

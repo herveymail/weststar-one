@@ -69,7 +69,9 @@ SETTINGS = [
     ("integrations", "Integrations & automation", "Other apps, AI and scheduled jobs", [
         ("rmm", "Datto RMM", "Device and alert sync", [("rmm.api_url", "API URL", T), ("rmm.api_key", "API key", S), ("rmm.api_secret", "API secret", S)]),
         ("msp360", "MSP360 backups", "Backup job sync", [("msp360.login", "API login", T), ("msp360.password", "API password", S)]),
-        ("ai", "AI assistant", "Ticket summaries and reply drafts", [("ai.provider", "Provider", SEL, ["none", "anthropic", "openai", "gemini", "ollama"]), ("ai.model", "Model", T), ("ai.api_key", "API key", S)]),
+        ("ai", "AI assistant", "Ticket triage, summaries, reply drafts and automatic first responses", [H("Connection"), ("ai.provider", "Provider", SEL, ["none", "gemini", "anthropic", "openai", "ollama"]), ("ai.model", "Model (e.g. gemini-2.5-flash)", T), ("ai.api_key", "API key", S), ("ai.base_url", "Server address (Ollama or OpenAI-compatible only)", T),
+            H("On tickets"), ("ai.triage", "Suggest category, priority and queue on new tickets", B), ("ai.summary", "Summarize button", B), ("ai.suggest", "Draft reply button", B),
+            H("Automatic first response", "Emails new email and portal tickets a helpful first reply with things to try"), ("ai.first_response", "Send an automatic first response", B), ("ai.first_response_when", "When", SEL, ["always", "after_hours"]), ("ai.first_response_skip", "Never for tickets mentioning (comma-separated)", T, "security, outage, critical")]),
         ("jobs", "Scheduled jobs", "Background jobs and when they last ran", "jobs"),
         ("offsite", "Offsite backups (Wasabi / S3)", "Where nightly backups are copied", [("backup.s3_endpoint", "Endpoint", T), ("backup.s3_region", "Region", T), ("backup.s3_bucket", "Bucket", T), ("backup.s3_prefix", "Folder", T), ("backup.s3_key", "Access key", S), ("backup.s3_secret", "Secret key", S)]),
     ]),

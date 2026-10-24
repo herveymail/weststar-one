@@ -101,7 +101,13 @@ def autopay():
     return run_autopay()
 
 
+def ai_new_tickets():
+    from apps.helpdesk.ai import run_new_tickets
+    return run_new_tickets()
+
+
 JOBS = {
+    "ai-tickets": {"label": "AI: triage and first response for new tickets", "every_minutes": 1, "run": ai_new_tickets},
     "autopay": {"label": "AutoPay: charge cards on file", "every_minutes": 15, "run": autopay},
     "fetch-email": {"label": "Email to ticket (support mailbox)", "every_minutes": 1, "run": fetch_email},
     "sla-watch": {"label": "SLA watch", "every_minutes": 5, "run": sla_watch},

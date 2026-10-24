@@ -844,6 +844,14 @@ class Importer:
                     "resolve_due_at": ts(r.get("ticket_sla_resolve_due") or r.get("ticket_sla_resolution_due")),
                     "created_at": ts(r.get("ticket_created_at")), "updated_at": ts(r.get("ticket_updated_at")) or ts(r.get("ticket_created_at"))}
         self.upsert("tickets", Ticket, rows, "ticket_id", ticket)
+        # The old AI assistant's log
+        from apps.helpdesk.models import AiLog
+        for r in (self.read("ticket_ai_log", "tal_id") if self.has("ticket_ai_log") else []):
+            AiLog.objects.update_or_create(legacy_id=int(r["tal_id"]), defaults={
+                "feature": s(r.get("tal_feature"), 20) or "", "outcome": s(r.get("tal_outcome"), 30) or "",
+                "ticket_id": R("tickets", r.get("tal_ticket_id")), "created_at": ts(r.get("tal_created_at")) or timezone.now()})
+        # Old tickets already handled by the AI are never triaged or first-responded again
+        Ticket.objects.filter(legacy_id__isnull=False, ai_triage_status="").update(ai_triage_status="none", ai_first_response="skipped")
         # Emails the old app already turned into tickets — so this app never makes them twice
         from apps.helpdesk.models import InboundEmail
         for r in rows:

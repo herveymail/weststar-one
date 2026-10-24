@@ -1,0 +1,20 @@
+{% load ws %}
+<div class="ai-box" id="ai-box-{{ t.pk }}">
+  {% if t.ai_triage_status == "suggested" and t.ai_triage %}
+  <div class="ai-sug">
+    <div class="ai-sug-h">{% icon "sparkle" 14 %}<b>AI triage suggestion</b></div>
+    <div class="ai-chips">{% for k, v in t.ai_triage.changes.items %}<span class="pill accent">{{ k|capfirst }}: {{ v }}</span>{% endfor %}</div>
+    {% if t.ai_triage.reason %}<p class="small muted" style="margin:0">{{ t.ai_triage.reason }}</p>{% endif %}
+    <div class="ai-act">
+      <button class="btn small primary" hx-post="/tickets/{{ t.pk }}/ai/" hx-vals='{"action":"apply"}' hx-target="#ai-box-{{ t.pk }}" hx-swap="outerHTML">Apply</button>
+      <button class="btn small" hx-post="/tickets/{{ t.pk }}/ai/" hx-vals='{"action":"dismiss"}' hx-target="#ai-box-{{ t.pk }}" hx-swap="outerHTML">Dismiss</button>
+    </div>
+  </div>
+  {% endif %}
+  {% if t.ai_summary %}<div class="ai-sum"><div class="ai-sug-h">{% icon "sparkle" 14 %}<b>Summary</b><span class="small muted">{{ t.ai_summary_at|ago }}</span></div><div class="ai-sum-t">{{ t.ai_summary }}</div></div>{% endif %}
+  <div class="ai-act">
+    <button class="btn small" hx-post="/tickets/{{ t.pk }}/ai/" hx-vals='{"action":"summary"}' hx-target="#ai-box-{{ t.pk }}" hx-swap="outerHTML" hx-disabled-elt="this">{% icon "sparkle" 14 %}{% if t.ai_summary %}Update summary{% else %}Summarize{% endif %}</button>
+    {% if t.ai_triage_status != "suggested" %}<button class="btn small" hx-post="/tickets/{{ t.pk }}/ai/" hx-vals='{"action":"triage"}' hx-target="#ai-box-{{ t.pk }}" hx-swap="outerHTML" hx-disabled-elt="this">{% icon "sparkle" 14 %}Suggest triage</button>{% endif %}
+  </div>
+  {% if t.ai_triage_status == "none" %}<p class="small muted" style="margin:0">AI triage: category and priority look right.</p>{% endif %}
+</div>

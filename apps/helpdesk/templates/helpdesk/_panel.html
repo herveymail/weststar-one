@@ -18,6 +18,7 @@
       <div><div class="lbl">Queue</div>{{ t.queue.name|default:"—" }}</div>
       <div><div class="lbl">Category</div>{{ t.category|default:"—" }}</div>
     </div>
+    {% if ai_on %}{% include "helpdesk/_ai.html" %}{% endif %}
     {% if t.sla_chips %}<div class="row">{% for c in t.sla_chips %}<span class="sla {{ c.tone }}">{{ c.text }}</span>{% endfor %}</div>{% endif %}
     {% if can_edit %}
     <form class="row" hx-post="/tickets/{{ t.pk }}/update/" hx-trigger="change" hx-target="#panel" hx-swap="outerHTML">

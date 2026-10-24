@@ -23,6 +23,8 @@ OPTION_HELP = {
     "SMTP2GO (HTTPS)": "Relay service with an API key.",
     "immediate": "Charge as soon as the invoice is sent.",
     "due_date": "Charge on the invoice's due date.",
+    "always": "Every new email or portal ticket.",
+    "after_hours": "Only when the office is closed.",
     "everyone": "Anyone can still use a password.",
     "admins": "Only admins keep a password, as a backup.",
 }

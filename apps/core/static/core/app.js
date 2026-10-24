@@ -225,3 +225,32 @@
     c.querySelectorAll('.set-card').forEach((l) => l.classList.toggle('on', l.querySelector('input').checked));
   }));
 })();
+
+// AI: "Draft reply" fills the reply box with a suggestion to edit before sending.
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-ai-draft]');
+  if (!b) return;
+  const box = document.getElementById(b.dataset.target);
+  if (!box) return;
+  let token = '';
+  try { token = JSON.parse(document.body.getAttribute('hx-headers') || '{}')['X-CSRFToken'] || ''; } catch (_) { /* no token */ }
+  const label = b.textContent;
+  b.disabled = true; b.textContent = 'Writing…';
+  try {
+    const r = await fetch(b.dataset.aiDraft, { method: 'POST', headers: { 'X-CSRFToken': token, 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'action=draft', credentials: 'same-origin' });
+    const text = await r.text();
+    if (r.ok) {
+      const reply = box.form && box.form.querySelector('input[name=kind][value=reply]');
+      if (reply && !reply.checked) reply.click();
+      box.value = (box.value.trim() ? box.value.trim() + '\n\n' : '') + text;
+      box.focus();
+    } else {
+      const d = document.createElement('div'); d.innerHTML = text; alertBox(box, d.textContent || 'The AI assistant could not write a draft.');
+    }
+  } catch (_) { alertBox(box, 'Could not reach the AI assistant.'); }
+  b.disabled = false; b.textContent = label;
+});
+function alertBox(near, msg) {
+  const p = document.createElement('p'); p.className = 'small'; p.style.color = 'var(--crit)'; p.style.margin = '4px 0'; p.textContent = msg;
+  near.insertAdjacentElement('beforebegin', p); setTimeout(() => p.remove(), 8000);
+}

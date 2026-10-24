@@ -136,7 +136,9 @@ def create_ticket(*, user=None, subject, details="", client=None, contact=None, 
     who = user.name if user else (portal_user.name if portal_user else "someone")
     event(t, f"Created by {who}{' in the portal' if portal_user else ''}", user)
     audit(request, "create", "ticket", t.pk, f"Created ticket {number}: {subject}", area="tickets", user=user)
-    if portal_user is not None or (source == "Email" and Setting.get("tickets.email_ack", "true") != "false"):
+    from . import ai
+    ai_will_answer = source in ("Email", "Portal") and ai.enabled("first_response")  # its reply includes the "we got it"
+    if not ai_will_answer and (portal_user is not None or (source == "Email" and Setting.get("tickets.email_ack", "true") != "false")):
         transaction.on_commit(lambda: send_ticket_email(t, "new", "email/ticket_received", {}))
     return t
 

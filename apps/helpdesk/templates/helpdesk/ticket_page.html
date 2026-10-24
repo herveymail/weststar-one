@@ -66,6 +66,7 @@
   </div>
 
   <aside class="hd-side" aria-label="Ticket details">
+    {% if ai_on %}<section class="hd-card">{% include "helpdesk/_ai.html" %}</section>{% endif %}
     <section class="hd-card">
       <span class="lbl">Requester</span>
       <div class="row" style="gap:10px"><span class="av" style="background:{{ t.client_id|avatar_color }}">{{ t.contact_name|default:"?"|initials }}</span>

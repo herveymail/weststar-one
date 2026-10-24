@@ -9,6 +9,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db.models import Count, Q, Sum
 from django.http import Http404, HttpResponse
+from django.utils.html import escape
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -143,6 +144,11 @@ def _grid(request, open_pk=None):
 
 
 # ── one ticket ──
+def _ai_on() -> bool:
+    from . import ai
+    return ai.enabled()
+
+
 def _detail_ctx(request, t: Ticket, panel=False) -> dict:
     t = Ticket.objects.select_related("client", "assigned_to", "contact", "queue", "merged_into").get(pk=t.pk)
     msgs = list(t.messages.select_related("author").all())
@@ -168,6 +174,7 @@ def _detail_ctx(request, t: Ticket, panel=False) -> dict:
         "value": round((time_rows["m"] or 0) / 60 * float(rate), 2) if rate else None,
         "timer": timer, "other_timer": other_timer,
         "users": User.objects.filter(is_active=True).order_by("name"), "statuses": STATUSES, "priorities": PRIORITIES,
+        "ai_on": _ai_on(),
         "queues": Queue.objects.filter(active=True), "categories": categories(), "work_types": WORK_TYPES, "time_choices": TIME_CHOICES,
         "saved_replies": saved_replies(), "can_edit": can(request.user, "tickets", "edit"),
         "client_open": t.client.tickets.filter(status__in=OPEN_STATUSES).exclude(pk=t.pk).order_by("-updated_at")[:5] if t.client_id else [],
@@ -415,3 +422,34 @@ def ticket_new(request):
 
 
 _ = Http404
+
+
+@login_required
+@require_POST
+def ticket_ai(request, pk):
+    """AI buttons on a ticket: triage apply/dismiss/re-run, summary, draft reply."""
+    from . import ai
+    if not can(request.user, "tickets", "edit"):
+        raise PermissionDenied
+    t = get_object_or_404(Ticket.objects.select_related("client", "queue"), pk=pk)
+    action = request.POST.get("action")
+    try:
+        if action == "draft":
+            return HttpResponse(ai.draft_reply(t, request.user), content_type="text/plain; charset=utf-8")
+        if action == "summary":
+            ai.summarize(t, request.user)
+        elif action == "triage":
+            ai.run_triage(t)
+        elif action == "apply":
+            ai.apply_triage(t, request.user)
+        elif action == "dismiss":
+            Ticket.objects.filter(pk=t.pk).update(ai_triage_status="dismissed")
+            ai.AiLog.objects.create(feature="triage", outcome="dismissed", ticket=t, user=request.user)
+    except ai.AiError as e:
+        return HttpResponse(f'<div class="banner" role="alert">{escape(str(e))}</div>', status=200 if action != "draft" else 502)
+    t.refresh_from_db()
+    if action == "apply":
+        resp = HttpResponse("")
+        resp["HX-Refresh"] = "true"
+        return resp
+    return render(request, "helpdesk/_ai.html", {"t": t, "ai_on": True})

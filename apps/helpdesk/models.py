@@ -71,6 +71,12 @@ class Ticket(models.Model):
     resolved_at = models.DateTimeField(null=True, blank=True)
     closed_at = models.DateTimeField(null=True, blank=True)
     sla_breached = models.BooleanField(default=False)
+    # AI (Settings › AI assistant): triage suggestion waiting for a person to apply or dismiss
+    ai_triage = models.JSONField(null=True, blank=True, editable=False)
+    ai_triage_status = models.CharField(max_length=12, blank=True, editable=False)  # suggested / applied / dismissed / none
+    ai_summary = models.TextField(blank=True, editable=False)
+    ai_summary_at = models.DateTimeField(null=True, blank=True, editable=False)
+    ai_first_response = models.CharField(max_length=12, blank=True, editable=False)  # sent / skipped
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     legacy_id = models.BigIntegerField(null=True, blank=True, unique=True)
     imported_at = models.DateTimeField(null=True, blank=True)
@@ -192,3 +198,17 @@ class InboundEmail(models.Model):
 
     class Meta:
         ordering = ["-received_at", "-id"]
+
+
+class AiLog(models.Model):
+    """What the AI assistant did (like the old app's ticket_ai_log)."""
+    feature = models.CharField(max_length=20)   # triage / suggest / firstresponse / summary / selfhelp
+    outcome = models.CharField(max_length=30)
+    ticket = models.ForeignKey(Ticket, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    detail = models.CharField(max_length=500, blank=True)
+    legacy_id = models.BigIntegerField(null=True, blank=True, unique=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-created_at"]

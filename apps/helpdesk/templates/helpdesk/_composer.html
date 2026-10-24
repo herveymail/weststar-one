@@ -9,6 +9,7 @@
       {% if not panel %}<label><input type="radio" name="kind" value="work" class="sr">Work log</label>{% endif %}
     </div>
     <span class="spacer"></span>
+    {% if ai_on %}<button type="button" class="btn small" data-ai-draft="/tickets/{{ t.pk }}/ai/" data-target="body-{{ t.pk }}">✦ Draft reply</button>{% endif %}
     {% if saved_replies %}<label class="sr" for="sr-{{ t.pk }}">Saved reply</label>
     <select id="sr-{{ t.pk }}" class="select" style="width:auto" data-saved-reply>
       <option value="">Saved reply…</option>{% for r in saved_replies %}<option value="{{ r.body }}">{{ r.title }}</option>{% endfor %}
