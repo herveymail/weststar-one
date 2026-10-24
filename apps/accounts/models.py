@@ -24,7 +24,7 @@ class User(AbstractBaseUser):
     title = models.CharField(max_length=100, blank=True)
     phone = models.CharField(max_length=50, blank=True)
     menu_style = models.CharField("Side menu", max_length=10, choices=[("icons", "Icon bar with pop-out menus"), ("list", "Full list, everything open")], default="icons")
-    look = models.CharField(max_length=20, choices=[("indigo", "Look 1 · Indigo Clean"), ("graphite", "Look 2 · Graphite")], default="indigo")
+    look = models.CharField("Theme", max_length=20, choices=[(t[0], t[1]) for t in __import__("apps.core.themes", fromlist=["THEMES"]).THEMES], default="indigo")
     tickets_ui = models.CharField("Ticket screen", max_length=10, choices=[("classic", "Classic (views on the left, full ticket page)"),
                                                                            ("grid", "Grid (sortable table, ticket opens beside it)")], default="classic")
     google_only = models.BooleanField("Must sign in with Google", default=False,

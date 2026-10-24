@@ -3,10 +3,14 @@
 <div class="page-head"><div class="titles"><div class="eyebrow">Your account</div><h1>Profile &amp; look</h1></div></div>
 <div class="stack" style="max-width:820px">
   <section class="card pad stack">
-    <h2>Look</h2><p class="desc" style="margin:0">Pick how Weststar ONE looks for you. It only changes your screen.</p>
-    <form method="post" class="tiles">{% csrf_token %}
-      <button name="look" value="indigo" class="tile" style="text-align:left;cursor:pointer;{% if user.look == 'indigo' %}outline:2px solid var(--accent){% endif %}" aria-pressed="{% if user.look == 'indigo' %}true{% else %}false{% endif %}"><span class="strong">Look 1 · Indigo Clean</span><span class="small muted">Light colours</span></button>
-      <button name="look" value="graphite" class="tile" style="text-align:left;cursor:pointer;{% if user.look == 'graphite' %}outline:2px solid var(--accent){% endif %}" aria-pressed="{% if user.look == 'graphite' %}true{% else %}false{% endif %}"><span class="strong">Look 2 · Graphite</span><span class="small muted">Dark colours</span></button>
+    <h2>Theme</h2><p class="desc" style="margin:0">Pick the colours you like. It only changes your screen.</p>
+    <form method="post" class="theme-grid">{% csrf_token %}
+      {% for key, name, mode, sw, desc in themes %}
+      <button name="look" value="{{ key }}" class="theme-card{% if user.look == key %} on{% endif %}" aria-pressed="{% if user.look == key %}true{% else %}false{% endif %}">
+        <span class="theme-mini" style="background:{{ sw.0 }}"><span class="tm-nav" style="background:{{ sw.1 }}"></span><span class="tm-body"><span class="tm-bar" style="background:{{ sw.2 }}"></span><span class="tm-card"></span><span class="tm-card short"></span></span></span>
+        <span class="theme-name">{{ name }}{% if mode == "dark" %} <span class="pill">Dark</span>{% endif %}</span>
+        <span class="small muted">{{ desc }}</span>
+      </button>{% endfor %}
     </form>
   </section>
   <section class="card pad stack">

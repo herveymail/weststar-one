@@ -1,6 +1,6 @@
 /* Ticket screens, matching the old Weststar One: Classic ("hd-") and Grid + panel ("tkg-").
    Colors come from the app's two looks, plus the old status/priority palette. */
-:root, [data-look="indigo"] {
+:root, [data-mode="light"] {
   --st-new: #5a3fc0; --st-new-bg: #e9e4fb;
   --st-open: #2c5cc5; --st-open-bg: #e3ecfb;
   --st-pend: #a35b00; --st-pend-bg: #fff3d6;
@@ -10,7 +10,7 @@
   --sla-bad: #b42318; --sla-bad-bg: #fde8e8; --sla-warn: #8a5300; --sla-warn-bg: #fff3d6;
   --hd-navy: #0b3d6e; --hd-unread: #e5532d;
 }
-[data-look="graphite"] {
+[data-mode="dark"] {
   --st-new: #c4b5fd; --st-new-bg: #2a2140;
   --st-open: #93b4ff; --st-open-bg: #17284a;
   --st-pend: #fcd34d; --st-pend-bg: #3a2a10;
@@ -82,7 +82,7 @@
 .mode-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
 .mode-tabs label { cursor: pointer; border: 1px solid var(--line); border-radius: 99px; padding: 5px 14px; background: var(--surface); }
 .mode-tabs label:has(input:checked) { background: var(--hd-navy); color: var(--surface); border-color: var(--hd-navy); font-weight: 600; }
-[data-look="graphite"] .mode-tabs label:has(input:checked) { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+[data-mode="dark"] .mode-tabs label:has(input:checked) { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .mode-tabs label.note-tab:has(input:checked) { background: #a35b00; border-color: #a35b00; color: #fff; }
 .opt-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-items: end; }
 .opt-row label.f { display: flex; flex-direction: column; gap: 4px; }

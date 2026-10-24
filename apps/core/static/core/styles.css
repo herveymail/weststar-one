@@ -1,7 +1,7 @@
 /* Weststar ONE — two looks, chosen per person in Profile:
    indigo   = Look 1 "Indigo Clean": light, full sidebar
    graphite = Look 2 "Graphite": dark, slim icon bar with fly-out sections */
-:root, [data-look="indigo"] {
+:root, [data-mode="light"] {
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --bg: #F5F7FA; --surface: #FFFFFF; --surface2: #FAFBFC; --input: #FFFFFF; --line: #E4E7EC;
   --text: #101828; --muted: #556070; --faint: #667085;
@@ -14,7 +14,7 @@
   --r: 10px;
   color-scheme: light;
 }
-[data-look="graphite"] {
+[data-mode="dark"] {
   --font: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --bg: #18181B; --surface: #202024; --surface2: #1A1A1D; --input: #18181B; --line: #2E2E33;
   --text: #ECECEE; --muted: #A1A1AA; --faint: #8A8A93;
@@ -43,7 +43,7 @@ a { color: var(--link); }
 .app { display: flex; min-height: 100%; }
 .main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 .topbar { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 24px; background: var(--surface); border-bottom: 1px solid var(--line); }
-[data-look="graphite"] .topbar { background: var(--bg); }
+[data-mode="dark"] .topbar { background: var(--bg); }
 .spacer { flex: 1 1 0; }
 .page { padding: 20px 24px 32px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .page-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 14px; }
@@ -124,7 +124,7 @@ h3 { margin: 0; font-size: 15px; font-weight: 700; }
 .tabs.scroll { flex-wrap: nowrap; overflow-x: auto; }
 .tab { min-height: 32px; padding: 0 14px; border: 0; border-radius: var(--r); background: transparent; color: var(--muted); font-weight: 500; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .tab.on { background: var(--tab-on); color: var(--tab-on-text); font-weight: 600; }
-[data-look="indigo"] .tab.on { box-shadow: 0 1px 2px rgba(16, 24, 40, .08); }
+[data-mode="light"] .tab.on { box-shadow: 0 1px 2px rgba(16, 24, 40, .08); }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: var(--r); border: 1px solid var(--line); background: var(--surface); color: var(--text); font-weight: 500; font-size: 13px; cursor: pointer; }
 .chip.on { background: var(--chip-on); border-color: var(--chip-on); color: var(--chip-on-text); font-weight: 600; }

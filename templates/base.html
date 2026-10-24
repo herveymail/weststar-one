@@ -1,5 +1,5 @@
 {% load static ws %}<!doctype html>
-<html lang="en" data-look="{{ look|default:'indigo' }}">
+<html lang="en" data-look="{{ look|default:'indigo' }}" data-mode="{{ look_mode|default:'light' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="{% static 'core/styles.css' %}">
   <link rel="stylesheet" href="{% static 'core/app.css' %}">
   <link rel="stylesheet" href="{% static 'helpdesk/tickets.css' %}">
+  <link rel="stylesheet" href="{% static 'core/themes.css' %}">
   <script src="{% static 'core/htmx-2.0.4.min.js' %}" defer></script>
   <script src="{% static 'core/app.js' %}" defer></script>
 </head>

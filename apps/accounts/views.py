@@ -246,7 +246,8 @@ def profile_view(request):
     if request.method == "POST" and request.POST.get("menu_style") in ("icons", "list"):
         User.objects.filter(pk=user.pk).update(menu_style=request.POST["menu_style"])
         return redirect("/profile/")
-    if request.method == "POST" and request.POST.get("look") in ("indigo", "graphite"):
+    from apps.core.themes import BY_KEY
+    if request.method == "POST" and request.POST.get("look") in BY_KEY:
         User.objects.filter(pk=user.pk).update(look=request.POST["look"])
         messages.success(request, "Look changed.")
         return redirect("/profile/")
@@ -256,7 +257,7 @@ def profile_view(request):
         audit(request, "update", "user", user.pk, "Updated own profile")
         messages.success(request, "Profile saved.")
         return redirect("/profile/")
-    return render(request, "accounts/profile.html", {"form": form})
+    return render(request, "accounts/profile.html", {"themes": __import__("apps.core.themes", fromlist=["THEMES"]).THEMES, "form": form})
 
 
 # ── Staff users (Settings › Staff users) ──
