@@ -243,6 +243,9 @@ def profile_view(request):
         User.objects.filter(pk=user.pk).update(tickets_ui=request.POST["tickets_ui"])
         messages.success(request, "Ticket screen changed.")
         return redirect("/profile/")
+    if request.method == "POST" and request.POST.get("menu_style") in ("icons", "list"):
+        User.objects.filter(pk=user.pk).update(menu_style=request.POST["menu_style"])
+        return redirect("/profile/")
     if request.method == "POST" and request.POST.get("look") in ("indigo", "graphite"):
         User.objects.filter(pk=user.pk).update(look=request.POST["look"])
         messages.success(request, "Look changed.")

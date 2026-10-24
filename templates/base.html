@@ -18,9 +18,9 @@
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 {% block body %}
 <div class="app">
-  {% if look == "graphite" %}
+  {% if user.menu_style != "list" %}
   <nav class="rail" id="main-nav" aria-label="Main">
-    <a href="/" class="logo" aria-label="{{ app_name }} home">W1</a>
+    <a href="/" class="logo" aria-label="{{ app_name }} home">{% if logo_url %}<img src="{{ logo_url }}" alt="" style="max-width:44px;max-height:44px;object-fit:contain">{% else %}W1{% endif %}</a>
     {% for g in nav %}
       {% if not g.group or g.items|length == 1 %}
         {% for i in g.items %}{% if i.id != "settings" %}
@@ -45,8 +45,8 @@
     <a href="/" class="brand">{% if logo_url %}<img class="brand-img" src="{{ logo_url }}" alt="{{ app_name }}">{% else %}<span class="logo">W</span>{{ app_name }}{% endif %}</a>
     {% for g in nav %}
       {% if g.group and g.items|length > 1 %}
-      <div class="nav-group" data-group="{{ g.group }}">
-        <button type="button" class="nav-section" aria-expanded="true">{{ g.group }}<span class="count">{{ g.items|length }}</span>{% icon "chevron" 14 %}</button>
+      <div class="nav-group">
+        <div class="nav-section">{{ g.group }}</div>
         <div class="nav-items">
       {% endif %}
       {% for i in g.items %}

@@ -5,8 +5,15 @@
   <section class="card pad stack">
     <h2>Look</h2><p class="desc" style="margin:0">Pick how Weststar ONE looks for you. It only changes your screen.</p>
     <form method="post" class="tiles">{% csrf_token %}
-      <button name="look" value="indigo" class="tile" style="text-align:left;cursor:pointer;{% if user.look == 'indigo' %}outline:2px solid var(--accent){% endif %}" aria-pressed="{% if user.look == 'indigo' %}true{% else %}false{% endif %}"><span class="strong">Look 1 · Indigo Clean</span><span class="small muted">Light, full sidebar with every section</span></button>
-      <button name="look" value="graphite" class="tile" style="text-align:left;cursor:pointer;{% if user.look == 'graphite' %}outline:2px solid var(--accent){% endif %}" aria-pressed="{% if user.look == 'graphite' %}true{% else %}false{% endif %}"><span class="strong">Look 2 · Graphite</span><span class="small muted">Dark, slim icon bar with pop-out sections</span></button>
+      <button name="look" value="indigo" class="tile" style="text-align:left;cursor:pointer;{% if user.look == 'indigo' %}outline:2px solid var(--accent){% endif %}" aria-pressed="{% if user.look == 'indigo' %}true{% else %}false{% endif %}"><span class="strong">Look 1 · Indigo Clean</span><span class="small muted">Light colours</span></button>
+      <button name="look" value="graphite" class="tile" style="text-align:left;cursor:pointer;{% if user.look == 'graphite' %}outline:2px solid var(--accent){% endif %}" aria-pressed="{% if user.look == 'graphite' %}true{% else %}false{% endif %}"><span class="strong">Look 2 · Graphite</span><span class="small muted">Dark colours</span></button>
+    </form>
+  </section>
+  <section class="card pad stack">
+    <h2>Side menu</h2><p class="desc" style="margin:0">How the menu on the left works for you.</p>
+    <form method="post" class="tiles">{% csrf_token %}
+      <button name="menu_style" value="icons" class="tile" style="text-align:left;cursor:pointer;{% if user.menu_style == 'icons' %}outline:2px solid var(--accent){% endif %}" aria-pressed="{% if user.menu_style == 'icons' %}true{% else %}false{% endif %}"><span class="strong">Icon bar</span><span class="small muted">Slim bar; Billing, Tools… pop out when clicked. Never scrolls.</span></button>
+      <button name="menu_style" value="list" class="tile" style="text-align:left;cursor:pointer;{% if user.menu_style == 'list' %}outline:2px solid var(--accent){% endif %}" aria-pressed="{% if user.menu_style == 'list' %}true{% else %}false{% endif %}"><span class="strong">Full list</span><span class="small muted">Every page listed, nothing folds.</span></button>
     </form>
   </section>
   <section class="card pad stack">

@@ -23,6 +23,7 @@ class User(AbstractBaseUser):
     hr_access = models.BooleanField("H/R access", default=False)
     title = models.CharField(max_length=100, blank=True)
     phone = models.CharField(max_length=50, blank=True)
+    menu_style = models.CharField("Side menu", max_length=10, choices=[("icons", "Icon bar with pop-out menus"), ("list", "Full list, everything open")], default="icons")
     look = models.CharField(max_length=20, choices=[("indigo", "Look 1 · Indigo Clean"), ("graphite", "Look 2 · Graphite")], default="indigo")
     tickets_ui = models.CharField("Ticket screen", max_length=10, choices=[("classic", "Classic (views on the left, full ticket page)"),
                                                                            ("grid", "Grid (sortable table, ticket opens beside it)")], default="classic")
