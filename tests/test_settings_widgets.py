@@ -67,3 +67,11 @@ def test_secret_shows_saved_not_value(admin):
     Setting.put("stripe.secret_key", "sk_live_abc", secret=True)
     page = admin.get("/settings/payments/").content.decode()
     assert "✓ Saved" in page and "sk_live_abc" not in page
+
+
+def test_ui_style_picker(admin):
+    admin.post("/profile/", {"ui_style": "terminal"})
+    page = admin.get("/profile/").content.decode()
+    assert 'data-style="terminal"' in page and "JetBrains+Mono" in page
+    admin.post("/profile/", {"ui_style": "nope"})
+    assert 'data-style="terminal"' in admin.get("/").content.decode()

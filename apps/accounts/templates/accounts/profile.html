@@ -3,6 +3,13 @@
 <div class="page-head"><div class="titles"><div class="eyebrow">Your account</div><h1>Profile &amp; look</h1></div></div>
 <div class="stack" style="max-width:820px">
   <section class="card pad stack">
+    <h2>Style</h2><p class="desc" style="margin:0">Changes the shape, type and spacing of everything. Works with any theme colour below.</p>
+    <form method="post" class="style-grid">{% csrf_token %}
+      {% for key, name, desc, font in styles %}
+      <button name="ui_style" value="{{ key }}" class="style-card{% if user.ui_style == key %} on{% endif %}" aria-pressed="{% if user.ui_style == key %}true{% else %}false{% endif %}"><b>{{ name }}</b><small>{{ desc }}</small></button>{% endfor %}
+    </form>
+  </section>
+  <section class="card pad stack">
     <h2>Theme</h2><p class="desc" style="margin:0">Pick the colours you like. It only changes your screen.</p>
     <form method="post" class="theme-grid">{% csrf_token %}
       {% for key, name, mode, sw, desc in themes %}

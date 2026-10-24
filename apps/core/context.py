@@ -26,6 +26,8 @@ def app_context(request):
         "app_name": Setting.get("brand.app_name", "Weststar ONE"),
         "nav": nav,
         "look": user.look,
+        "ui_style": user.ui_style,
+        "ui_font": __import__("apps.core.ui_styles", fromlist=["font_query"]).font_query(user.ui_style),
         "look_mode": __import__("apps.core.themes", fromlist=["mode"]).mode(user.look),
         "can_tickets_edit": can(user, "tickets", "edit"),
         "open_ticket_count": _open_count(user),
