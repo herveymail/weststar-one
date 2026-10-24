@@ -16,6 +16,8 @@ COPY --from=build /wheels /wheels
 RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
 WORKDIR /app
 COPY --chown=root:root . /app
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
 # Static files are built into the image (served by whitenoise). Dummy keys only for this build step.
 RUN SECRET_KEY=build-only-not-used-at-runtime-000000000000000 APP_ENCRYPTION_KEY=$(python -c "import base64;print(base64.b64encode(b'0'*32).decode())") \
     DB_PASSWORD=x python manage.py collectstatic --noinput -v0 \

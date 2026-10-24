@@ -249,7 +249,7 @@ mark 3
 # ════════════════════════════════════════════
 step 4 "Building & Starting the App"
 info "Building (first time takes a few minutes)…"
-docker compose build -q app || die "Build failed. See the messages above."
+APP_VERSION="$(git rev-parse --short HEAD 2>/dev/null || echo dev)" docker compose build -q app || die "Build failed. See the messages above."
 app_health() { docker inspect -f '{{.State.Health.Status}}' "$(docker compose ps -aq app)" 2>/dev/null; }
 show_app_log() {
     echo -e "\n  ${BOLD}Last lines from the app (send these to support):${NC}"

@@ -36,7 +36,9 @@ services:
       retries: 30
 
   app:
-    build: .
+    build:
+      context: .
+      args: { APP_VERSION: "${APP_VERSION:-dev}" }
     image: weststar-one:latest
     restart: unless-stopped
     depends_on: { db: { condition: service_healthy } }

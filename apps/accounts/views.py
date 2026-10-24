@@ -250,6 +250,7 @@ def profile_view(request):
     from apps.core.ui_styles import BY_KEY as STYLE_KEYS
     if request.method == "POST" and request.POST.get("ui_style") in STYLE_KEYS:
         User.objects.filter(pk=user.pk).update(ui_style=request.POST["ui_style"])
+        messages.success(request, "Style changed.")
         return redirect("/profile/")
     if request.method == "POST" and request.POST.get("look") in BY_KEY:
         User.objects.filter(pk=user.pk).update(look=request.POST["look"])
@@ -261,7 +262,8 @@ def profile_view(request):
         audit(request, "update", "user", user.pk, "Updated own profile")
         messages.success(request, "Profile saved.")
         return redirect("/profile/")
-    return render(request, "accounts/profile.html", {"themes": __import__("apps.core.themes", fromlist=["THEMES"]).THEMES, "styles": __import__("apps.core.ui_styles", fromlist=["STYLES"]).STYLES, "form": form})
+    return render(request, "accounts/profile.html", {"themes": __import__("apps.core.themes", fromlist=["THEMES"]).THEMES, "styles": __import__("apps.core.ui_styles", fromlist=["STYLES"]).STYLES, "form": form,
+                                                     "app_version": __import__("django.conf", fromlist=["settings"]).settings.APP_VERSION})
 
 
 # ── Staff users (Settings › Staff users) ──

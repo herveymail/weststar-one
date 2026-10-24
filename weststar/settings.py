@@ -59,6 +59,7 @@ except Exception as exc:  # noqa: BLE001
 APP_ENCRYPTION_KEYS_OLD = [k.strip() for k in env("APP_ENCRYPTION_KEYS_OLD").split(",") if k.strip()]
 
 # The address people type in their browser, e.g. https://one.weststarmsp.com
+APP_VERSION = env("APP_VERSION", "dev")
 APP_URL = env("APP_URL", "http://localhost:8000").rstrip("/")
 _app = urlparse(APP_URL)
 HTTPS = _app.scheme == "https"

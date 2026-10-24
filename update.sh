@@ -21,7 +21,7 @@ AFTER=$(git rev-parse --short HEAD)
 ok "Code updated ${BEFORE} → ${AFTER}."
 git log --oneline "${BEFORE}..${AFTER}" | sed 's/^/      /' | head -20
 
-docker compose build -q app || { git reset -q --hard "$BEFORE"; die "Build failed; rolled the code back to ${BEFORE}. The running app was not touched."; }
+APP_VERSION="$AFTER" docker compose build -q app || { git reset -q --hard "$BEFORE"; die "Build failed; rolled the code back to ${BEFORE}. The running app was not touched."; }
 docker compose up -d db app jobs caddy || die "Couldn't restart. Check: docker compose logs app"
 if git diff --name-only "$BEFORE" "$AFTER" | grep -q '^deploy/Caddyfile$'; then
   docker compose restart caddy >/dev/null && ok "Web server settings reloaded."
