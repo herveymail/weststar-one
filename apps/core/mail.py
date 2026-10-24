@@ -95,8 +95,11 @@ def _deliver(msg: EmailMultiAlternatives) -> None:
     headers = [{"header": k, "value": v} for k, v in msg.extra_headers.items()]
     if msg.reply_to:
         headers.append({"header": "Reply-To", "value": ", ".join(msg.reply_to)})
+    import base64
+    files = [{"filename": a[0], "fileblob": base64.b64encode(a[1] if isinstance(a[1], bytes) else a[1].encode()).decode(), "mimetype": a[2]}
+             for a in msg.attachments if isinstance(a, tuple)]
     body = {"sender": msg.from_email, "to": msg.to, "cc": msg.cc or None, "subject": msg.subject, "text_body": msg.body,
-            "html_body": html, "custom_headers": headers or None}
+            "html_body": html, "custom_headers": headers or None, "attachments": files or None}
     req = urllib.request.Request("https://api.smtp2go.com/v3/email/send", data=json.dumps({k: v for k, v in body.items() if v}).encode(),
                                  headers={"Content-Type": "application/json", "X-Smtp2go-Api-Key": Setting.get("email.smtp2go_api_key"),
                                           "Accept": "application/json"})
@@ -242,7 +245,7 @@ def new_message_id(ticket_pk: int | None = None) -> str:
     return f"<{tag}{secrets.token_hex(8)}@{domain}>"
 
 
-def send(to, subject: str, template: str, context: dict, cc=None, reply_to=None, message_id=None, references=None) -> bool:
+def send(to, subject: str, template: str, context: dict, cc=None, reply_to=None, message_id=None, references=None, attachments=None) -> bool:
     """Renders templates/<template>.txt (and .html if present) and sends it. Returns True if sent."""
     to = [a for a in ([to] if isinstance(to, str) else list(to or [])) if a and "@" in a]
     cc = [a for a in (cc or []) if a and "@" in a and a not in to]
@@ -265,6 +268,8 @@ def send(to, subject: str, template: str, context: dict, cc=None, reply_to=None,
         msg.extra_headers["References"] = " ".join(refs[-10:])
     if html:
         msg.attach_alternative(html, "text/html")
+    for name, data, mime in attachments or []:
+        msg.attach(name, data, mime)
     try:
         _deliver(msg)
         return True

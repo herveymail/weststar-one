@@ -1,0 +1,6 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>{{ title }} {{ doc.number }}</title>
+<style>@page { size: {{ page_size }}; margin: 16mm 14mm 18mm; @bottom-center { content: "{{ co.name }} · {{ title }} {{ doc.number }} · Page " counter(page) " of " counter(pages); font-size: 9px; color: #98A2B3; } }
+body { margin: 0; }
+{% include "billing/_doc.css" %}
+.wsdoc { --acc: {{ accent }}; }
+</style></head><body>{% include "billing/_doc.html" %}</body></html>

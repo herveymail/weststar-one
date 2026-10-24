@@ -1,0 +1,40 @@
+{% extends "base.html" %}{% load ws %}
+{% block title %}{{ title }} {{ doc.number }} · {{ app_name }}{% endblock %}
+{% block content %}
+<style>{% include "billing/_doc.css" %} .wsdoc { --acc: {{ accent }}; }</style>
+<div class="doc-bar no-print">
+  <a href="/m/{{ slug }}/" class="link-btn">{% icon "back" 16 %}{% if kind == "invoice" %}Invoices{% else %}Quotes{% endif %}</a>
+  <h1>{{ title }} {{ doc.number|default:"(draft)" }}</h1>
+  <span class="pill {{ doc.status|pill_tone }}">{{ doc.status }}</span>
+  <span class="spacer"></span>
+  {% if can_edit %}<button class="btn" hx-get="/m/{{ slug }}/{{ doc.pk }}/" hx-target="#modal">{% icon "edit" 16 %}Edit</button>{% endif %}
+  <a class="btn" href="/billing/{{ kind }}/{{ doc.pk }}/pdf/">{% icon "download" 16 %}PDF</a>
+  <button class="btn" type="button" data-print>{% icon "print" 16 %}Print</button>
+  {% if can_edit and kind == "invoice" and balance > 0 %}<button class="btn" hx-get="/m/payments/new/?invoice_id={{ doc.pk }}" hx-target="#modal">Record payment</button>{% endif %}
+  {% if can_edit and doc.status != "Void" %}<a class="btn primary" href="/billing/{{ kind }}/{{ doc.pk }}/send/">{% icon "send" 16 %}{% if doc.status == "Draft" %}Send{% else %}Send again{% endif %}</a>{% endif %}
+</div>
+<div class="doc-layout">
+  <div class="doc-paper">{% include "billing/_doc.html" %}</div>
+  <aside class="doc-side no-print">
+    <section class="card pad stack">
+      <h2>Summary</h2>
+      <div class="kv"><div><div class="label">Client</div><a href="/clients/{{ doc.client.pk }}/">{{ doc.client.name }}</a></div>
+        <div><div class="label">Total</div>{{ doc.total|dollars }}</div>
+        {% if kind == "invoice" %}<div><div class="label">Balance</div><b>{{ balance|dollars }}</b></div>{% endif %}
+        {% if kind == "invoice" and doc.client.autopay_enabled %}<div><div class="label">AutoPay</div>{{ doc.client.autopay_label }}</div>{% endif %}</div>
+      {% if doc.autopay_error %}<div class="banner">{{ doc.autopay_error }}</div>{% endif %}
+    </section>
+    {% if kind == "invoice" %}
+    <section class="card" style="overflow:hidden"><div class="dash-card-head"><h2>Payments</h2></div>
+      {% for p in payments %}<div class="today-row"><b>{{ p.amount|dollars }}</b><span>{{ p.method }}{% if p.source == "autopay" %} · AutoPay{% elif p.source == "online" %} · online{% endif %}{% if p.reference %} · {{ p.reference|truncatechars:20 }}{% endif %}</span><small class="muted">{{ p.paid_on|date:"M j" }}</small></div>
+      {% empty %}<p class="muted small" style="margin:0 18px 16px">No payments yet.</p>{% endfor %}
+    </section>
+    {% else %}
+    <section class="card pad stack"><h2>Client decision</h2>
+      {% for a in approvals %}<div class="small"><b>{{ a.get_decision_display }}</b> by {{ a.signed_name }} · {{ a.created_at|date:"M j, Y g:i A" }}{% if a.comment %}<br><span class="muted">{{ a.comment }}</span>{% endif %}</div>
+      {% empty %}<p class="muted small" style="margin:0">Waiting for the client. They can accept or decline it in the client portal.</p>{% endfor %}
+    </section>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

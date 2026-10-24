@@ -1,0 +1,42 @@
+{% load ws %}
+<div class="wsdoc">
+  <div class="wsdoc-top">
+    <div class="wsdoc-from">
+      {% if logo_src %}<img src="{{ logo_src }}" alt="{{ co.name }}" class="wsdoc-logo">{% else %}<div class="wsdoc-coname">{{ co.name }}</div>{% endif %}
+      <div class="wsdoc-small">{% if logo_src %}<b>{{ co.name }}</b><br>{% endif %}{{ co.address|linebreaksbr }}{% if co.phone %}<br>{{ co.phone }}{% endif %}{% if co.email %}<br>{{ co.email }}{% endif %}{% if co.website %}<br>{{ co.website }}{% endif %}</div>
+    </div>
+    <div class="wsdoc-title">
+      <div class="wsdoc-kind">{{ title }}</div>
+      <table class="wsdoc-meta">
+        <tr><th>{{ title }} #</th><td>{{ doc.number|default:"Draft" }}</td></tr>
+        <tr><th>Date</th><td>{{ date|date:"M j, Y" }}</td></tr>
+        {% if due %}<tr><th>{% if kind == "quote" %}Valid until{% else %}Due{% endif %}</th><td>{{ due|date:"M j, Y" }}</td></tr>{% endif %}
+        {% if kind == "invoice" %}<tr><th>Balance due</th><td><b>{{ balance|dollars }}</b></td></tr>{% endif %}
+      </table>
+    </div>
+  </div>
+  {% if stamp %}<div class="wsdoc-stamp {{ stamp|lower }}">{{ stamp }}</div>{% endif %}
+  <div class="wsdoc-parties">
+    <div><div class="wsdoc-lbl">Bill to</div><b>{{ doc.client.name }}</b>{% if bill_to_contact %}<br>Attn: {{ bill_to_contact }}{% endif %}
+      {% if doc.client.address %}<br>{{ doc.client.address }}{% endif %}{% if doc.client.city %}<br>{{ doc.client.city }}, {{ doc.client.state }} {{ doc.client.zip }}{% endif %}
+      {% if doc.client.email %}<br>{{ doc.client.email }}{% endif %}</div>
+    {% if doc.scope %}<div><div class="wsdoc-lbl">{% if kind == "quote" %}Scope of work{% else %}Description{% endif %}</div><div class="wsdoc-pre">{{ doc.scope }}</div></div>{% endif %}
+  </div>
+  <table class="wsdoc-lines">
+    <thead><tr><th>Description</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Amount</th></tr></thead>
+    <tbody>{% for l in lines %}<tr><td>{{ l.description }}</td><td class="r">{{ l.qty|floatformat:"-2" }}</td><td class="r">{{ l.rate|dollars }}</td><td class="r">{{ l.line_total|dollars }}</td></tr>
+    {% empty %}<tr><td colspan="4" class="wsdoc-empty">No line items yet.</td></tr>{% endfor %}</tbody>
+  </table>
+  <table class="wsdoc-totals">
+    <tr><th>Subtotal</th><td>{{ doc.subtotal|dollars }}</td></tr>
+    {% if doc.tax_amount %}<tr><th>{{ tax_label }}{% if doc.tax_rate %} ({{ doc.tax_rate|floatformat:"-3" }}%){% endif %}</th><td>{{ doc.tax_amount|dollars }}</td></tr>{% endif %}
+    <tr class="big"><th>Total</th><td>{{ doc.total|dollars }}</td></tr>
+    {% if kind == "invoice" and doc.amount_paid %}<tr><th>Paid</th><td>−{{ doc.amount_paid|dollars }}</td></tr><tr class="big"><th>Balance due</th><td>{{ balance|dollars }}</td></tr>{% endif %}
+    {% if kind == "quote" and deposit %}<tr><th>Deposit due on acceptance ({{ deposit_pct }}%)</th><td>{{ deposit|dollars }}</td></tr>{% endif %}
+  </table>
+  {% if pay_url and balance > 0 %}<div class="wsdoc-pay"><b>Pay online:</b> {{ pay_url }}</div>{% endif %}
+  {% if doc.notes %}<div class="wsdoc-block"><div class="wsdoc-lbl">Notes</div><div class="wsdoc-pre">{{ doc.notes }}</div></div>{% endif %}
+  {% if instructions %}<div class="wsdoc-block"><div class="wsdoc-lbl">How to pay</div><div class="wsdoc-pre">{{ instructions }}</div></div>{% endif %}
+  {% if terms %}<div class="wsdoc-block"><div class="wsdoc-lbl">Terms</div><div class="wsdoc-pre wsdoc-fine">{{ terms }}</div></div>{% endif %}
+  {% if footer %}<div class="wsdoc-foot">{{ footer }}</div>{% endif %}
+</div>

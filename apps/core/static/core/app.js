@@ -254,3 +254,4 @@ function alertBox(near, msg) {
   const p = document.createElement('p'); p.className = 'small'; p.style.color = 'var(--crit)'; p.style.margin = '4px 0'; p.textContent = msg;
   near.insertAdjacentElement('beforebegin', p); setTimeout(() => p.remove(), 8000);
 }
+document.addEventListener('click', (e) => { if (e.target.closest('[data-print]')) window.print(); });

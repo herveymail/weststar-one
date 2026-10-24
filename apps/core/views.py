@@ -82,7 +82,7 @@ def module_list(request, slug, embedded_filter=None, template="core/module_list.
     related = [f for f in m.list_fields if m.model._meta.get_field(f).is_relation]
     qs = qs.select_related(*related)
     page = Paginator(qs, 50 if not embedded_filter else 25).get_page(request.GET.get("page"))
-    row_url = (extra or {}).get("row_url", "")
+    row_url = (extra or {}).get("row_url", "") or {"invoices": "/billing/invoice/{id}/", "quotes": "/billing/quote/{id}/"}.get(m.slug, "")
     rows = [{"obj": o, "cells": [cell(o, f) for f in m.list_fields], "url": row_url.format(id=o.pk) if row_url else ""} for o in page.object_list]
     ctx = {
         "m": m, "rows": rows, "page": page, "q": q, "status": status, "archived": archived, "sort": sort,

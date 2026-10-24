@@ -2,7 +2,7 @@
 {% block title %}{{ q.number }}{% endblock %}
 {% block main_extra %} narrow{% endblock %}
 {% block content %}
-<a href="/client-portal/quotes/">← Quotes</a>
+<div class="row"><a href="/client-portal/quotes/" class="grow">← Quotes</a><a class="btn" href="/client-portal/quote/{{ q.pk }}/pdf/">Download PDF</a></div>
 <section class="card pad stack">
   <div class="row"><h1 class="grow" style="font-size:22px">Quote {{ q.number }}</h1><span class="pill{% if q.status == 'Accepted' %} done{% elif q.status == 'Sent' %} wait{% endif %}">{{ q.status }}</span></div>
   <div class="kv"><span>Date</span><span>{{ q.quote_date|date:"M j, Y" }}</span>{% if q.expires_on %}<span>Good until</span><span>{{ q.expires_on|date:"M j, Y" }}</span>{% endif %}</div>

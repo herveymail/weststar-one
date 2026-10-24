@@ -8,6 +8,7 @@ RUN pip wheel --no-cache-dir --wheel-dir /wheels -r /tmp/requirements.txt
 FROM python:3.13-slim-bookworm
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 MEDIA_ROOT=/data/media
 RUN apt-get update && apt-get install -y --no-install-recommends libmariadb3 tini \
+    libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 fonts-dejavu-core fonts-liberation2 \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --system --uid 10001 --home /app weststar \
     && mkdir -p /data/media && chown weststar:weststar /data/media

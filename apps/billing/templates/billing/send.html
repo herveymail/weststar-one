@@ -1,0 +1,25 @@
+{% extends "base.html" %}{% load ws %}
+{% block title %}Send {{ title|lower }} {{ doc.number }} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="doc-bar">
+  <a href="/billing/{{ kind }}/{{ doc.pk }}/" class="link-btn">{% icon "back" 16 %}{{ title }} {{ doc.number }}</a>
+  <h1>Send {{ title|lower }}</h1>
+</div>
+{% if not mail_ok %}<div class="banner">Email sending isn't set up yet — Settings › Email sending.</div>{% endif %}
+{% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+<div class="send-layout">
+  <form method="post" class="card pad stack send-form">{% csrf_token %}
+    <div class="field"><label for="to">To</label><input id="to" name="to" class="input" value="{{ form.to }}" placeholder="billing@client.com"><span class="help">Separate several addresses with commas.</span></div>
+    <div class="field"><label for="cc">Cc</label><input id="cc" name="cc" class="input" value="{{ form.cc }}"></div>
+    <div class="field"><label for="sj">Subject</label><input id="sj" name="subject" class="input" value="{{ form.subject }}"></div>
+    <div class="field"><label for="msg">Message</label><textarea id="msg" name="message" class="textarea" rows="8">{{ form.message }}</textarea></div>
+    <label class="check"><input type="checkbox" name="attach" value="1"{% if form.attach %} checked{% endif %}>Attach the PDF ({{ title }}-{{ doc.number }}.pdf)</label>
+    <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn primary">{% icon "send" 16 %}Send now</button><button class="btn" name="preview" value="1">Update preview</button>
+      <a class="btn" href="/billing/{{ kind }}/{{ doc.pk }}/pdf/?view=1" target="_blank" rel="noopener">Open the PDF</a></div>
+  </form>
+  <section class="card send-preview">
+    <div style="padding:14px 18px 8px"><span class="label">What the client gets</span><div class="small muted">Subject: <b style="color:var(--text)">{{ form.subject }}</b></div></div>
+    <div class="email-prev">{{ email_html }}</div>
+  </section>
+</div>
+{% endblock %}

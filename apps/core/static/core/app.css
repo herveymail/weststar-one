@@ -188,3 +188,22 @@ a.kpi:hover { border-color: var(--accent); }
 .em-list { flex: 0 0 220px; padding: 8px; display: flex; flex-direction: column; gap: 2px; }
 .em-frame { flex: 1 1 480px; min-width: 0; overflow: hidden; }
 .em-frame iframe { width: 100%; height: 720px; border: 0; display: block; }
+
+/* Invoice / quote documents */
+.doc-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.doc-bar h1 { margin: 0; font-size: 22px; }
+.doc-layout { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+.doc-paper { flex: 1 1 640px; min-width: 0; max-width: 860px; background: #fff; border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 10px 30px rgba(16,24,40,.08); padding: 44px 48px; color: #101828; }
+.doc-side { flex: 0 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.send-layout { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+.send-form { flex: 1 1 380px; min-width: 0; }
+.send-preview { flex: 1.3 1 460px; min-width: 0; overflow: hidden; }
+.email-prev { background: #F2F4F7; max-height: 720px; overflow: auto; }
+.email-prev span[style*="display:none"] { display: none; }
+@media print {
+  .side, .rail, .topbar, .no-print, .fly, #modal, .messages { display: none !important; }
+  .main, .page, .doc-layout { margin: 0 !important; padding: 0 !important; display: block !important; }
+  body, .app { background: #fff !important; }
+  .doc-paper { border: 0; box-shadow: none; padding: 0; max-width: none; }
+}
+@media (max-width: 700px) { .doc-paper { padding: 22px 18px; } .wsdoc-top, .wsdoc-parties { flex-direction: column; } }

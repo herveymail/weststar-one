@@ -16,6 +16,7 @@ urlpatterns = [
     path("invoices/<int:pk>/", v.invoice, name="portal_invoice"),
     path("autopay/", v.autopay, name="portal_autopay"),
     path("autopay/link/<str:token>/", v.autopay_link, name="portal_autopay_link"),
+    path("<slug:kind>/<int:pk>/pdf/", v.document_pdf, name="portal_pdf"),
     path("quotes/", v.quotes, name="portal_quotes"),
     path("quotes/<int:pk>/", v.quote, name="portal_quote"),
     path("contracts/", v.contracts, name="portal_contracts"),

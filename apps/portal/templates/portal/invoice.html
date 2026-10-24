@@ -2,7 +2,7 @@
 {% block title %}{{ inv.number }}{% endblock %}
 {% block main_extra %} narrow{% endblock %}
 {% block content %}
-<a href="/client-portal/invoices/">← Invoices</a>
+<div class="row"><a href="/client-portal/invoices/" class="grow">← Invoices</a><a class="btn" href="/client-portal/invoice/{{ inv.pk }}/pdf/">Download PDF</a></div>
 {% if msg %}<div class="banner ok" role="status">{{ msg }}</div>{% endif %}
 {% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
 {% if balance > 0 %}

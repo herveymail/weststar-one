@@ -657,3 +657,19 @@ def profile(request):
 
 
 _ = pysecrets
+
+
+@portal_login_required("billing", "billing")
+def document_pdf(request, kind, pk):
+    from apps.billing.documents import filename, pdf
+    pu = request.portal_user
+    model = Invoice if kind == "invoice" else Quote if kind == "quote" else None
+    if model is None:
+        raise Http404
+    doc = get_object_or_404(model, pk=pk, client=pu.client, archived_at__isnull=True)
+    if doc.status == "Draft":
+        raise Http404
+    from django.http import HttpResponse
+    r = HttpResponse(pdf(doc, kind), content_type="application/pdf")
+    r["Content-Disposition"] = f'attachment; filename="{filename(doc, kind)}"'
+    return r

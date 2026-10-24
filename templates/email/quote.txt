@@ -1,0 +1,7 @@
+{% autoescape off %}{{ message }}
+
+{{ doc.number }} · ${{ doc.total }}{% if doc.due_date %} · due {{ doc.due_date|date:"M j, Y" }}{% endif %}
+{{ link }}
+
+— {{ sender }}
+{{ company }}{% endautoescape %}
