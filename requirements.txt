@@ -11,4 +11,4 @@ qrcode==8.2
 gunicorn==23.0.0
 whitenoise==6.9.0
 # Invoice / quote PDFs
-weasyprint==66.0
+weasyprint==70.0

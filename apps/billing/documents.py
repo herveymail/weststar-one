@@ -64,8 +64,12 @@ def pdf(doc, kind: str) -> bytes:
     for name in ("fontTools", "weasyprint"):
         logging.getLogger(name).setLevel(logging.WARNING)
     from weasyprint import HTML
+    from weasyprint.urls import URLFetcher
+
+    # Everything the PDF needs is inline (the logo is a data: URI): never touch the network or the disk.
+    fetcher = URLFetcher(allowed_protocols={"data"}, allow_redirects=False)
     html = render_to_string("billing/pdf.html", context(doc, kind, for_pdf=True))
-    return HTML(string=html, base_url=None).write_pdf()
+    return HTML(string=html, base_url=None, url_fetcher=fetcher).write_pdf()
 
 
 def filename(doc, kind) -> str:
