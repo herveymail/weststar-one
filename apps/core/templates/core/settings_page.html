@@ -11,17 +11,63 @@
   <section class="card set-sec">
     {% if sec.title %}<div class="set-sec-head"><h2>{{ sec.title }}</h2>{% if sec.help %}<p>{{ sec.help }}</p>{% endif %}</div>{% endif %}
     <div class="set-grid">
-    {% for f in sec.fields %}
+    {% for f in sec.fields %}{% with fid="s-"|add:f.key|slugify %}
       {% if f.type == "bool" %}
       <label class="set-switch wide"><span>{{ f.label }}{% if f.help %}<small>{{ f.help }}</small>{% endif %}</span><input type="checkbox" role="switch" name="{{ f.key }}"{% if f.value == "true" %} checked{% endif %}></label>
-      {% elif f.type == "select" and f.options|length <= 3 %}
+      {% elif f.w == "theme" %}
+      <div class="field wide"><span class="label">{{ f.label }}</span>
+        <div class="theme-grid">{% for t in f.themes %}
+          <label class="theme-card{% if f.value == t.0 %} on{% endif %}"><input type="radio" name="{{ f.key }}" value="{{ t.0 }}"{% if f.value == t.0 %} checked{% endif %}>
+            <span class="theme-mini" style="background:{{ t.3.0 }}"><span class="tm-nav" style="background:{{ t.3.1 }}"></span><span class="tm-body"><span class="tm-bar" style="background:{{ t.3.2 }}"></span><span class="tm-card"></span><span class="tm-card short"></span></span></span><span class="theme-name">{{ t.1 }}{% if t.2 == "dark" %} <span class="pill">Dark</span>{% endif %}</span></label>
+        {% endfor %}</div></div>
+      {% elif f.w == "cards" or f.type == "select" and f.choices|length <= 3 and f.w != "segment" %}
       <div class="field wide">{% if f.label != sec.title %}<span class="label">{{ f.label }}</span>{% endif %}
-        <div class="set-cards">{% for o in f.options %}
-          <label class="set-card{% if f.value == o %} on{% endif %}"><span class="set-card-top"><input type="radio" name="{{ f.key }}" value="{{ o }}"{% if f.value == o %} checked{% endif %}>{{ o }}</span>
+        <div class="set-cards">{% for o, lab in f.choices %}
+          <label class="set-card{% if f.value == o %} on{% endif %}"><span class="set-card-top"><input type="radio" name="{{ f.key }}" value="{{ o }}"{% if f.value == o %} checked{% endif %}>{{ lab }}</span>
             {% with h=option_help|get_item:o %}{% if h %}<small>{{ h }}</small>{% endif %}{% endwith %}
             {% if o == "Google Workspace (Gmail API)" and gmail_connected %}<small class="ok">● Connected: {{ gmail_address }}</small>{% endif %}</label>
         {% endfor %}</div>
         {% if f.help %}<span class="help">{{ f.help }}</span>{% endif %}</div>
+      {% elif f.w == "segment" %}
+      <div class="field wide"><span class="label">{{ f.label }}</span>
+        <div class="seg" role="radiogroup" aria-label="{{ f.label }}">{% for o, lab in f.choices %}<label><input type="radio" name="{{ f.key }}" value="{{ o }}"{% if f.value == o %} checked{% endif %}><span>{{ lab }}</span></label>{% endfor %}</div>
+        {% if f.help %}<span class="help">{{ f.help }}</span>{% endif %}</div>
+      {% elif f.w == "days" %}
+      <div class="field wide"><span class="label">{{ f.label }}</span>
+        <div class="day-chips">{% for d, on in f.days %}<label><input type="checkbox" name="{{ f.key }}" value="{{ d }}"{% if on %} checked{% endif %}><span>{{ d }}</span></label>{% endfor %}</div></div>
+      {% elif f.w == "tags" %}
+      <div class="field wide"><span class="label">{{ f.label }}</span>
+        <div class="tag-box">{% for t in f.tags %}<label class="tag" title="Click to remove"><input type="checkbox" name="{{ f.key }}" value="{{ t }}" checked><span>{{ t }}</span><i aria-hidden="true">×</i></label>{% endfor %}
+          <input class="tag-add" name="{{ f.key }}__add" placeholder="+ {{ f.placeholder|default:'Add' }}" aria-label="Add to {{ f.label }}"></div>
+        <span class="help">Click a tag to remove it. Add several at once with commas.{% if f.help %} {{ f.help }}{% endif %}</span></div>
+      {% elif f.w == "color" %}
+      <div class="field wide"><span class="label">{{ f.label }}</span>
+        <div class="swatches">{% for o, lab in f.choices %}<label class="swatch" title="{{ lab }}"><input type="radio" name="{{ f.key }}" value="{{ o }}"{% if f.value == o %} checked{% endif %}><span style="background:{{ o }}"></span><small>{{ lab }}</small></label>{% endfor %}
+          <label class="swatch custom" title="Custom colour"><input type="radio" name="{{ f.key }}" value="__custom__"{% if f.is_custom %} checked{% endif %}><input type="color" name="{{ f.key }}__custom" value="{% if f.is_custom %}{{ f.value }}{% else %}#0A4B85{% endif %}" aria-label="Custom colour"><small>Custom</small></label></div></div>
+      {% elif f.w == "preset" %}
+      <div class="field preset"><label for="{{ fid }}">{{ f.label }}</label>
+        <select id="{{ fid }}" class="select" name="{{ f.key }}">{% if not f.value %}<option value="" selected>Not set</option>{% endif %}
+          {% for o, lab in f.choices %}<option value="{{ o }}"{% if f.value == o %} selected{% endif %}>{{ lab }}</option>{% endfor %}
+          <option value="__custom__"{% if f.is_custom %} selected{% endif %}>Custom…</option></select>
+        <div class="adorn preset-custom"><input class="input" name="{{ f.key }}__custom" value="{% if f.is_custom %}{{ f.value }}{% endif %}" aria-label="Custom value for {{ f.label }}" inputmode="{% if f.type == 'int' %}numeric{% else %}text{% endif %}">{% if f.unit %}<span>{{ f.unit }}</span>{% endif %}</div>
+        {% if f.help %}<span class="help">{{ f.help }}</span>{% endif %}</div>
+      {% elif f.w == "suggest" %}
+      <div class="field"><label for="{{ fid }}">{{ f.label }}</label>
+        <input id="{{ fid }}" class="input" name="{{ f.key }}" value="{{ f.value }}" list="{{ fid }}-list" autocomplete="off">
+        <datalist id="{{ fid }}-list">{% for o, lab in f.choices %}<option value="{{ o }}">{{ lab }}</option>{% endfor %}</datalist>
+        <span class="help">{% if f.help %}{{ f.help }} {% endif %}Start typing or pick a suggestion.</span></div>
+      {% elif f.w == "money" or f.w == "pct" %}
+      <div class="field"><label for="{{ fid }}">{{ f.label }}</label>
+        <div class="adorn">{% if f.w == "money" %}<b>$</b>{% endif %}<input id="{{ fid }}" class="input" name="{{ f.key }}" value="{{ f.value }}" inputmode="decimal" placeholder="0.00"><span>{% if f.unit %}{{ f.unit }}{% elif f.w == "pct" %}%{% endif %}</span></div>
+        {% if f.help %}<span class="help">{{ f.help }}</span>{% endif %}</div>
+      {% elif f.w == "time" %}
+      <div class="field"><label for="{{ fid }}">{{ f.label }}</label><input id="{{ fid }}" class="input" type="time" name="{{ f.key }}" value="{{ f.value }}" step="900"></div>
+      {% elif f.w == "tz" %}
+      <div class="field"><label for="{{ fid }}">{{ f.label }}</label>
+        <select id="{{ fid }}" class="select" name="{{ f.key }}"><option value="">Server default</option>{% for g, opts in f.groups %}<optgroup label="{{ g }}">{% for o, lab in opts %}<option value="{{ o }}"{% if f.value == o %} selected{% endif %}>{{ lab }}</option>{% endfor %}</optgroup>{% endfor %}</select></div>
+      {% elif f.w == "state" %}
+      <div class="field"><label for="{{ fid }}">{{ f.label }}</label>
+        <select id="{{ fid }}" class="select" name="{{ f.key }}"><option value="">Pick a state</option>{% for o, lab in f.choices %}<option{% if f.value == o %} selected{% endif %}>{{ o }}</option>{% endfor %}</select></div>
       {% elif f.type == "image" %}
       <div class="field wide"><span class="label">{{ f.label }}</span>
         <div class="set-logo">
@@ -30,17 +76,22 @@
             {% if f.value %}<label class="check small"><input type="checkbox" name="{{ f.key }}__remove" value="1">Remove the logo</label>{% endif %}</div>
         </div>
         {% if f.help %}<span class="help">{{ f.help }}</span>{% endif %}</div>
+      {% elif f.type == "secret" %}
+      <div class="field"><label for="{{ fid }}">{{ f.label }} {% icon "lock" 12 %}</label>
+        {% if f.is_set %}<details class="secret"><summary><span class="pill good">✓ Saved</span><span class="link">Replace</span></summary>
+          <input id="{{ fid }}" class="input" type="password" autocomplete="new-password" name="{{ f.key }}" placeholder="Paste the new value"></details>
+        {% else %}<input id="{{ fid }}" class="input" type="password" autocomplete="new-password" name="{{ f.key }}" placeholder="Not set">{% endif %}
+        {% if f.help %}<span class="help">{{ f.help }}</span>{% endif %}</div>
       {% else %}
       <div class="field{% if f.type == 'textarea' %} wide{% endif %}">
-        <label for="s-{{ f.key|slugify }}">{{ f.label }}{% if f.type == "secret" %} {% icon "lock" 12 %}{% endif %}</label>
-        {% if f.type == "textarea" %}<textarea id="s-{{ f.key|slugify }}" class="textarea" name="{{ f.key }}" rows="4">{{ f.value }}</textarea>
-        {% elif f.type == "select" %}<select id="s-{{ f.key|slugify }}" class="select" name="{{ f.key }}"><option value="">Default</option>{% for o in f.options %}<option{% if f.value == o %} selected{% endif %}>{{ o }}</option>{% endfor %}</select>
-        {% elif f.type == "secret" %}<input id="s-{{ f.key|slugify }}" class="input" type="password" autocomplete="new-password" name="{{ f.key }}" placeholder="{% if f.is_set %}Saved — type to replace{% else %}Not set{% endif %}">
-        {% else %}<input id="s-{{ f.key|slugify }}" class="input" {% if f.type == "int" %}type="number"{% endif %} name="{{ f.key }}" value="{{ f.value }}">{% endif %}
+        <label for="{{ fid }}">{{ f.label }}</label>
+        {% if f.type == "textarea" %}<textarea id="{{ fid }}" class="textarea" name="{{ f.key }}" rows="4">{{ f.value }}</textarea>
+        {% elif f.type == "select" %}<select id="{{ fid }}" class="select" name="{{ f.key }}"><option value="">Default</option>{% for o, lab in f.choices %}<option value="{{ o }}"{% if f.value == o %} selected{% endif %}>{{ lab }}</option>{% endfor %}</select>
+        {% else %}<input id="{{ fid }}" class="input" {% if f.type == "int" %}type="number"{% endif %} name="{{ f.key }}" value="{{ f.value }}">{% endif %}
         {% if f.help %}<span class="help">{{ f.help }}</span>{% endif %}
       </div>
       {% endif %}
-    {% endfor %}
+    {% endwith %}{% endfor %}
     </div>
   </section>
   {% endfor %}

@@ -14,6 +14,7 @@ from .audit import audit
 from .models import AuditLog, JobRun, Setting
 from .permissions import AREAS, can
 from .settings_catalog import DEFAULTS, SETTINGS, field_specs, find
+from .settings_widgets import decorate
 
 
 # Short descriptions under radio-card choices
@@ -118,12 +119,18 @@ def settings_page(request, page):
                     else:
                         changed.append(f["key"])
                 continue
-            raw = request.POST.get(f["key"], "")
+            from .settings_widgets import read as widget_read
+            raw, problem = widget_read(f, request.POST)
+            if problem:
+                errors.append(problem)
+                continue
+            if raw is None:
+                raw = request.POST.get(f["key"], "")
             if f["type"] == "bool":
                 raw = "true" if request.POST.get(f["key"]) == "on" else "false"
             if f["type"] == "secret" and raw == "":
                 continue  # blank secret = keep the saved one
-            if f["type"] == "int" and raw and not raw.lstrip("-").isdigit():
+            elif f["type"] == "int" and raw and not raw.lstrip("-").isdigit():
                 errors.append(f"{f['label']} must be a whole number.")
                 continue
             if f["type"] == "select" and raw and raw not in f["options"]:
@@ -138,7 +145,7 @@ def settings_page(request, page):
         else:
             if changed:
                 audit(request, "settings", "settings", page, f"Changed {', '.join(changed)}", area="admin",
-                      changes={k: ("[secret changed]" if next(x for x in fields if x["key"] == k)["type"] == "secret" else request.POST.get(k, "")) for k in changed})
+                      changes={k: ("[secret changed]" if next(x for x in fields if x["key"] == k)["type"] == "secret" else Setting.get(k, "")) for k in changed})
             messages.success(request, "Settings saved.")
             return redirect(request.path)
     values = []
@@ -159,7 +166,7 @@ def settings_page(request, page):
             f["value"] = ""
         else:
             f["value"] = row.value if row else DEFAULTS.get(f["key"], "")
-        values.append(f)
+        values.append(decorate(f))
     sections, cur = [], {"title": "", "help": "", "fields": []}
     for f in values:
         if f["type"] == "section":

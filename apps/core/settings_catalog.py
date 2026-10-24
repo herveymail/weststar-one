@@ -59,7 +59,7 @@ SETTINGS = [
             ("billing.contract_notice_days", "Cancellation notice (days)", I), ("billing.contract_early_term_pct", "Early termination fee %", I), ("billing.contract_state", "Governing state", T), ("billing.contract_county", "Court county", T),
             ("billing.contract_indemnification", "Indemnification", TA), ("billing.contract_insurance", "Insurance", TA), ("billing.contract_nonsolicitation", "Non-solicitation", TA), ("billing.contract_email_subject", "Contract email subject", T), ("billing.policy_review_months", "Review policies every (months)", I)]),
         ("payments", "Payments & AutoPay", "Stripe card / ACH payments and AutoPay", [H("Stripe"), ("stripe.publishable_key", "Stripe publishable key", T), ("stripe.secret_key", "Stripe secret key", S), ("stripe.webhook_secret", "Stripe webhook signing secret (whsec_…)", S),
-            H("AutoPay"), ("autopay.enabled", "AutoPay is on", B), ("autopay.timing", "Charge AutoPay invoices", SEL, ["immediate", "due_date"], "immediate = as soon as the invoice is sent; due_date = on the due date"),
+            H("AutoPay"), ("autopay.enabled", "AutoPay is on", B), ("autopay.timing", "Charge AutoPay invoices", SEL, ["immediate", "due_date"]),
             ("autopay.retry_days", "If a charge fails, try again after (days)", I), ("autopay.max_attempts", "Stop after this many tries", I)]),
     ]),
     ("people", "People & access", "Who can sign in and what they can do", [
@@ -72,7 +72,7 @@ SETTINGS = [
         ("msp360", "MSP360 backups", "Backup job sync", [("msp360.login", "API login", T), ("msp360.password", "API password", S)]),
         ("ai", "AI assistant", "Ticket triage, summaries, reply drafts and automatic first responses", [H("Connection"), ("ai.provider", "Provider", SEL, ["none", "gemini", "anthropic", "openai", "ollama"]), ("ai.model", "Model (e.g. gemini-2.5-flash)", T), ("ai.api_key", "API key", S), ("ai.base_url", "Server address (Ollama or OpenAI-compatible only)", T),
             H("On tickets"), ("ai.triage", "Suggest category, priority and queue on new tickets", B), ("ai.summary", "Summarize button", B), ("ai.suggest", "Draft reply button", B),
-            H("Automatic first response", "Emails new email and portal tickets a helpful first reply with things to try"), ("ai.first_response", "Send an automatic first response", B), ("ai.first_response_when", "When", SEL, ["always", "after_hours"]), ("ai.first_response_skip", "Never for tickets mentioning (comma-separated)", T, "security, outage, critical")]),
+            H("Automatic first response", "Emails new email and portal tickets a helpful first reply with things to try"), ("ai.first_response", "Send an automatic first response", B), ("ai.first_response_when", "When", SEL, ["always", "after_hours"]), ("ai.first_response_skip", "Never for tickets mentioning", T)]),
         ("jobs", "Scheduled jobs", "Background jobs and when they last ran", "jobs"),
         ("offsite", "Offsite backups (Wasabi / S3)", "Where nightly backups are copied", [("backup.s3_endpoint", "Endpoint", T), ("backup.s3_region", "Region", T), ("backup.s3_bucket", "Bucket", T), ("backup.s3_prefix", "Folder", T), ("backup.s3_key", "Access key", S), ("backup.s3_secret", "Secret key", S)]),
     ]),
@@ -94,7 +94,7 @@ DEFAULTS = {
     "chat.notify_new_ticket": "true", "chat.notify_client_replies": "true", "email.imap_host": "imap.gmail.com", "email.imap_port": "993",
     "email.imap_folder": "INBOX", "email.smtp_host": "smtp.gmail.com", "email.smtp_port": "587", "email.fetch_enabled": "false",
     "email.provider": "Gmail / SMTP", "autopay.enabled": "true", "autopay.timing": "immediate", "autopay.retry_days": "3", "autopay.max_attempts": "4",
-    "tickets.email_new_subject": "[{number}] {subject}", "tickets.email_reply_subject": "Re: [{number}] {subject}", "tickets.email_closed_subject": "[{number}] Resolved: {subject}",
+    "tickets.email_new_subject": "[{number}] {subject}", "ai.first_response_skip": "security, outage, critical", "tickets.email_reply_subject": "Re: [{number}] {subject}", "tickets.email_closed_subject": "[{number}] Resolved: {subject}",
 }
 
 
