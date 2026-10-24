@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><title>{{ subject }}</title></head>
+<body style="margin:0;padding:0;background:#F2F4F7;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#101828;">
+<span style="display:none;max-height:0;overflow:hidden;opacity:0;">{{ preheader }}</span>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F2F4F7;padding:24px 12px;">
+<tr><td align="center">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;">
+    <tr><td style="padding:4px 4px 16px;">
+      {% if logo_abs %}<img src="{{ logo_abs }}" alt="{{ company }}" style="max-height:44px;max-width:220px;display:block;border:0;">{% else %}<span style="font-size:20px;font-weight:700;color:{{ brand_color }};">{{ company }}</span>{% endif %}
+    </td></tr>
+    <tr><td style="background:#FFFFFF;border-radius:12px;border-top:4px solid {{ brand_color }};padding:28px 28px 24px;box-shadow:0 1px 3px rgba(16,24,40,.08);">
+      {% if meta %}<div style="font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#667085;margin:0 0 14px;">{{ meta }}</div>{% endif %}
+      <div style="font-size:15px;line-height:1.6;color:#101828;">{{ body_html }}</div>
+      {% if cta_url %}
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0 4px;"><tr><td style="border-radius:8px;background:{{ brand_color }};">
+        <a href="{{ cta_url }}" style="display:inline-block;padding:12px 22px;font-size:15px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:8px;">{{ cta_label }}</a>
+      </td></tr></table>
+      {% endif %}
+      {% if reply_note %}<p style="font-size:13px;color:#667085;margin:18px 0 0;">{{ reply_note }}</p>{% endif %}
+    </td></tr>
+    <tr><td style="padding:18px 8px;font-size:12px;line-height:1.6;color:#667085;text-align:center;">
+      <b style="color:#344054;">{{ company }}</b>{% if company_tagline %} · {{ company_tagline }}{% endif %}<br>
+      {% if company_address %}{{ company_address }}<br>{% endif %}
+      {% if company_phone %}{{ company_phone }}{% endif %}{% if company_phone and company_website %} · {% endif %}{% if company_website %}<a href="{{ company_website }}" style="color:#667085;">{{ company_website_short }}</a>{% endif %}
+    </td></tr>
+  </table>
+</td></tr></table>
+</body></html>

@@ -1,5 +1,6 @@
-{{ what }}
+{% autoescape off %}{{ what }}
 
 {{ detail }}
 
 Open it: {{ link }}
+{% endautoescape %}

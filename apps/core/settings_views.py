@@ -84,6 +84,8 @@ def settings_page(request, page):
         return audit_view(request)
     if target == "jobs":
         return render(request, "core/jobs.html", {"jobs": _jobs()})
+    if target == "email_designs":
+        return render(request, "core/email_designs.html", {"samples": [(k, v[0]) for k, v in _samples().items()], "pick": request.GET.get("e", "ticket_reply")})
     if target == "queues":
         from apps.helpdesk.admin_views import queues_page
         return queues_page(request)
@@ -257,3 +259,54 @@ def gmail_connect(request):
     audit(request, "settings", "settings", "email", f"Connected the Google mailbox {addr}", area="admin")
     messages.success(request, f"Connected {addr}. Email now goes out through Google, and email to ticket can read this inbox without an app password. Send a test email to check.")
     return redirect("/settings/email/")
+
+
+def _samples() -> dict:
+    """Example data for previewing each email (nothing is sent)."""
+    from types import SimpleNamespace as N
+
+    from django.conf import settings as dj
+    from django.utils import timezone
+
+    portal = dj.PORTAL_BASE
+    from datetime import timedelta
+    t = N(number="ITDS-00921", subject="Printer won't print", contact_name="Maria Lopez", status="Resolved", resolution="Replaced the stuck print job and updated the driver.",
+          response_due_at=timezone.now() + timedelta(hours=4))
+    m = N(body="Hi Maria,\n\nThanks for the details. Please turn the printer off for 30 seconds, then on again, and try printing a test page.\n\nIf it still says offline, reply here and I'll connect remotely.", author_name="Casey Hervey")
+    inv = N(number="INV-0451", balance="263.26", total="263.26", due_date=timezone.localdate() + timedelta(days=15))
+    c = N(name="Franklin Title Co.", autopay_label="Visa ending 4242")
+    p = N(amount="263.26", paid_on=timezone.localdate(), source="autopay", receipt_url="", invoice=inv)
+    u = N(first_name="Maria", name="Maria Lopez", email="maria@example.com")
+    return {
+        "ticket_reply": ("Reply on a ticket", "email/ticket_reply", "Re: [ITDS-00921] Printer won't print", {"t": t, "m": m, "link": portal + "/tickets/1/"}),
+        "ticket_received": ("We got your request", "email/ticket_received", "[ITDS-00921] Printer won't print", {"t": t, "link": portal + "/tickets/1/"}),
+        "ticket_closed": ("Ticket resolved", "email/ticket_closed", "[ITDS-00921] Resolved: Printer won't print", {"t": t, "link": portal + "/tickets/1/", "footer": "If this isn't fully fixed, just reply to this email."}),
+        "payment_receipt": ("Payment receipt", "email/payment_receipt", "Payment received — INV-0451", {"p": p, "inv": N(number="INV-0451", balance=0), "link": portal + "/invoices/1/", "message": "Thank you for your payment!"}),
+        "autopay_failed": ("AutoPay declined", "email/autopay_failed", "We couldn't charge your Visa ending 4242 — INV-0451", {"inv": inv, "c": c, "message": "Your card was declined.", "give_up": False, "retry_days": 3, "link": portal + "/autopay/"}),
+        "autopay_setup_link": ("AutoPay setup link", "email/autopay_setup_link", "Set up AutoPay", {"c": c, "link": portal + "/autopay/link/x/", "expires": timezone.now() + timedelta(days=7)}),
+        "portal_invite": ("Portal invitation", "email/portal_invite", "You're invited to our client portal", {"u": u, "link": portal + "/link/x/", "invited_by": "Casey Hervey", "minutes": 10080}),
+        "portal_magic": ("Portal sign-in link", "email/portal_magic", "Your sign-in link", {"u": u, "link": portal + "/link/x/", "minutes": 15}),
+        "portal_reset": ("Portal password reset", "email/portal_reset", "Reset your portal password", {"u": u, "link": portal + "/link/x/", "minutes": 60}),
+        "portal_secure_notice": ("New secure message", "email/portal_secure_notice", "You have a new secure message", {"u": u, "link": portal + "/messages/1/"}),
+    }
+
+
+@login_required
+def email_preview(request, name):
+    """One email rendered with example data, shown inside Settings › Email designs."""
+    from django.http import Http404, HttpResponse
+    from django.template.loader import render_to_string
+
+    from . import mail
+    if not can(request.user, "admin"):
+        raise PermissionDenied
+    smp = _samples().get(name)
+    if not smp:
+        raise Http404
+    _label, tpl, subject, ctx = smp
+    ctx = {"company": Setting.get("company.name") or "Weststar MSP", **ctx}
+    html = mail.render_html(tpl, ctx, render_to_string(f"{tpl}.txt", ctx), subject)
+    r = HttpResponse(html)
+    r["Content-Security-Policy"] = "default-src 'none'; img-src 'self' https: data:; style-src 'unsafe-inline'; frame-ancestors 'self'; sandbox"
+    r["X-Frame-Options"] = "SAMEORIGIN"
+    return r

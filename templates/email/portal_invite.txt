@@ -1,4 +1,4 @@
-Hi {{ u.first_name }},
+{% autoescape off %}Hi {{ u.first_name }},
 
 {% if invited_by %}{{ invited_by }} invited you{% else %}You've been invited{% endif %} to the {{ company }} client portal, where you can open and follow support tickets{% if u.can_billing %}, see invoices and quotes{% endif %} and more.
 
@@ -6,3 +6,4 @@ Set up your account (choose a password) here:
 {{ link }}
 
 This link expires in 7 days.
+{% endautoescape %}

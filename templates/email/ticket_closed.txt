@@ -1,4 +1,4 @@
-Hi {{ t.contact_name|default:"there" }},
+{% autoescape off %}Hi {{ t.contact_name|default:"there" }},
 
 Ticket {{ t.number }} ({{ t.subject }}) is now {{ t.status|lower }}.
 {% if t.resolution %}
@@ -10,3 +10,4 @@ What we did:
 See the ticket: {{ link }}
 
 — {{ company }}
+{% endautoescape %}

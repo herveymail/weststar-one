@@ -184,3 +184,7 @@ a.kpi:hover { border-color: var(--accent); }
 .ai-sug-h .small { margin-left: auto; }
 .ai-chips, .ai-act { display: flex; gap: 6px; flex-wrap: wrap; }
 .ai-sum-t { white-space: pre-wrap; font-size: 13px; line-height: 1.5; color: var(--text); }
+.em-wrap { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+.em-list { flex: 0 0 220px; padding: 8px; display: flex; flex-direction: column; gap: 2px; }
+.em-frame { flex: 1 1 480px; min-width: 0; overflow: hidden; }
+.em-frame iframe { width: 100%; height: 720px; border: 0; display: block; }

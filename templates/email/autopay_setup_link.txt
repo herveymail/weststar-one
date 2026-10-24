@@ -1,4 +1,4 @@
-Hi,
+{% autoescape off %}Hi,
 
 {{ company }} invoices for {{ c.name }} can be paid automatically with AutoPay. Use this secure link to put a card or bank account on file:
 
@@ -7,3 +7,4 @@ Hi,
 The link works once and expires on {{ expires|date:"M j, Y" }}. Your card or bank details are entered on Stripe's secure page and are never stored by us.
 
 — {{ company }}
+{% endautoescape %}

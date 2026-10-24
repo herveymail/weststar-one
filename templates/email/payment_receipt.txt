@@ -1,4 +1,4 @@
-{{ message }}
+{% autoescape off %}{{ message }}
 
 We received ${{ p.amount }} for invoice {{ inv.number }}{% if p.source == "autopay" %} (AutoPay){% endif %} on {{ p.paid_on|date:"M j, Y" }}.
 {% if inv.balance > 0 %}Remaining balance: ${{ inv.balance }}{% else %}This invoice is paid in full.{% endif %}
@@ -8,3 +8,4 @@ Card receipt: {{ p.receipt_url }}{% endif %}
 See your invoices: {{ link }}
 
 — {{ company }}
+{% endautoescape %}

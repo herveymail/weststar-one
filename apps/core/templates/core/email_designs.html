@@ -1,0 +1,9 @@
+{% extends "core/settings_frame.html" %}{% load ws %}
+{% block title %}Email designs · Settings{% endblock %}
+{% block settings %}
+<div class="set-head"><div><div class="eyebrow">Email &amp; messaging</div><h1>Email designs</h1><p class="desc">Every email clients get, with your logo and brand colour (Settings › Branding &amp; logo). These are examples — nothing is sent.</p></div></div>
+<div class="em-wrap">
+  <nav class="card em-list" aria-label="Emails">{% for key, label in samples %}<a href="?e={{ key }}" class="set-link{% if key == pick %} on{% endif %}"{% if key == pick %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+  <div class="card em-frame"><iframe src="/settings/email/preview/{{ pick }}/" title="Email preview" sandbox loading="lazy"></iframe></div>
+</div>
+{% endblock %}

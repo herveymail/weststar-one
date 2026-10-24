@@ -4,7 +4,7 @@ class SecurityHeadersMiddleware:
     CSP = (
         "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; "
-        "frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'"
+        "frame-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'"
     )
 
     def __init__(self, get_response):

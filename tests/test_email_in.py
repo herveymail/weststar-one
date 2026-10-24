@@ -291,3 +291,21 @@ def test_google_mailbox_connect_and_send(client, monkeypatch):
     assert inbound.enabled()  # reads the inbox through the connected mailbox, no app password
     r = client.post("/settings/email/test/", {"what": "diagnose"})
     assert r.status_code == 302
+
+
+def test_branded_html_email_and_previews(client):
+    from .helpers import make_user, signed_in
+    Setting.put("security.require_mfa", "nobody")
+    Setting.put("brand.color", "#0A4B85")
+    t = services.create_ticket(subject="Printer <script>", details="", contact_email="m@x.test", contact_name="Maria")
+    from django.template.loader import render_to_string
+    from apps.helpdesk.models import TicketMessage
+    m = TicketMessage(ticket=t, body="Don't <b>panic</b>", author_name="Casey")
+    ctx = {"company": "Weststar", "t": t, "m": m, "link": "https://x.test/p/1/"}
+    html = mail.render_html("email/ticket_reply", ctx, render_to_string("email/ticket_reply.txt", ctx), "Re: x")
+    assert "#0A4B85" in html and "View or reply in the portal" in html and "&lt;b&gt;panic" in html and "<script>" not in html
+    assert "Don't <b>panic</b>" in render_to_string("email/ticket_reply.txt", ctx)  # plain text isn't HTML-escaped
+    signed_in(client, make_user(role="admin"))
+    assert client.get("/settings/email_designs/").status_code == 200
+    r = client.get("/settings/email/preview/payment_receipt/")
+    assert r.status_code == 200 and "sandbox" in r["Content-Security-Policy"] and b"See your invoices" in r.content

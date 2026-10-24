@@ -1,4 +1,4 @@
-Hi,
+{% autoescape off %}Hi,
 
 We tried to charge your {{ c.autopay_label|default:"payment method on file" }} for invoice {{ inv.number }} (${{ inv.balance }}), but it didn't go through:
 
@@ -9,3 +9,4 @@ We tried to charge your {{ c.autopay_label|default:"payment method on file" }} f
 Update your payment method: {{ link }}
 
 — {{ company }}
+{% endautoescape %}

@@ -183,6 +183,52 @@ def from_address() -> str:
     return formataddr((name, addr))
 
 
+CTA = {  # button on the branded HTML version
+    "email/ticket_reply": "View or reply in the portal", "email/ticket_received": "Follow your ticket", "email/ticket_closed": "See the ticket",
+    "email/payment_receipt": "See your invoices", "email/autopay_failed": "Update payment method", "email/autopay_setup_link": "Set up AutoPay",
+    "email/portal_magic": "Sign in", "email/portal_reset": "Choose a new password", "email/portal_invite": "Set up your account",
+    "email/portal_secure_notice": "Read the message", "email/portal_staff_notice": "Open in Weststar One", "email/invoice": "View & pay invoice",
+    "email/quote": "Review & approve quote", "email/contract": "Review & sign",
+}
+
+
+def brand() -> dict:
+    from django.conf import settings
+
+    from .branding import logo_url
+    logo = logo_url()
+    site = Setting.get("company.website", "")
+    return {"brand_color": Setting.get("brand.color", "") or "#0A4B85",
+            "logo_abs": (settings.APP_URL + logo) if logo and not Setting.get("brand.logo", "").endswith(".svg") else "",
+            "company_tagline": Setting.get("company.tagline", ""), "company_address": " ".join(Setting.get("company.address", "").split()),
+            "company_phone": Setting.get("company.phone", ""), "company_website": site,
+            "company_website_short": site.replace("https://", "").replace("http://", "").rstrip("/")}
+
+
+def render_html(template: str, ctx: dict, text: str, subject: str) -> str:
+    """The branded HTML version of every email: logo, brand colour, a button, company footer."""
+    from django.utils.html import linebreaks, urlize
+    from django.utils.safestring import mark_safe
+    try:
+        return render_to_string(f"{template}.html", {**brand(), **ctx, "subject": subject})
+    except Exception:  # noqa: BLE001 — no special design: use the shared layout
+        pass
+    link = ctx.get("link", "")
+    t = ctx.get("t")
+    drop = ("You can also just reply", f"Ticket {getattr(t, 'number', '§')}:")  # shown by the layout already
+    lines = [ln for ln in text.splitlines() if not (link and link in ln) and not ln.strip().startswith(drop)]  # the button replaces the bare link
+    while lines and not lines[-1].strip():
+        lines.pop()
+    body = "\n".join(lines).replace("\n—\n", "\n\n")
+    meta = f"Ticket {t.number} · {t.subject}"[:120] if t is not None and hasattr(t, "number") else ctx.get("meta", "")
+    return render_to_string("email/_layout.html", {
+        **brand(), **ctx, "subject": subject, "meta": meta, "body_html": mark_safe(linebreaks(urlize(body, nofollow=True, autoescape=True))),  # noqa: S308 — escaped by urlize
+        "cta_url": link, "cta_label": ctx.get("cta_label") or CTA.get(template, "Open"),
+        "preheader": " ".join(body.split())[:140],
+        "reply_note": "You can reply to this email." if template.startswith("email/ticket") else "",
+    })
+
+
 def own_addresses() -> set[str]:
     """Our own mailbox addresses (mail from these is never turned into a ticket)."""
     keys = ("email.from_address", "email.smtp_user", "email.support_address", "email.imap_user", "email.gmail_address")
@@ -207,10 +253,7 @@ def send(to, subject: str, template: str, context: dict, cc=None, reply_to=None,
         return False
     ctx = {"company": Setting.get("company.name") or "Weststar MSP", **context}
     text = render_to_string(f"{template}.txt", ctx)
-    try:
-        html = render_to_string(f"{template}.html", ctx)
-    except Exception:  # noqa: BLE001 — a text-only email is fine
-        html = None
+    html = render_html(template, ctx, text, subject)
     support = Setting.get("email.support_address")
     msg = EmailMultiAlternatives(subject=subject.replace("\n", " ")[:200], body=text, from_email=from_address(), to=to, cc=cc,
                                  reply_to=[reply_to or support] if (reply_to or support) else None)

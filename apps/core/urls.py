@@ -55,6 +55,7 @@ urlpatterns = [
     path("settings/import/run/<int:pk>/discard/", lv.import_discard, name="import_discard"),
     path("settings/email/test/", sv.email_test, name="email_test"),
     path("settings/email/google/", sv.gmail_connect, name="gmail_connect"),
+    path("settings/email/preview/<slug:name>/", sv.email_preview, name="email_preview"),
     path("settings/email/google/callback/", sv.gmail_connect, name="gmail_callback"),
     path("settings/<slug:page>/", sv.settings_page, name="settings_page"),
     path("m/messages/", psv.messages_list, name="messages"),
