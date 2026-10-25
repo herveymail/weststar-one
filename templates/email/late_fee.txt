@@ -1,0 +1,14 @@
+{% autoescape off %}Invoice {{ inv.number }} is {{ days_late }} day{{ days_late|pluralize }} past its due date of {{ inv.due_date|date:"M j, Y" }}.
+
+A late fee of ${{ fee }} has been added to this invoice under our payment terms.
+
+New balance due: ${{ balance }}
+{% if over_30 %}
+This account is now more than 30 days past due. Under our terms, accounts in this status may be referred to a third-party collections agency.
+{% endif %}
+Please pay as soon as you can to avoid more fees. If you've already paid, let us know and we'll update your account.
+
+Pay online: {{ link }}
+
+— {{ company }}
+{% endautoescape %}

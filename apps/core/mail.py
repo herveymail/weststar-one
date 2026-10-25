@@ -190,7 +190,7 @@ CTA = {  # button on the branded HTML version
     "email/ticket_reply": "View or reply in the portal", "email/ticket_received": "Follow your ticket", "email/ticket_closed": "See the ticket",
     "email/payment_receipt": "See your invoices", "email/autopay_failed": "Update payment method", "email/autopay_setup_link": "Set up AutoPay",
     "email/portal_magic": "Sign in", "email/portal_reset": "Choose a new password", "email/portal_invite": "Set up your account",
-    "email/portal_secure_notice": "Read the message", "email/portal_staff_notice": "Open in Weststar One", "email/invoice": "View & pay invoice",
+    "email/portal_secure_notice": "Read the message", "email/portal_staff_notice": "Open in Weststar One", "email/invoice": "View & pay invoice", "email/late_fee": "Pay now",
     "email/quote": "Review & approve quote", "email/contract": "Review & sign",
 }
 

@@ -22,6 +22,7 @@ class Client(Record):
     hourly_rate = money()
     tax_rate = models.DecimalField("Tax rate %", max_digits=6, decimal_places=3, null=True, blank=True)
     net_terms = models.PositiveIntegerField("Net terms (days)", default=30)
+    late_fee_exempt = models.BooleanField("No late fees", default=False, help_text="Never add late fees to this client's invoices.")
     sla_response_hours = models.PositiveIntegerField("SLA response (hours)", default=4)
     sla_resolution_hours = models.PositiveIntegerField("SLA resolution (hours)", default=24)
     account_alert = models.CharField(max_length=255, blank=True, help_text="Shown in red on every ticket for this client.")

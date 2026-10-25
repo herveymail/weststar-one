@@ -77,6 +77,7 @@ class Invoice(LinedDocument):
     autopay_error = models.CharField(max_length=255, blank=True, editable=False)
     # Paid in the old app with no matching payment record (kept so the paid total never drops on import).
     paid_outside = models.DecimalField(max_digits=12, decimal_places=2, default=0, editable=False)
+    last_late_fee_on = models.DateField("Last late fee", null=True, blank=True, editable=False)
 
     class Meta:
         ordering = ["-invoice_date", "-id"]

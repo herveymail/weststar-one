@@ -106,6 +106,11 @@ def ai_new_tickets():
     return run_new_tickets()
 
 
+def late_fees():
+    from apps.billing.latefees import run
+    return run()
+
+
 JOBS = {
     "ai-tickets": {"label": "AI: triage and first response for new tickets", "every_minutes": 1, "run": ai_new_tickets},
     "autopay": {"label": "AutoPay: charge cards on file", "every_minutes": 15, "run": autopay},
@@ -114,6 +119,7 @@ JOBS = {
     "wake-snoozed": {"label": "Bring back snoozed tickets", "every_minutes": 5, "run": wake_snoozed},
     "recurring-invoices": {"label": "Recurring invoices", "every_minutes": 60, "run": recurring_invoices},
     "overdue-invoices": {"label": "Mark overdue invoices", "every_minutes": 60, "run": overdue_invoices},
+    "late-fees": {"label": "Late fees on past-due invoices", "every_minutes": 360, "run": late_fees},
     "auto-close": {"label": "Auto-close resolved tickets", "every_minutes": 60, "run": auto_close},
     "cleanup": {"label": "Clean up old sessions and sign-in records", "every_minutes": 1440, "run": cleanup},
     "import-files": {"label": "Delete leftover import uploads (after 24 hours)", "every_minutes": 60, "run": import_files_cleanup},

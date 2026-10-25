@@ -29,7 +29,7 @@ def _logo_src(for_pdf: bool) -> str:
 
 
 def context(doc, kind: str, for_pdf=False) -> dict:
-    co = {k: Setting.get(f"company.{k}", "") for k in ("name", "address", "phone", "email", "website")}
+    co = {k: Setting.get(f"company.{k}", "") for k in ("name", "address", "phone", "email", "website", "license_number")}
     co["email"] = Setting.get("company.billing_email", "") or co["email"]
     co["name"] = co["name"] or "Weststar MSP"
     is_inv = kind == "invoice"
@@ -43,9 +43,19 @@ def context(doc, kind: str, for_pdf=False) -> dict:
         stamp = doc.status.upper()
     pct = Decimal(Setting.get("billing.quote_deposit_pct", "0") or 0) if not is_inv else Decimal(0)
     contact = doc.client.contacts.filter(archived_at__isnull=True, role="Billing").first() or doc.client.contacts.filter(archived_at__isnull=True, is_primary=True).first()
-    terms = Setting.get("billing.invoice_terms" if is_inv else "billing.quote_terms", "")
+    terms = fill(Setting.get("billing.invoice_terms" if is_inv else "billing.quote_terms", ""))
     if not is_inv and Setting.get("billing.quote_disclaimer", ""):
-        terms = (terms + "\n\n" + Setting.get("billing.quote_disclaimer", "")).strip()
+        terms = (terms + "\n\n" + fill(Setting.get("billing.quote_disclaimer", ""))).strip()
+    from django.utils import timezone
+    date_ = doc.invoice_date if is_inv else doc.quote_date
+    due_ = doc.due_date if is_inv else doc.expires_on
+    days = (due_ - date_).days if (date_ and due_) else None
+    terms_label = ("Due on receipt" if days is not None and days <= 0 else f"Net {days}") if is_inv and days is not None else ""
+    overdue = is_inv and balance > 0 and doc.status not in ("Draft", "Void", "Paid") and (doc.status == "Overdue" or (due_ and due_ < timezone.localdate()))
+    state, county = Setting.get("billing.contract_state", ""), Setting.get("billing.contract_county", "")
+    law = ""
+    if state:
+        law = f"This {'invoice' if is_inv else 'quote'} is governed by the laws of the State of {state}" + (f", and any dispute will be heard in {county} County, {state}." if county else ".")
     return {
         "doc": doc, "kind": kind, "title": "Invoice" if is_inv else "Quote", "co": co, "logo_src": _logo_src(for_pdf),
         "accent": Setting.get("brand.color", "") or "#0A4B85", "page_size": "letter",
@@ -55,8 +65,32 @@ def context(doc, kind: str, for_pdf=False) -> dict:
         "deposit_pct": pct, "deposit": (doc.total * pct / 100).quantize(Decimal("0.01")) if pct and doc.total else 0,
         "pay_url": f"{settings.PORTAL_BASE}/invoices/{doc.pk}/" if is_inv else "",
         "instructions": Setting.get("billing.payment_instructions", "") if is_inv else "",
-        "terms": terms, "footer": Setting.get("billing.invoice_footer" if is_inv else "billing.quote_footer", ""),
+        "terms": terms, "terms_label": terms_label, "law": law,
+        "late_notice": fill(Setting.get("billing.late_notice", "")) if overdue else "",
+        "late_policy": late_policy() if is_inv else "", "footer": Setting.get("billing.invoice_footer" if is_inv else "billing.quote_footer", ""),
     }
+
+
+def fill(text: str) -> str:
+    """Put the current late-fee amount and grace period into terms text ({late_fee}, {grace_days})."""
+    if "{" not in (text or ""):
+        return text or ""
+    from .latefees import fee_text, rules
+    r = rules()
+    return text.replace("{late_fee}", fee_text(r)).replace("{grace_days}", str(r["grace"]))
+
+
+def late_policy() -> str:
+    """One plain line about late fees, printed with the terms when late fees are on and the terms don't already say it."""
+    from .latefees import fee_text, rules
+    r = rules()
+    if not r["on"]:
+        return ""
+    terms = Setting.get("billing.invoice_terms", "")
+    if "{late_fee}" in terms:
+        return ""
+    when = f"more than {r['grace']} days past due" if r["grace"] else "not paid by the due date"
+    return f"Late payment: a late fee of {fee_text(r)} is added to any balance {when}" + (", and again every 30 days it stays unpaid." if r["repeat"] else ".")
 
 
 def pdf(doc, kind: str) -> bytes:

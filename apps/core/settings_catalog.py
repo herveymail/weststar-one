@@ -47,12 +47,13 @@ SETTINGS = [
         ("phone", "Phone system", "Yeastar PBX, call sync and recordings", [("phone.yeastar_host", "Yeastar address", T), ("phone.yeastar_client_id", "Client ID", T), ("phone.yeastar_secret", "Client secret", S)]),
     ]),
     ("billing", "Billing & documents", "Invoices, quotes, contracts and getting paid", [
-        ("invoice_defaults", "Invoice defaults", "Terms, notes, payment instructions, email subjects", [("billing.invoice_terms", "Invoice terms", TA), ("billing.invoice_footer", "Invoice footer", TA), ("billing.invoice_note", "Default invoice note", TA),
+        ("invoice_defaults", "Invoice defaults", "Terms, notes, payment instructions, email subjects", [("billing.invoice_terms", "Terms & conditions (printed on every invoice)", TA, "{late_fee} and {grace_days} are filled in from Late fees."), ("billing.invoice_footer", "Invoice footer", TA), ("billing.invoice_note", "Default invoice note", TA),
             ("billing.payment_instructions", "Payment instructions", TA), ("billing.paid_message", "Paid message", T), ("billing.tax_label", "Tax label", T), ("billing.currency_symbol", "Currency symbol", T),
             ("billing.invoice_email_subject", "Invoice email subject", T), ("billing.invoice_reminder_subject", "Reminder email subject", T), ("billing.reminder_days", "Send reminder after (days)", I),
             ("billing.afterhours_rate", "After-hours hourly rate", T), ("billing.afterhours_minimum", "After-hours minimum charge", T)]),
-        ("late_fees", "Late fees", "Late fee amount, grace period and notice", [("billing.late_fee_enabled", "Charge late fees", B), ("billing.late_fee_type", "Late fee type", SEL, ["flat", "percent"]), ("billing.late_fee_flat", "Flat fee", T), ("billing.late_fee_pct", "Percent per month", T),
-            ("billing.late_fee_grace_days", "Grace period (days)", I), ("billing.late_notice", "Late notice text", TA)]),
+        ("late_fees", "Late fees", "Late fee amount, grace period and notice", [("billing.late_fee_enabled", "Charge late fees automatically", B, "Checked every few hours. The fee is added to the invoice as a line, the client is emailed and a note goes on their account."), ("billing.late_fee_type", "Late fee type", SEL, ["flat", "percent"]), ("billing.late_fee_flat", "Flat fee", T), ("billing.late_fee_pct", "Percent per month", T),
+            ("billing.late_fee_grace_days", "Charge once an invoice is more than", I), ("billing.late_fee_repeat", "Add another fee every 30 days while it stays unpaid", B),
+            ("billing.late_notice", "Late notice (printed in red on overdue invoices)", TA, "{late_fee} and {grace_days} are filled in with the amounts above.")]),
         ("quote_defaults", "Quote defaults", "Terms, disclaimer, acceptance text", [("billing.quote_terms", "Quote terms", TA), ("billing.quote_disclaimer", "Disclaimer", TA), ("billing.quote_acceptance_text", "Acceptance text", TA), ("billing.quote_footer", "Quote footer", T),
             ("billing.quote_valid_days", "Quotes are good for (days)", I), ("billing.quote_deposit_pct", "Deposit %", I), ("billing.quote_email_subject", "Quote email subject", T)]),
         ("contract_defaults", "Contract defaults", "Standard terms and legal clauses", [("billing.contract_terms", "Default terms", TA), ("billing.contract_months", "Default length (months)", I), ("billing.contract_auto_renew", "Renew automatically", B),
@@ -94,7 +95,7 @@ DEFAULTS = {
     "chat.notify_new_ticket": "true", "chat.notify_client_replies": "true", "email.imap_host": "imap.gmail.com", "email.imap_port": "993",
     "email.imap_folder": "INBOX", "email.smtp_host": "smtp.gmail.com", "email.smtp_port": "587", "email.fetch_enabled": "false",
     "email.provider": "Gmail / SMTP", "autopay.enabled": "true", "autopay.timing": "immediate", "autopay.retry_days": "3", "autopay.max_attempts": "4",
-    "tickets.email_new_subject": "[{number}] {subject}", "ai.first_response_skip": "security, outage, critical", "tickets.email_reply_subject": "Re: [{number}] {subject}", "tickets.email_closed_subject": "[{number}] Resolved: {subject}",
+    "tickets.email_new_subject": "[{number}] {subject}", "billing.late_fee_repeat": "true", "ai.first_response_skip": "security, outage, critical", "tickets.email_reply_subject": "Re: [{number}] {subject}", "tickets.email_closed_subject": "[{number}] Resolved: {subject}",
 }
 
 

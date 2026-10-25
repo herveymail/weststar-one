@@ -29,7 +29,7 @@ from apps.billing.models import (
 )
 from apps.core.audit import audit
 from apps.core.crypto import encrypt
-from apps.core.models import Counter
+from apps.core.models import Counter, Setting
 from apps.crm.models import Asset, Client, ClientNote, Contact, Network, Project
 from apps.helpdesk.models import Queue, Ticket, TicketMessage, TimeEntry
 from apps.hr.models import Employee, TimeclockEntry, TimeOffRequest
@@ -396,7 +396,7 @@ class Importer:
             "industry": s(r.get("client_industry")), "phone": s(r.get("client_phone")), "email": email(r.get("client_email")), "website": url(r.get("client_website")),
             "address": s(r.get("client_address")), "city": s(r.get("client_city")), "state": s(r.get("client_state")), "zip": s(r.get("client_zip")),
             "account_manager": R("users", r.get("client_account_manager")), "hourly_rate": num(r.get("client_rate")), "tax_rate": num(r.get("client_tax_rate")),
-            "net_terms": int_(r.get("client_net_terms")) or 30, "sla_response_hours": int_(r.get("client_sla_response_hours")) or 4,
+            "net_terms": int_(r.get("client_net_terms")) or 30, "late_fee_exempt": yes(r.get("client_late_fee_exempt")), "sla_response_hours": int_(r.get("client_sla_response_hours")) or 4,
             "sla_resolution_hours": int_(r.get("client_sla_resolution_hours")) or 24,
             "account_alert": s(r.get("client_alert_note"), 255) or (f"Account flag: {r['client_account_alert']}" if r.get("client_account_alert") not in (None, "", "none") else None),
             "notes": txt(r.get("client_notes")), "_archived": yes(r.get("client_archived")), "created_at": ts(r.get("client_created_at")),
@@ -486,8 +486,11 @@ class Importer:
                     "invoice_date": day(r.get("invoice_date")) or dt.date(2000, 1, 1), "due_date": day(r.get("invoice_due_date")) or day(r.get("invoice_date")) or dt.date(2000, 1, 1),
                     "tax_rate": num(r.get("invoice_tax_rate")), "subtotal": sub if sub and sub > 0 else total - tax, "tax_amount": tax, "total": total,
                     "amount_paid": num(r.get("invoice_amount_paid")) or Decimal(0), "scope": txt(r.get("invoice_scope")), "notes": txt(r.get("invoice_notes")),
+                    "last_late_fee_on": day(r.get("invoice_last_late_fee_at")),
                     "created_at": ts(r.get("invoice_created_at"))}
         self.upsert("invoices", Invoice, self.read("invoices", "invoice_id"), "invoice_id", invoice)
+        if not self.dry_run:
+            Setting.put("import.late_fees_synced", timezone.now().isoformat())
         self.lines("invoice lines", InvoiceLine, "invoice", "invoices", self.read("invoice_items", "item_id"), "item_invoice_id", lambda r: {
             "description": s(r.get("item_description")) or "—", "qty": num(r.get("item_qty")) or Decimal(1), "rate": num(r.get("item_rate")) or Decimal(0),
             "taxable": yes(r.get("item_tax")), "sort_order": int_(r.get("item_sort_order")) or 0,

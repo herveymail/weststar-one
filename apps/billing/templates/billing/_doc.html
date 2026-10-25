@@ -3,7 +3,7 @@
   <div class="wsdoc-top">
     <div class="wsdoc-from">
       {% if logo_src %}<img src="{{ logo_src }}" alt="{{ co.name }}" class="wsdoc-logo">{% else %}<div class="wsdoc-coname">{{ co.name }}</div>{% endif %}
-      <div class="wsdoc-small">{% if logo_src %}<b>{{ co.name }}</b><br>{% endif %}{{ co.address|linebreaksbr }}{% if co.phone %}<br>{{ co.phone }}{% endif %}{% if co.email %}<br>{{ co.email }}{% endif %}{% if co.website %}<br>{{ co.website }}{% endif %}</div>
+      <div class="wsdoc-small">{% if logo_src %}<b>{{ co.name }}</b><br>{% endif %}{{ co.address|linebreaksbr }}{% if co.phone %}<br>{{ co.phone }}{% endif %}{% if co.email %}<br>{{ co.email }}{% endif %}{% if co.website %}<br>{{ co.website }}{% endif %}{% if co.license_number %}<br>License #{{ co.license_number }}{% endif %}</div>
     </div>
     <div class="wsdoc-title">
       <div class="wsdoc-kind">{{ title }}</div>
@@ -11,6 +11,7 @@
         <tr><th>{{ title }} #</th><td>{{ doc.number|default:"Draft" }}</td></tr>
         <tr><th>Date</th><td>{{ date|date:"M j, Y" }}</td></tr>
         {% if due %}<tr><th>{% if kind == "quote" %}Valid until{% else %}Due{% endif %}</th><td>{{ due|date:"M j, Y" }}</td></tr>{% endif %}
+        {% if terms_label %}<tr><th>Terms</th><td>{{ terms_label }}</td></tr>{% endif %}
         {% if kind == "invoice" %}<tr><th>Balance due</th><td><b>{{ balance|dollars }}</b></td></tr>{% endif %}
       </table>
     </div>
@@ -37,6 +38,10 @@
   {% if pay_url and balance > 0 %}<div class="wsdoc-pay"><b>Pay online:</b> {{ pay_url }}</div>{% endif %}
   {% if doc.notes %}<div class="wsdoc-block"><div class="wsdoc-lbl">Notes</div><div class="wsdoc-pre">{{ doc.notes }}</div></div>{% endif %}
   {% if instructions %}<div class="wsdoc-block"><div class="wsdoc-lbl">How to pay</div><div class="wsdoc-pre">{{ instructions }}</div></div>{% endif %}
-  {% if terms %}<div class="wsdoc-block"><div class="wsdoc-lbl">Terms</div><div class="wsdoc-pre wsdoc-fine">{{ terms }}</div></div>{% endif %}
+  {% if late_notice %}<div class="wsdoc-late"><b>Past due.</b> {{ late_notice }}</div>{% endif %}
+  {% if terms or late_policy or law %}<div class="wsdoc-block"><div class="wsdoc-lbl">Terms &amp; conditions</div>
+    {% if late_policy %}<div class="wsdoc-pre wsdoc-fine"><b>{{ late_policy }}</b></div>{% endif %}
+    {% if terms %}<div class="wsdoc-pre wsdoc-fine">{{ terms }}</div>{% endif %}
+    {% if law %}<div class="wsdoc-pre wsdoc-fine">{{ law }}</div>{% endif %}</div>{% endif %}
   {% if footer %}<div class="wsdoc-foot">{{ footer }}</div>{% endif %}
 </div>

@@ -64,7 +64,7 @@ MAP = {
     "invoice_reminder_days": ("billing.reminder_days", num), "invoice_grace_days": ("billing.late_fee_grace_days", num),
     "invoice_late_fee_enabled": ("billing.late_fee_enabled", b), "invoice_late_fee_type": ("billing.late_fee_type", same),
     "invoice_late_fee_flat": ("billing.late_fee_flat", num), "invoice_late_fee_pct": ("billing.late_fee_pct", num),
-    "invoice_late_notice": ("billing.late_notice", same), "default_invoice_note": ("billing.invoice_note", same),
+    "invoice_late_notice": ("billing.late_notice", same), "invoice_late_fee_recurring": ("billing.late_fee_repeat", b), "default_invoice_note": ("billing.invoice_note", same),
     "quote_terms": ("billing.quote_terms", same), "quote_disclaimer": ("billing.quote_disclaimer", same), "quote_footer_text": ("billing.quote_footer", same),
     "quote_acceptance_text": ("billing.quote_acceptance_text", same), "quote_valid_days": ("billing.quote_valid_days", num),
     "quote_deposit_pct": ("billing.quote_deposit_pct", num), "quote_email_subject": ("billing.quote_email_subject", same),

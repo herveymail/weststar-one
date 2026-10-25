@@ -100,7 +100,7 @@ WIDGETS = {
     "billing.late_fee_type": {"kind": "cards"},
     "billing.late_fee_flat": {"kind": "money"},
     "billing.late_fee_pct": {"kind": "pct", "unit": "% / month"},
-    "billing.late_fee_grace_days": {"kind": "preset", "presets": [("0", "None")] + _n("days", 5, 10, 15, 30), "unit": "days"},
+    "billing.late_fee_grace_days": {"kind": "preset", "presets": [("0", "Any day past due")] + [(str(v), f"{v} days past due") for v in (5, 10, 15, 30)], "unit": "days past due"},
     "billing.quote_valid_days": {"kind": "preset", "presets": _n("days", 7, 14, 30, 60, 90), "unit": "days"},
     "billing.quote_deposit_pct": {"kind": "preset", "presets": [("0", "No deposit"), ("25", "25%"), ("50", "50%"), ("100", "100% up front")], "unit": "%"},
     "billing.contract_months": {"kind": "preset", "presets": [("1", "Month to month"), ("12", "12 months"), ("24", "24 months"), ("36", "36 months")], "unit": "months"},
