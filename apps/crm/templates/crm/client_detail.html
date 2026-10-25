@@ -36,6 +36,16 @@
 </div>
 {% elif tab == "Tickets" %}
 <section class="card" style="overflow:hidden">{% include "crm/_ticket_rows.html" %}</section>
+{% elif tab == "Backups" %}
+{% if backups.companies %}
+<p class="muted" style="margin:0">MSP360 compan{{ backups.companies|length|pluralize:"y,ies" }}: {{ backups.companies|join:", " }} · {{ backups.computers|length }} computer{{ backups.computers|length|pluralize }}{% if backups.failed %} · <b style="color:var(--crit)">{{ backups.failed }} failed</b>{% endif %} · <a href="/backups/?show=all">All backups</a></p>
+<section class="card" style="overflow:hidden"><div class="table-wrap"><table class="grid"><thead><tr><th>Status</th><th>Computer · plan</th><th>Last run</th><th>Next run</th><th>Ticket</th></tr></thead><tbody>
+  {% for p in backups.plans %}<tr><td><span class="pill {{ p.tone }}">{{ p.status_label }}</span></td>
+    <td><div class="strong">{{ p.computer }}</div><div class="small muted">{{ p.name }}</div>{% if p.error %}<div class="small" style="color:var(--crit)">{{ p.error|truncatechars:160 }}</div>{% endif %}</td>
+    <td class="small">{{ p.last_start|date:"M j, g:i A" }}</td><td class="small">{{ p.next_start|date:"M j, g:i A" }}</td>
+    <td class="small">{% if p.ticket %}<a href="/tickets/{{ p.ticket_id }}/">{{ p.ticket.number }}</a>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="5" class="empty">No backup plans for this client yet.</td></tr>{% endfor %}</tbody></table></div></section>
+{% else %}<div class="later"><b style="display:block;color:var(--text);font-size:15px;margin-bottom:4px">No MSP360 backups linked</b>Match this client to its MSP360 company in <a href="/backups/?show=companies">Backups › Companies &amp; clients</a>.</div>{% endif %}
 {% elif tab == "Portal" %}
 <div hx-get="/clients/{{ c.pk }}/portal/" hx-trigger="load" hx-swap="outerHTML"><div class="empty">Loading…</div></div>
 {% elif tab == "Files" %}

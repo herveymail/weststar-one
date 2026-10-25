@@ -40,7 +40,7 @@ class Queue(models.Model):
     def __str__(self):
         return self.name
 PAUSED_STATUSES = ["Waiting on client", "Waiting on vendor"]
-SOURCES = ["Manual", "Email", "Portal", "Phone", "Alert", "Import"]
+SOURCES = ["Manual", "Email", "Portal", "Phone", "Alert", "MSP360", "Import"]
 # Minutes to first response when the client has no tighter SLA of its own.
 DEFAULT_RESPONSE_MINUTES = {"Critical": 60, "High": 240, "Medium": 1440, "Low": 4320}
 

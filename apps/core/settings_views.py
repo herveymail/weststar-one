@@ -64,6 +64,7 @@ def _status() -> dict:
     st["portal"] = ("On", "good") if Setting.get("portal.enabled", "true") != "false" else ("Off", "")
     st["google_chat"] = ("On", "good") if Setting.get("chat.webhook_url", "") else ("Off", "")
     st["branding"] = ("Logo set", "good") if Setting.get("brand.logo", "") else ("No logo yet", "")
+    st["msp360"] = (("Error", "bad") if Setting.get("msp360.last_error", "") else ("On", "good") if Setting.get("msp360.enabled", "") == "true" else ("Off", "")) if Setting.get("msp360.login", "") else ("Not set up", "")
     return st
 
 
@@ -93,6 +94,9 @@ def settings_page(request, page):
     if target == "portal_groups":
         from apps.portal.staff_views import groups_page
         return groups_page(request)
+    if target == "integrations":
+        from apps.integrations.views import hub
+        return hub(request)
     if target == "old_settings":
         from apps.legacy.views import old_settings
         return old_settings(request)
@@ -188,6 +192,11 @@ def settings_page(request, page):
     if item[0] == "signin":
         from apps.accounts.google import redirect_uri
         ctx["google_redirect"] = redirect_uri()
+    if item[0] == "msp360":
+        import json as _json
+
+        from apps.integrations import msp360
+        ctx["msp"] = {"summary": msp360.summary(), "last": _json.loads(Setting.get("msp360.last_summary", "") or "{}")}
     if item[0] == "email_in":
         from apps.helpdesk.models import InboundEmail
         ctx["inbound"] = InboundEmail.objects.select_related("ticket")[:25]

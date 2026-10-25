@@ -1,0 +1,20 @@
+{% extends "core/settings_frame.html" %}{% load ws %}
+{% block title %}Integrations · Settings{% endblock %}
+{% block settings %}
+<div class="set-head"><div><div class="eyebrow">Integrations &amp; automation</div><h1>All integrations</h1>
+  <p class="desc">Every app Weststar One connects to, whether it's working, and when it last synced.</p></div></div>
+<div class="int-grid">
+{% for c in cards %}
+  <section class="card int-card{% if not c.built %} int-later{% endif %}" id="int-{{ c.key }}">
+    <div class="int-top"><h2>{{ c.name }}</h2><span class="pill {{ c.tone }}">{% if c.tone == "good" %}● {% endif %}{{ c.state }}</span></div>
+    <p class="int-desc">{{ c.desc }}</p>
+    {% if c.detail %}<p class="int-detail">{{ c.detail|linebreaksbr }}</p>{% endif %}
+    <div class="int-actions">
+      {% if can_manage %}{% for label, url in c.actions %}<form method="post" action="{{ url }}">{% csrf_token %}<input type="hidden" name="next" value="/settings/integrations/#int-{{ c.key }}"><button class="btn small{% if forloop.last %} primary{% endif %}">{{ label }}</button></form>{% endfor %}{% endif %}
+      {% if c.open_url %}<a class="btn small" href="{{ c.open_url }}">Open</a>{% endif %}
+      {% if c.settings_url %}<a class="btn small" href="{{ c.settings_url }}">Settings</a>{% endif %}
+    </div>
+  </section>
+{% endfor %}
+</div>
+{% endblock %}

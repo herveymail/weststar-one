@@ -271,3 +271,14 @@ details.secret summary .link { color: var(--accent); font-weight: 500; }
 details.secret[open] summary .link { display: none; }
 .set-card:has(input:checked) { border: 2px solid var(--accent); padding: 11px 13px; background: var(--sel); }
 .set-card.on:has(input:not(:checked)) { border: 1px solid var(--line); padding: 12px 14px; background: var(--surface); }
+
+/* Settings › Integrations */
+.int-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.int-card { padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; }
+.int-card.int-later { background: var(--surface2); border-style: dashed; }
+.int-top { display: flex; gap: 10px; align-items: flex-start; }
+.int-top h2 { flex: 1; font-size: 16px; }
+.int-desc { margin: 0; color: var(--muted); font-size: 13px; }
+.int-detail { margin: 0; font-size: 13px; padding: 8px 10px; border-radius: var(--r); background: var(--surface2); border: 1px solid var(--line); }
+.int-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; padding-top: 6px; }
+.kpi-v.bad { color: var(--crit); }

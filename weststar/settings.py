@@ -98,6 +98,7 @@ INSTALLED_APPS = [
     "apps.files",
     "apps.portal",
     "apps.legacy",
+    "apps.integrations",
 ]
 
 MIDDLEWARE = [

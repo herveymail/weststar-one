@@ -1,3 +1,4 @@
+from django.shortcuts import redirect
 from django.urls import path
 
 from apps.accounts import views as acc
@@ -8,6 +9,7 @@ from apps.hr import views as hr
 from apps.legacy import views as lv
 from apps.portal import staff_views as psv
 from apps.billing import views as bv
+from apps.integrations import views as iv
 
 from . import branding
 from . import settings_views as sv
@@ -66,6 +68,11 @@ urlpatterns = [
     path("billing/<slug:kind>/<int:pk>/", bv.document, name="document"),
     path("billing/<slug:kind>/<int:pk>/pdf/", bv.document_pdf, name="document_pdf"),
     path("billing/<slug:kind>/<int:pk>/send/", bv.document_send, name="document_send"),
+    path("backups/", iv.backups, name="backups"),
+    path("backups/sync/", iv.backups_sync, name="backups_sync"),
+    path("backups/test/", iv.backups_test, name="backups_test"),
+    path("backups/companies/", iv.backups_companies, name="backups_companies"),
+    path("m/backups/", lambda r: redirect("/backups/")),
     path("m/<slug:slug>/", views.module_list, name="module"),
     path("m/<slug:slug>/new/", views.module_edit, name="module_new"),
     path("m/<slug:slug>/<int:pk>/", views.module_edit, name="module_edit"),

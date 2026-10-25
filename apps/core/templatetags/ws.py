@@ -207,3 +207,13 @@ def split_pairs(value):
 def can_flag(obj, perm):
     """{{ group|can_flag:"billing" }} → group.can_billing"""
     return bool(getattr(obj, f"can_{perm}", False)) if obj else False
+
+
+@register.filter
+def parse_iso(value):
+    """'2026-10-24T21:00:00+00:00' (as stored in settings) → datetime, for |timesince."""
+    from datetime import datetime
+    try:
+        return datetime.fromisoformat(str(value))
+    except (TypeError, ValueError):
+        return None

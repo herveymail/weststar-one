@@ -113,6 +113,11 @@ WIDGETS = {
     # People
     "google.domains": {"kind": "tags", "sep": ", ", "placeholder": "weststarmsp.com"},
     "security.idle_minutes": {"kind": "preset", "presets": _mins(15, 30, 60, 120, 240, 480), "unit": "minutes"},
+    # MSP360
+    "msp360.ticket_priority": {"kind": "segment"},
+    "msp360.queue": {"kind": "queue"},
+    "msp360.overdue_hours": {"kind": "preset", "presets": _n("hours", 24, 36, 48, 72), "unit": "hours"},
+    "msp360.base_url": {"kind": "suggest", "presets": [("https://api.mspbackups.com", "MSP360 (standard)")]},
     # AI
     "ai.provider": {"kind": "cards"},
     "ai.first_response_skip": {"kind": "tags", "sep": ", ", "placeholder": "Add a word"},
@@ -166,6 +171,9 @@ def decorate(f: dict) -> dict:
         f["groups"] = tz_groups()
     elif kind == "state":
         f["choices"] = [(s, s) for s in US_STATES]
+    elif kind == "queue":
+        from apps.helpdesk.models import Queue
+        f["choices"] = [("", "Use queue routing rules")] + [(str(q.pk), q.name) for q in Queue.objects.all()]
     elif kind == "theme":
         from .themes import THEMES
         f["themes"] = THEMES
@@ -192,6 +200,9 @@ def read(f: dict, post) -> tuple[str | None, str]:
     if kind == "days":
         picked = [d for d in DAYS if d in post.getlist(key)]
         return ",".join(picked), ""
+    if kind == "queue":
+        raw = post.get(key, "").strip()
+        return (raw if raw.isdigit() or raw == "" else None), ("" if raw.isdigit() or raw == "" else f"{f['label']}: pick a queue.")
     if kind not in ("preset", "color", "time", "tz", "money", "pct", "state", "suggest"):
         return None, ""
     raw = post.get(key, "").strip()

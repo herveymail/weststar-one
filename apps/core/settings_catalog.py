@@ -69,8 +69,13 @@ SETTINGS = [
         ("signin", "Sign-in & 2FA", "Google Workspace sign-in, two-factor rules, session timeout", [("google.client_id", "Google OAuth client ID", T), ("google.client_secret", "Google OAuth client secret", S), ("google.domains", "Allowed Google Workspace domains (comma-separated, e.g. weststarmsp.com, dsotv.com)", T), ("google.counts_as_2fa", "Google sign-in counts as two-factor (turn on 2-Step Verification enforcement in Google Admin)", SEL, ["yes", "no"]), ("security.password_login", "Password sign-in (once Google is set up)", SEL, ["everyone", "admins"], "admins = only admins can still use a password, as a backup if Google is down"), ("security.require_mfa", "Require two-factor sign-in for", SEL, ["privileged", "everyone", "nobody"], "privileged = admins, managers and anyone with H/R access (recommended)"), ("security.idle_minutes", "Sign out after idle (minutes)", I)]),
     ]),
     ("integrations", "Integrations & automation", "Other apps, AI and scheduled jobs", [
-        ("rmm", "Datto RMM", "Device and alert sync", [("rmm.api_url", "API URL", T), ("rmm.api_key", "API key", S), ("rmm.api_secret", "API secret", S)]),
-        ("msp360", "MSP360 backups", "Backup job sync", [("msp360.login", "API login", T), ("msp360.password", "API password", S)]),
+        ("integrations", "All integrations", "Every connected app at a glance: status, last sync, test and sync buttons", "integrations"),
+        ("msp360", "MSP360 backups", "Backup health per client, tickets for failed plans", [H("Connection", "API login and password from MSP360 › Settings › General › API credentials (not your portal sign-in)"),
+            ("msp360.enabled", "Sync MSP360 every 15 minutes", B), ("msp360.login", "API login", T), ("msp360.password", "API password", S), ("msp360.base_url", "API address", T),
+            H("Tickets for failed backups"), ("msp360.ticket_on_failure", "Open a ticket when a backup plan fails", B), ("msp360.ticket_priority", "Ticket priority", SEL, ["Critical", "High", "Medium", "Low"]),
+            ("msp360.queue", "Put the ticket in", T), ("msp360.overdue_hours", "Treat an overdue plan as failed after", I),
+            ("msp360.auto_resolve", "Resolve the ticket automatically when the backup succeeds again", B)]),
+        ("rmm", "Datto RMM", "Device and alert sync (being rebuilt)", [("rmm.api_url", "API URL", T), ("rmm.api_key", "API key", S), ("rmm.api_secret", "API secret", S)]),
         ("ai", "AI assistant", "Ticket triage, summaries, reply drafts and automatic first responses", [H("Connection"), ("ai.provider", "Provider", SEL, ["none", "gemini", "anthropic", "openai", "ollama"]), ("ai.model", "Model (e.g. gemini-2.5-flash)", T), ("ai.api_key", "API key", S), ("ai.base_url", "Server address (Ollama or OpenAI-compatible only)", T),
             H("On tickets"), ("ai.triage", "Suggest category, priority and queue on new tickets", B), ("ai.summary", "Summarize button", B), ("ai.suggest", "Draft reply button", B),
             H("Automatic first response", "Emails new email and portal tickets a helpful first reply with things to try"), ("ai.first_response", "Send an automatic first response", B), ("ai.first_response_when", "When", SEL, ["always", "after_hours"]), ("ai.first_response_skip", "Never for tickets mentioning", T)]),
@@ -95,7 +100,7 @@ DEFAULTS = {
     "chat.notify_new_ticket": "true", "chat.notify_client_replies": "true", "email.imap_host": "imap.gmail.com", "email.imap_port": "993",
     "email.imap_folder": "INBOX", "email.smtp_host": "smtp.gmail.com", "email.smtp_port": "587", "email.fetch_enabled": "false",
     "email.provider": "Gmail / SMTP", "autopay.enabled": "true", "autopay.timing": "immediate", "autopay.retry_days": "3", "autopay.max_attempts": "4",
-    "tickets.email_new_subject": "[{number}] {subject}", "billing.late_fee_repeat": "true", "ai.first_response_skip": "security, outage, critical", "tickets.email_reply_subject": "Re: [{number}] {subject}", "tickets.email_closed_subject": "[{number}] Resolved: {subject}",
+    "tickets.email_new_subject": "[{number}] {subject}", "billing.late_fee_repeat": "true", "msp360.base_url": "https://api.mspbackups.com", "msp360.ticket_on_failure": "true", "msp360.auto_resolve": "true", "msp360.ticket_priority": "High", "msp360.overdue_hours": "36", "ai.first_response_skip": "security, outage, critical", "tickets.email_reply_subject": "Re: [{number}] {subject}", "tickets.email_closed_subject": "[{number}] Resolved: {subject}",
 }
 
 

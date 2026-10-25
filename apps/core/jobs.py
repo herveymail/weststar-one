@@ -106,6 +106,16 @@ def ai_new_tickets():
     return run_new_tickets()
 
 
+def msp360_sync():
+    from apps.integrations import msp360
+    if Setting.get("msp360.enabled", "false") != "true" or not msp360.configured():
+        return {"skipped": "MSP360 sync is off or not set up"}
+    r = msp360.sync()
+    if not r["ok"]:
+        raise RuntimeError(r["error"])
+    return r
+
+
 def late_fees():
     from apps.billing.latefees import run
     return run()
@@ -119,6 +129,7 @@ JOBS = {
     "wake-snoozed": {"label": "Bring back snoozed tickets", "every_minutes": 5, "run": wake_snoozed},
     "recurring-invoices": {"label": "Recurring invoices", "every_minutes": 60, "run": recurring_invoices},
     "overdue-invoices": {"label": "Mark overdue invoices", "every_minutes": 60, "run": overdue_invoices},
+    "msp360": {"label": "MSP360: sync backups, tickets for failed plans", "every_minutes": 15, "run": msp360_sync},
     "late-fees": {"label": "Late fees on past-due invoices", "every_minutes": 360, "run": late_fees},
     "auto-close": {"label": "Auto-close resolved tickets", "every_minutes": 60, "run": auto_close},
     "cleanup": {"label": "Clean up old sessions and sign-in records", "every_minutes": 1440, "run": cleanup},

@@ -65,6 +65,9 @@
       {% elif f.w == "tz" %}
       <div class="field"><label for="{{ fid }}">{{ f.label }}</label>
         <select id="{{ fid }}" class="select" name="{{ f.key }}"><option value="">Server default</option>{% for g, opts in f.groups %}<optgroup label="{{ g }}">{% for o, lab in opts %}<option value="{{ o }}"{% if f.value == o %} selected{% endif %}>{{ lab }}</option>{% endfor %}</optgroup>{% endfor %}</select></div>
+      {% elif f.w == "queue" %}
+      <div class="field"><label for="{{ fid }}">{{ f.label }}</label>
+        <select id="{{ fid }}" class="select" name="{{ f.key }}">{% for o, lab in f.choices %}<option value="{{ o }}"{% if f.value == o %} selected{% endif %}>{{ lab }}</option>{% endfor %}</select></div>
       {% elif f.w == "state" %}
       <div class="field"><label for="{{ fid }}">{{ f.label }}</label>
         <select id="{{ fid }}" class="select" name="{{ f.key }}"><option value="">Pick a state</option>{% for o, lab in f.choices %}<option{% if f.value == o %} selected{% endif %}>{{ o }}</option>{% endfor %}</select></div>
@@ -119,6 +122,20 @@
     <p class="small muted" style="margin:0">IPv6 “Network is unreachable” is normal for servers without IPv6 and doesn't matter as long as IPv4 is open.</p>{% endif %}
   <p class="small muted" style="margin:0"><b>Gmail / SMTP:</b> smtp.gmail.com, port 587, the full mailbox address as the username, and an <b>app password</b> (Google Account › Security › 2-Step Verification › App passwords).<br>
     <b>SMTP2GO (HTTPS):</b> for servers where the hosting company blocks email ports (DigitalOcean). Paste an API key from SMTP2GO › Sending › API Keys; the send-from address must be a verified sender there (support@weststarmsp.com was, in the old app).</p>
+</section>
+{% endif %}
+{% if item.0 == "msp360" %}
+<section class="card pad stack set-extra">
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 style="flex:1">Connection &amp; sync</h2>
+    {% if msp.summary.last_error %}<span class="pill bad">Error</span>{% elif msp.summary.last_sync %}<span class="pill good">Synced</span>{% else %}<span class="pill">Not synced yet</span>{% endif %}</div>
+  {% if msp.summary.last_error %}<div class="banner" style="margin:0">{{ msp.summary.last_error }}</div>{% endif %}
+  <p style="margin:0">{% if msp.summary.last_sync %}Last sync: {{ msp.last.companies|default:0 }} companies, {{ msp.summary.computers }} computers, {{ msp.summary.plans }} backup plans
+    ({{ msp.summary.failed }} failed, {{ msp.summary.overdue }} overdue, {{ msp.summary.warning }} warnings). {% if msp.summary.unmatched %}<b>{{ msp.summary.unmatched }} MSP360 compan{{ msp.summary.unmatched|pluralize:"y,ies" }} not matched to a client.</b>{% endif %}
+    {% else %}Save the API login and password, then click Test connection.{% endif %}</p>
+  {% if can_manage %}<div style="display:flex;gap:8px;flex-wrap:wrap">
+    <form method="post" action="/backups/test/">{% csrf_token %}<input type="hidden" name="next" value="/settings/msp360/"><button class="btn">Test connection</button></form>
+    <form method="post" action="/backups/sync/">{% csrf_token %}<input type="hidden" name="next" value="/settings/msp360/"><button class="btn primary">Sync now</button></form>
+    <a class="btn" href="/backups/">Open backups</a><a class="btn" href="/backups/?show=companies">Match companies to clients</a></div>{% endif %}
 </section>
 {% endif %}
 {% if item.0 == "payments" %}

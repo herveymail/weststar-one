@@ -60,7 +60,7 @@ NAV = [
     ("Tools", "Tools", "tools", [
         ("calendar", "Calendar", "/m/calendar/", "tools"), ("inventory", "Inventory", "/m/inventory/", "tools"),
         ("mileage", "Mileage", "/m/mileage/", "tools"), ("messages", "Secure Messages", "/m/messages/", "tools"),
-        ("domains", "Domains & SSL", "/m/domains/", "tools"), ("backups", "Backups", "/m/backups/", "tools"),
+        ("domains", "Domains & SSL", "/m/domains/", "tools"), ("backups", "Backups", "/backups/", "tools"),
         ("rmm", "RMM", "/m/rmm/", "tools"), ("kb", "Knowledge Base", "/m/kb/", "tools"), ("workflows", "Workflows", "/m/workflows/", "admin"),
     ]),
     ("H/R", "H/R", "my_hr", [("my_hr", "My HR", "/my-hr/", "*"), ("hr", "H/R Admin", "/hr/", "hr")]),

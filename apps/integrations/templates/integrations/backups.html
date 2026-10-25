@@ -1,0 +1,56 @@
+{% extends "base.html" %}{% load ws %}
+{% block title %}Backups{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="titles"><div class="eyebrow">Tools · MSP360</div><h1>Backups</h1>
+    <p class="desc">{% if s.last_sync %}Last synced {{ s.last_sync|parse_iso|timesince }} ago from MSP360. Syncs every 15 minutes.{% elif configured %}Not synced yet.{% else %}MSP360 isn't connected yet.{% endif %}</p></div>
+  {% if can_manage %}<div style="display:flex;gap:8px;flex-wrap:wrap">
+    {% if configured %}<form method="post" action="/backups/sync/">{% csrf_token %}<input type="hidden" name="next" value="/backups/?show={{ show }}"><button class="btn primary">Sync now</button></form>{% endif %}
+    <a class="btn" href="/settings/msp360/">Settings</a></div>{% endif %}
+</div>
+{% if s.last_error %}<div class="banner">MSP360 sync problem: {{ s.last_error }} {% if can_manage %}<a href="/settings/msp360/">Check the settings</a>{% endif %}</div>{% endif %}
+{% if not configured %}<section class="card pad stack"><h2>Connect MSP360</h2><p style="margin:0">Add the API login and password from MSP360 › Settings › General › API credentials in <a href="/settings/msp360/">Settings › MSP360 backups</a>, then click Sync now.</p></section>{% endif %}
+{% if configured and not enabled %}<div class="banner info">Automatic sync is off. Turn on "Sync MSP360 every 15 minutes" in <a href="/settings/msp360/">Settings</a>, or use Sync now.</div>{% endif %}
+
+<div class="kpis">
+  <a class="card kpi" href="?show=all"><span class="kpi-l">Backup plans</span><span class="kpi-v">{{ s.plans }}</span><small class="muted">{{ s.computers }} computers</small></a>
+  <a class="card kpi" href="?show=problems"><span class="kpi-l">Failed</span><span class="kpi-v{% if s.failed %} bad{% endif %}">{{ s.failed }}</span><small class="{% if s.open_tickets %}bad{% else %}muted{% endif %}">{{ s.open_tickets }} open ticket{{ s.open_tickets|pluralize }}</small></a>
+  <a class="card kpi" href="?show=problems"><span class="kpi-l">Overdue / warnings</span><span class="kpi-v">{{ s.overdue }} / {{ s.warning }}</span><small class="muted">{{ s.running }} running now</small></a>
+  <a class="card kpi" href="?show=all"><span class="kpi-l">Succeeded</span><span class="kpi-v">{{ s.success }}</span><small class="good">last run OK</small></a>
+  <a class="card kpi" href="?show=companies"><span class="kpi-l">Companies</span><span class="kpi-v">{{ companies|length }}</span><small class="{% if s.unmatched %}bad{% else %}muted{% endif %}">{{ s.unmatched }} not matched to a client</small></a>
+</div>
+
+<div class="tabs" role="tablist">
+  <a class="tab{% if show == 'problems' %} on{% endif %}" href="?show=problems">Needs attention</a>
+  <a class="tab{% if show == 'all' %} on{% endif %}" href="?show=all">All plans</a>
+  <a class="tab{% if show == 'computers' %} on{% endif %}" href="?show=computers">Computers</a>
+  <a class="tab{% if show == 'companies' %} on{% endif %}" href="?show=companies">Companies &amp; clients</a>
+</div>
+
+{% if show == "companies" %}
+<form method="post" action="/backups/companies/" class="card" style="overflow:hidden">{% csrf_token %}
+  <div class="table-wrap"><table class="grid"><thead><tr><th>MSP360 company</th><th>Computers</th><th>Weststar One client</th></tr></thead><tbody>
+  {% for co in companies %}<tr><td class="strong">{{ co.name }}</td><td>{{ co.computers }}</td>
+    <td>{% if can_manage %}<select class="select" name="client_{{ co.pk }}" aria-label="Client for {{ co.name }}"><option value="">— Not matched —</option>{% for c in clients %}<option value="{{ c.pk }}"{% if c.pk == co.client_id %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select>
+      {% else %}{{ co.client.name|default:"—" }}{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="3" class="empty">No companies yet. Click Sync now.</td></tr>{% endfor %}</tbody></table></div>
+  {% if can_manage and companies %}<div class="pager"><span class="small muted">New MSP360 companies are matched by name automatically; anything you set here stays.</span><button class="btn primary">Save</button></div>{% endif %}
+</form>
+{% elif show == "computers" %}
+<section class="card" style="overflow:hidden"><div class="table-wrap"><table class="grid"><thead><tr><th>Computer</th><th>Company</th><th>Plans</th><th>Failed</th><th>Online</th><th>Last seen</th></tr></thead><tbody>
+  {% for k in computers %}<tr><td class="strong">{{ k.name }}</td><td>{{ k.company }}</td><td>{{ k.plans }}</td><td>{% if k.failed %}<span class="pill bad">{{ k.failed }}</span>{% else %}0{% endif %}</td>
+    <td>{% if k.online %}<span class="pill good">Online</span>{% else %}<span class="pill">Offline</span>{% endif %}</td><td class="small">{% if k.last_activity %}{{ k.last_activity|timesince }} ago{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="6" class="empty">No computers yet.</td></tr>{% endfor %}</tbody></table></div></section>
+{% else %}
+<section class="card" style="overflow:hidden"><div class="table-wrap"><table class="grid"><thead><tr><th>Status</th><th>Computer · plan</th><th>Company</th><th>Last run</th><th>Next run</th><th>Ticket</th></tr></thead><tbody>
+  {% for p in plans %}<tr>
+    <td><span class="pill {{ p.tone }}">{{ p.status_label }}</span></td>
+    <td><div class="strong">{{ p.computer|default:"—" }}</div><div class="small muted">{{ p.name }}{% if p.kind %} · {{ p.kind }}{% endif %}</div>{% if p.error %}<div class="small" style="color:var(--crit)">{{ p.error|truncatechars:160 }}</div>{% endif %}</td>
+    <td class="small">{{ p.company }}</td>
+    <td class="small">{% if p.last_start %}{{ p.last_start|date:"M j, g:i A" }}{% if p.duration %}<br><span class="muted">{{ p.duration }}</span>{% endif %}{% endif %}</td>
+    <td class="small">{% if p.next_start %}{{ p.next_start|date:"M j, g:i A" }}{% endif %}</td>
+    <td class="small">{% if p.ticket %}<a href="/tickets/{{ p.ticket_id }}/">{{ p.ticket.number }}</a> <span class="muted">{{ p.ticket.status }}</span>{% endif %}{% if p.report_link %}<br><a href="{{ p.report_link }}" target="_blank" rel="noopener noreferrer">MSP360 report</a>{% endif %}</td>
+  </tr>{% empty %}<tr><td colspan="6" class="empty">{% if show == "problems" %}Nothing needs attention. Every backup's last run was OK.{% else %}No backup plans yet.{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div></section>
+{% endif %}
+{% endblock %}

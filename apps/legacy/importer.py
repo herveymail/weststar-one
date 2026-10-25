@@ -166,7 +166,7 @@ class Importer:
             return self.conn.read(table, order)
         import MySQLdb.cursors
         with self.conn.cursor(MySQLdb.cursors.DictCursor) as c:
-            if not (re.fullmatch(r"[a-z_]+", table) and re.fullmatch(r"[a-z_]+", order)):
+            if not (re.fullmatch(r"[a-z0-9_]+", table) and re.fullmatch(r"[a-z0-9_]+", order)):
                 raise ValueError("bad table name")
             c.execute(f"SELECT * FROM `{table}` ORDER BY `{order}`")  # noqa: S608 — names are constants in this file
             return list(c.fetchall())
@@ -296,6 +296,7 @@ class Importer:
                 self.tools()
                 self.hr()
                 self.tickets()
+                self.msp360()
                 self.files()
                 self.settings()
                 self.bump_counters()
@@ -827,6 +828,49 @@ class Importer:
             if r.get("tq_escalate_to"):
                 Queue.objects.filter(legacy_id=int(r["tq_id"])).update(escalate_to_id=self.ref("queues", r["tq_escalate_to"]))
 
+    def msp360(self):
+        """MSP360 backup data, with each company's client and the ticket already open for a failed plan (so no duplicates)."""
+        from apps.integrations.models import Msp360Company, Msp360Computer, Msp360Plan
+        if not self.has("msp360_companies"):
+            return
+        comps = self.read("msp360_companies", "mc_id")
+        step = Step("MSP360 backups", source=len(comps))
+        for r in comps:
+            cid = self.ref("clients", r.get("mc_client_id"))
+            row = Msp360Company.objects.filter(pk=str(r["mc_id"])).first()
+            if row and row.client_set_by_hand:
+                step.kept += 1
+                continue
+            Msp360Company.objects.update_or_create(mc_id=str(r["mc_id"]), defaults={
+                "name": s(r.get("mc_name"), 190) or "", "client_id": cid, "client_set_by_hand": bool(cid), "storage_limit": int_(r.get("mc_storage_limit")),
+                "computers": int_(r.get("mc_computers")) or 0, "updated_at": ts(r.get("mc_updated_at"))})
+            step.imported += 1
+        for r in self.read("msp360_computers", "mk_hid"):
+            Msp360Computer.objects.update_or_create(key=str(r["mk_hid"])[:190], defaults={
+                "name": s(r.get("mk_name"), 190) or "", "company": s(r.get("mk_company"), 190) or "", "user_email": s(r.get("mk_user_email"), 190) or "",
+                "os": s(r.get("mk_os"), 60) or "", "online": yes(r.get("mk_online")), "last_activity": ts(r.get("mk_last_activity")),
+                "plans": int_(r.get("mk_plans")) or 0, "failed": int_(r.get("mk_failed")) or 0, "updated_at": ts(r.get("mk_updated_at"))})
+        for r in self.read("msp360_plans", "mp_plan_id"):
+            existing = Msp360Plan.objects.filter(pk=str(r["mp_plan_id"])).first()
+            ticket = self.ref("tickets", r.get("mp_ticket_id"))
+            if existing and existing.updated_at and ts(r.get("mp_updated_at")) and existing.updated_at > ts(r.get("mp_updated_at")):
+                if not existing.ticket_id and ticket:
+                    Msp360Plan.objects.filter(pk=existing.pk).update(ticket_id=ticket, ticket_last_start=ts(r.get("mp_ticket_last_start")))
+                continue  # synced here more recently: keep the newer status
+            Msp360Plan.objects.update_or_create(plan_id=str(r["mp_plan_id"])[:64], defaults={
+                "name": s(r.get("mp_plan_name"), 255) or "", "plan_type": s(r.get("mp_plan_type"), 40) or "", "computer": s(r.get("mp_computer"), 190) or "",
+                "company": s(r.get("mp_company"), 190) or "", "user_email": s(r.get("mp_user_email"), 190) or "", "storage": s(r.get("mp_storage"), 80) or "",
+                "status": int_(r.get("mp_status")) if r.get("mp_status") is not None else 4, "last_start": ts(r.get("mp_last_start")), "next_start": ts(r.get("mp_next_start")),
+                "error": txt(r.get("mp_error")) or "", "files_copied": int_(r.get("mp_files_copied")), "files_failed": int_(r.get("mp_files_failed")),
+                "data_copied": int_(r.get("mp_data_copied")), "total_data": int_(r.get("mp_total_data")), "duration": s(r.get("mp_duration"), 40) or "",
+                "report_link": s(r.get("mp_report_link"), 500) or "", "failed_since": ts(r.get("mp_failed_since")), "ticket_id": ticket,
+                "ticket_last_start": ts(r.get("mp_ticket_last_start")), "first_seen": ts(r.get("mp_first_seen")), "updated_at": ts(r.get("mp_updated_at"))})
+        old_q = {str(x["setting_key"]): x.get("setting_value") for x in self.read("settings", "setting_key")} if self.has("settings") else {}
+        q = self.ref("queues", old_q.get("msp360_queue_id"))
+        if q and not Setting.get("msp360.queue", "") and not self.dry_run:
+            Setting.put("msp360.queue", str(q))
+        self._done(step)
+
     def tickets(self):
         R = self.ref
         self.queues()
@@ -838,7 +882,7 @@ class Importer:
                     "contact_name": s(r.get("ticket_contact_name"), 150), "contact_email": email(r.get("ticket_contact_email")),
                     "assigned_to": R("users", r.get("ticket_assigned_to")), "priority": title(r.get("ticket_priority"), ["Critical", "High", "Medium", "Low"], "Medium"),
                     "status": TICKET_STATUS.get(str(r.get("ticket_status") or "").lower(), "Open"), "category": s(r.get("ticket_category"), 100),
-                    "source": title(r.get("ticket_source"), ["Manual", "Email", "Portal", "Phone", "Alert", "Import"], "Import"),
+                    "source": "MSP360" if str(r.get("ticket_source") or "").lower() == "msp360" else title(r.get("ticket_source"), ["Manual", "Email", "Portal", "Phone", "Alert", "Import"], "Import"),
                     "billable": True if r.get("ticket_billable") is None else yes(r.get("ticket_billable")), "due_date": day(r.get("ticket_due_date")),
                     "response_due_at": ts(r.get("ticket_sla_response_due")), "first_response_at": ts(r.get("ticket_first_response_at")),
                     "resolved_at": ts(r.get("ticket_resolved_at")), "closed_at": ts(r.get("ticket_closed_at")), "sla_breached": yes(r.get("ticket_sla_breached")),
