@@ -96,7 +96,8 @@
   });
   function updateBulk() {
     const f = $('#bulk'); if (!f) return;
-    const n = $$('[data-tick]:checked').length; f.hidden = n === 0; $('[data-bulk-count]', f).textContent = n;
+    const n = $$('[data-tick]:checked').length; f.hidden = false; f.classList.toggle('show', n > 0); $('[data-bulk-count]', f).textContent = n;
+    $$('tr[data-open]').forEach((r) => r.classList.toggle('ticked', !!$('[data-tick]:checked', r)));
   }
   function showFiles(input) {
     const out = input.form && input.form.querySelector('[data-file-names]');
@@ -213,6 +214,27 @@
 
   // A form opened from a link (?open_form=…): drop it from the address so a reload after saving doesn't open it again.
   { const u = new URL(window.location.href); if (u.searchParams.has('open_form')) { u.searchParams.delete('open_form'); window.history.replaceState(null, '', u); } }
+
+  // Ticket panel: open on the newest message, like the old app.
+  const panelToBottom = () => { const b = $('#panel [data-pbody="conv"]'); if (b) b.scrollTop = b.scrollHeight; };
+  panelToBottom();
+  document.body.addEventListener('htmx:afterSwap', (e) => { if (e.detail.target.id === 'panel' || (e.detail.elt && e.detail.elt.id === 'panel')) panelToBottom(); });
+  document.body.addEventListener('htmx:afterSettle', () => { if ($('#panel [data-pbody="conv"]') && !$('#panel').dataset.scrolled) { panelToBottom(); $('#panel').dataset.scrolled = '1'; } });
+
+  // Ticket panel (grid): tabs, CC row, and click-menus that close when you pick something or click elsewhere.
+  document.addEventListener('click', (e) => {
+    const tab = e.target.closest('[data-ptab]');
+    if (tab) {
+      const p = tab.closest('.tkg-panel');
+      $$('[data-ptab]', p).forEach((b) => b.classList.toggle('on', b === tab));
+      $$('[data-pbody]', p).forEach((b) => (b.hidden = b.dataset.pbody !== tab.dataset.ptab));
+    }
+    if (e.target.closest('[data-cc-toggle]')) { const r = e.target.closest('form').querySelector('[data-cc-row-panel]'); r.classList.toggle('show'); if (r.classList.contains('show')) $('input', r).focus(); }
+    $$('details.tkg-pop[open]').forEach((d) => {
+      const inside = d.contains(e.target);
+      if (!inside || (e.target.closest('.tkg-menu button, .tkg-menu a'))) d.open = false;
+    });
+  });
 
   // Ticket grid: the automatic refresh waits while you have tickets ticked or a menu open, so it never undoes what you're doing.
   document.body.addEventListener('htmx:beforeRequest', (e) => {

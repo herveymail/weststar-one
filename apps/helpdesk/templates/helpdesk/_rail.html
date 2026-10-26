@@ -3,8 +3,8 @@
   {% if t %}<a href="/tickets/" class="hd-rail-i" style="font-weight:600;margin-bottom:8px">← Back to tickets</a>{% endif %}
   <div class="lbl">Views</div>
   {% for k, label, n in views %}<a href="/tickets/?view={{ k }}" class="hd-rail-i{% if view == k %} active{% endif %}">{{ label }}<span class="n">{{ n }}</span></a>{% endfor %}
-  {% if queues %}<div class="lbl">Queues</div>
-  {% for r in queues %}<a href="/tickets/?queue={{ r.q.pk }}" class="hd-rail-i{% if view == r.key %} active{% endif %}"><span class="hd-qdot" style="background:{{ r.q.color }}"></span>{{ r.q.name }}<span class="n">{{ r.n }}</span></a>{% endfor %}{% endif %}
+  {% if rail_queues %}<div class="lbl">Queues</div>
+  {% for r in rail_queues %}<a href="/tickets/?queue={{ r.q.pk }}" class="hd-rail-i{% if view == r.key %} active{% endif %}"><span class="hd-qdot" style="background:{{ r.q.color }}"></span>{{ r.q.name }}<span class="n">{{ r.n }}</span></a>{% endfor %}{% endif %}
   {% if rail_clients %}<div class="lbl">Clients</div>
   {% for c in rail_clients %}<a href="/tickets/?client={{ c.client_id }}" class="hd-rail-i{% if view == c.key %} active{% endif %}">{{ c.client__name }}<span class="n">{{ c.n }}</span></a>{% endfor %}{% endif %}
   <div class="lbl">Agents</div>

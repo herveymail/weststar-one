@@ -217,3 +217,19 @@ def parse_iso(value):
         return datetime.fromisoformat(str(value))
     except (TypeError, ValueError):
         return None
+
+
+@register.filter
+def tkg_st(status):
+    """Old grid status dot class: open / prog / pend / closed."""
+    return {"New": "open", "Open": "open", "In progress": "prog", "Resolved": "closed", "Closed": "closed"}.get(status, "pend")
+
+
+@register.filter
+def tkg_pri(priority):
+    return {"Critical": "crit", "High": "high", "Medium": "med"}.get(priority, "low")
+
+
+@register.filter
+def first_name(name):
+    return (str(name or "").split() or [""])[0]

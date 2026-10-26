@@ -213,6 +213,12 @@ def update_ticket(ticket: Ticket, *, user, request=None, **changes) -> Ticket:
         t.billable = changes["billable"]
     if "resolution" in changes:
         t.resolution = changes["resolution"]
+    if "subject" in changes and changes["subject"] != t.subject:
+        notes.append(f"Subject changed to \"{changes['subject']}\"")
+        t.subject = changes["subject"]
+    if "cc" in changes and changes["cc"] != t.cc:
+        notes.append(f"Cc: {changes['cc'] or 'none'}")
+        t.cc = changes["cc"]
     if "status" in changes and changes["status"] != t.status:
         new = changes["status"]
         notes.append(f"Status {t.status} → {new}")

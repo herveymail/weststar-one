@@ -128,6 +128,38 @@ class Ticket(models.Model):
         return chips
 
 
+def _grid_short(secs: float) -> str:
+    secs = abs(secs)
+    if secs < 3600:
+        return f"{max(1, int(secs // 60))}m"
+    if secs < 86400:
+        return f"{secs / 3600:.1f}".rstrip("0").rstrip(".") + "h"
+    return f"{secs / 86400:.1f}".rstrip("0").rstrip(".") + "d"
+
+
+def grid_sla(t) -> list[dict]:
+    """The old grid's SLA chips: 'Resp 57m' (green), 'Resolve overdue 2h' (red), 'Resolve paused' (grey)."""
+    if not t.is_open:
+        return []
+    now, out = timezone.now(), []
+    for short, noun, due, done in (("Resp", "Response", t.response_due_at, t.first_response_at), ("Resolve", "Resolution", t.resolve_due_at, None)):
+        if not due or done:
+            continue
+        if t.status in PAUSED_STATUSES:
+            out.append({"cls": "muted", "text": f"{short} paused", "title": f"{noun} clock paused (waiting on the client)"})
+            continue
+        left = (due - now).total_seconds()
+        warn_at = 3600 if short == "Resp" else 4 * 3600
+        if left < 0:
+            out.append({"cls": "bad", "text": f"{short} overdue {_grid_short(left)}", "title": f"{noun} target missed by {_grid_short(left)}"})
+        else:
+            out.append({"cls": "warn" if left < warn_at else "ok", "text": f"{short} {_grid_short(left)}", "title": f"{noun} due in {_grid_short(left)}"})
+    return out
+
+
+Ticket.grid_sla = property(grid_sla)
+
+
 class TicketMessage(models.Model):
     KINDS = [("reply", "Reply"), ("note", "Internal note"), ("work", "Work log"), ("event", "Event")]
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="messages")

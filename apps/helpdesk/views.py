@@ -68,7 +68,7 @@ def _rail(request, base):
                    open_q.exclude(client=None).values("client_id", "client__name").annotate(n=Count("id")).order_by("-n", "client__name")[:6]]
     agent_rows = [{"u": u, "n": open_q.filter(assigned_to=u).count(), "key": f"agent:{u.pk}"}
                   for u in User.objects.filter(is_active=True).exclude(role="viewer")]
-    return {"views": [(k, label, view_counts.get(k, 0)) for k, label, _f in views], "queues": queue_rows,
+    return {"views": [(k, label, view_counts.get(k, 0)) for k, label, _f in views], "rail_queues": queue_rows,
             "rail_clients": client_rows, "agents": agent_rows}
 
 
@@ -97,7 +97,7 @@ def _classic(request):
     return render(request, "helpdesk/classic_list.html", ctx)
 
 
-GRID_SORTS = {"number": "number", "subject": "subject", "company": "client__name", "queue": "queue__name", "status": "status",
+GRID_SORTS = {"number": "number", "subject": "subject", "company": "client__name", "queue": "queue__name", "status": "status", "computer": "computer_name",
               "priority": "_p", "assignee": "assigned_to__name", "created": "created_by__name", "updated": "updated_at"}
 
 
@@ -118,6 +118,15 @@ def _grid(request, open_pk=None):
             qs = qs.filter(**{field: int(request.GET[key])})
     if request.GET.get("priority") in PRIORITIES:
         qs = qs.filter(priority=request.GET["priority"])
+    qs = queries.with_extras(qs)
+    if request.GET.get("computer"):
+        qs = qs.filter(computer_name=request.GET["computer"])
+    if request.GET.get("mine"):
+        qs = qs.filter(assigned_to=request.user)
+    if request.GET.get("unread"):
+        qs = qs.filter(_unread__gt=0)
+    if request.GET.get("backup"):
+        qs = qs.filter(source="MSP360")
     qs = queries.search(qs, request.GET.get("q"))
     sort = request.GET.get("sort", "updated")
     if sort not in GRID_SORTS:
@@ -131,8 +140,9 @@ def _grid(request, open_pk=None):
            "chips": [(k, label) for k, label, _f in chips], "now": timezone.now(),
            "clients": Client.objects.filter(archived_at__isnull=True).order_by("name"), "queues": Queue.objects.filter(active=True),
            "users": User.objects.filter(is_active=True).order_by("name"), "priorities": PRIORITIES, "statuses": STATUSES,
-           "f": {k: request.GET.get(k, "") for k in [*filters, "priority"]}, "open_pk": open_pk,
-           "sort_cols": [("number", "Ticket"), ("subject", "Subject"), ("company", "Company"), ("queue", "Queue"), ("status", "Status"),
+           "f": {k: request.GET.get(k, "") for k in [*filters, "priority", "computer", "mine", "unread", "backup"]}, "open_pk": open_pk,
+           "computers": queries.computers(),
+           "sort_cols": [("number", "Ticket"), ("subject", "Subject"), ("company", "Company"), ("queue", "Queue"), ("computer", "Computer"), ("status", "Status"),
                          ("priority", "Priority"), ("assignee", "Assignee"), ("created", "Created by"), ("updated", "Updated")]}
     if open_pk:
         t = Ticket.objects.filter(pk=open_pk).first()
@@ -168,6 +178,7 @@ def _detail_ctx(request, t: Ticket, panel=False) -> dict:
         rate = None
     return {
         "t": t, "msgs": msgs, "loose_files": by_msg.get(None, []), "panel": panel,
+        "computer": __import__("apps.integrations.models", fromlist=["Msp360Plan"]).Msp360Plan.objects.filter(ticket=t).first(),
         "conversation_count": sum(1 for m in msgs if m.kind != "event"),
         "history": [m for m in msgs if m.kind == "event"],
         "minutes": time_rows["m"] or 0, "billable_minutes": time_rows["b"] or 0, "unbilled_minutes": time_rows["unbilled"] or 0,
@@ -234,6 +245,10 @@ def ticket_update(request, pk):
         changes["category"] = request.POST["category"][:100]
     if "billable" in request.POST:
         changes["billable"] = request.POST["billable"] in ("1", "on", "true")
+    if request.POST.get("subject", "").strip():
+        changes["subject"] = request.POST["subject"].strip()[:255]
+    if "cc" in request.POST:
+        changes["cc"] = request.POST["cc"].strip()[:1000]
     services.update_ticket(t, user=request.user, request=request, **changes)
     return _after_change(request, t)
 
@@ -254,7 +269,11 @@ def ticket_message(request, pk):
         messages.error(request, "Write a message first.")
         return _after_change(request, t)
     try:
-        minutes = max(0, min(int(request.POST.get("minutes") or 0), 1440))
+        if request.POST.get("hours", "").strip():
+            minutes = round(float(request.POST["hours"]) * 60)  # the grid panel asks in hours, like the old app
+        else:
+            minutes = int(request.POST.get("minutes") or 0)
+        minutes = max(0, min(minutes, 1440))
     except ValueError:
         minutes = 0
     work_type = request.POST.get("work_type") if request.POST.get("work_type") in WORK_TYPES else "Remote"

@@ -51,6 +51,26 @@ def grid_views(user):
     ]
 
 
+def with_extras(qs):
+    """Adds computer_name (MSP360 computer behind a backup ticket) and unread_n (client replies since staff last wrote)."""
+    from django.db.models import F, OuterRef, Subquery
+
+    from apps.integrations.models import Msp360Plan
+
+    from .models import TicketMessage
+    last_staff = (TicketMessage.objects.filter(ticket=OuterRef("pk"), author__isnull=False).exclude(kind="event")
+                  .order_by("-created_at").values("created_at")[:1])
+    qs = qs.annotate(computer_name=Subquery(Msp360Plan.objects.filter(ticket=OuterRef("pk")).values("computer")[:1]),
+                     last_staff_at=Subquery(last_staff))
+    client_reply = Q(messages__kind="reply", messages__author__isnull=True, messages__portal_user__isnull=False) | Q(messages__kind="reply", messages__author__isnull=True, messages__via="email")
+    return qs.annotate(unread_n=Count("messages", filter=client_reply & (Q(last_staff_at__isnull=True) | Q(messages__created_at__gt=F("last_staff_at"))), distinct=True))
+
+
+def computers():
+    from apps.integrations.models import Msp360Plan
+    return sorted(set(Msp360Plan.objects.filter(ticket__isnull=False).exclude(computer="").values_list("computer", flat=True)))
+
+
 def search(qs, q: str):
     q = (q or "").strip()[:200]
     if not q:

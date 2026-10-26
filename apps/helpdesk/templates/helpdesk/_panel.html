@@ -1,61 +1,157 @@
 {% load ws %}
 <aside class="tkg-panel" id="panel" aria-label="Selected ticket" data-panel="{{ t.pk }}">
-  <div class="head">
-    <div class="row mono muted" style="gap:8px">{{ t.number }} · opened by {% if t.contact_name %}{{ t.contact_name }}{% elif t.created_by %}{{ t.created_by.name }}{% else %}—{% endif %} · {{ t.created_at|ago }}
-      <span class="spacer"></span>
-      {% if can_edit %}{% if timer %}<button class="btn small" hx-post="/tickets/{{ t.pk }}/timer/?ctx=panel" hx-vals='{"action":"stop"}' hx-target="#panel" hx-swap="outerHTML">■ Stop <span data-since="{{ timer.started_at|date:'U' }}">0:00</span></button>
-      {% else %}<button class="btn small" hx-post="/tickets/{{ t.pk }}/timer/?ctx=panel" hx-vals='{"action":"start"}' hx-target="#panel" hx-swap="outerHTML">▶ Start timer</button>{% endif %}{% endif %}
-      <a class="btn small" href="/tickets/{{ t.pk }}/?classic=1" title="Full page" aria-label="Open full page">⤢</a>
-      <button class="btn small" data-close-panel aria-label="Close panel">×</button>
-    </div>
-    {% if t.client.account_alert %}<div class="hd-alert small">⚠ {{ t.client.account_alert }}</div>{% endif %}
-    <h2 style="font-size:17px">{{ t.subject }}</h2>
-    <div class="meta-grid">
-      <div><div class="lbl">Status</div><span class="st {{ t.status|st_class }}">{{ t.status }}</span></div>
-      <div><div class="lbl">Priority</div><span class="pri {{ t.priority|p_class }}">{{ t.priority }}</span></div>
-      <div><div class="lbl">Company</div>{% if t.client %}<a href="/clients/{{ t.client.pk }}/">{{ t.client.name }}</a>{% else %}—{% endif %}</div>
-      <div><div class="lbl">Assignee</div>{{ t.assigned_to.name|default:"Unassigned" }}</div>
-      <div><div class="lbl">Queue</div>{{ t.queue.name|default:"—" }}</div>
-      <div><div class="lbl">Category</div>{{ t.category|default:"—" }}</div>
-    </div>
-    {% if ai_on %}{% include "helpdesk/_ai.html" %}{% endif %}
-    {% if t.sla_chips %}<div class="row">{% for c in t.sla_chips %}<span class="sla {{ c.tone }}">{{ c.text }}</span>{% endfor %}</div>{% endif %}
-    {% if can_edit %}
-    <form class="row" hx-post="/tickets/{{ t.pk }}/update/" hx-trigger="change" hx-target="#panel" hx-swap="outerHTML">
-      <input type="hidden" name="ctx" value="panel">
-      <label class="sr" for="ps-{{ t.pk }}">Status</label><select id="ps-{{ t.pk }}" name="status" class="select" style="width:auto">{% for s in statuses %}<option{% if s == t.status %} selected{% endif %}>{{ s }}</option>{% endfor %}</select>
-      <label class="sr" for="pa-{{ t.pk }}">Assignee</label><select id="pa-{{ t.pk }}" name="assigned_to" class="select" style="width:auto"><option value="">Unassigned</option>{% for u in users %}<option value="{{ u.pk }}"{% if u.pk == t.assigned_to_id %} selected{% endif %}>{{ u.name }}</option>{% endfor %}</select>
-      <label class="sr" for="pp-{{ t.pk }}">Priority</label><select id="pp-{{ t.pk }}" name="priority" class="select" style="width:auto">{% for p in priorities %}<option{% if p == t.priority %} selected{% endif %}>{{ p }}</option>{% endfor %}</select>
-      <label class="sr" for="pq-{{ t.pk }}">Queue</label><select id="pq-{{ t.pk }}" name="queue" class="select" style="width:auto"><option value="">No queue</option>{% for q in queues %}<option value="{{ q.pk }}"{% if q.pk == t.queue_id %} selected{% endif %}>{{ q.name }}</option>{% endfor %}</select>
-    </form>
-    <div class="row">{% if t.is_open %}<button class="btn small" hx-post="/tickets/{{ t.pk }}/update/" hx-vals='{"status":"Closed","ctx":"panel"}' hx-target="#panel" hx-swap="outerHTML">Close ticket</button>{% else %}<button class="btn small" hx-post="/tickets/{{ t.pk }}/update/" hx-vals='{"status":"Open","ctx":"panel"}' hx-target="#panel" hx-swap="outerHTML">Reopen</button>{% endif %}
-      <a class="btn small" href="/tickets/{{ t.pk }}/?classic=1">Resolve, snooze, merge…</a></div>
+<div class="ph">
+  <div style="display:flex;align-items:center;gap:8px">
+    <span class="num"><a href="/tickets/{{ t.pk }}/?classic=1" title="Open the full ticket page" style="color:inherit">{{ t.number }}</a> · opened by {% if t.contact_name %}{{ t.contact_name }}{% elif t.created_by %}{{ t.created_by.name }}{% else %}{{ t.source }}{% endif %} · {{ t.created_at|ago }}</span>
+    <span class="sp"></span>
+    {% if can_edit and t.is_open %}
+      {% if timer %}<button type="button" class="tkg-btn sm tkg-timer run" hx-post="/tickets/{{ t.pk }}/timer/?ctx=panel" hx-vals='{"action":"stop"}' hx-target="#panel" hx-swap="outerHTML" title="Stop the timer and log the time to this ticket"><span class="sq"></span> Stop timer <span class="el" data-since="{{ timer.started_at|date:'U' }}">0:00</span></button>
+      {% elif other_timer %}<span class="tkg-btn sm tkg-timer other" title="{{ other_timer.user.name }} has a timer running on this ticket">⏱ {{ other_timer.user.name|first_name }}'s timer</span>
+      {% else %}<button type="button" class="tkg-btn sm tkg-timer" hx-post="/tickets/{{ t.pk }}/timer/?ctx=panel" hx-vals='{"action":"start"}' hx-target="#panel" hx-swap="outerHTML" title="Start a timer on this ticket">▶ Start timer</button>{% endif %}
     {% endif %}
-    {% if t.client %}<div class="strip">{{ t.client.name }}{% if t.client.plan %} · <b>{{ t.client.plan }}</b>{% endif %}{% if contract %} · Contract active{% endif %}{% if t.client.phone %} · {{ t.client.phone }}{% endif %}{% if client_open %} · {{ client_open|length }} other open{% endif %}</div>{% endif %}
-    <div class="ptabs" role="radiogroup" aria-label="Panel section">
-      <label><input type="radio" name="ptab" id="pt-conv" class="sr" checked>Conversation {{ conversation_count }}</label>
-      <label><input type="radio" name="ptab" id="pt-details" class="sr">Details</label>
-      <label><input type="radio" name="ptab" id="pt-history" class="sr">History {{ history|length }}</label>
-    </div>
+    <a class="ic fx" href="/tickets/{{ t.pk }}/?classic=1" title="Full ticket page" aria-label="Open the full ticket page">⤢</a>
+    {% if can_edit %}
+    <details class="tkg-pop"><summary class="ic" title="More" aria-label="More">⋯</summary>
+      <div class="tkg-menu" style="left:auto;right:0">
+        {% if t.is_open %}
+        <button type="button" hx-post="/tickets/{{ t.pk }}/snooze/" hx-vals='{"until":"4h"}' hx-swap="none">⏰ Snooze 4 hours</button>
+        <button type="button" hx-post="/tickets/{{ t.pk }}/snooze/" hx-vals='{"until":"tomorrow"}' hx-swap="none">⏰ Snooze until tomorrow 8 AM</button>
+        {% endif %}
+        {% if escalate_to %}<button type="button" hx-post="/tickets/{{ t.pk }}/update/" hx-vals='{"queue":"{{ escalate_to.pk }}","ctx":"panel"}' hx-target="#panel" hx-swap="outerHTML">⇪ Escalate to {{ escalate_to.name }}</button>{% endif %}
+        <button type="button" hx-post="/tickets/{{ t.pk }}/update/" hx-vals='{"assigned_to":"me","ctx":"panel"}' hx-target="#panel" hx-swap="outerHTML">👤 Assign to me</button>
+        <a href="/tickets/{{ t.pk }}/?classic=1">↗ Full page (resolve, merge, billing)</a>
+      </div></details>
+    {% endif %}
+    <button type="button" class="close" title="Close panel" aria-label="Close panel" style="margin-left:0" data-close-panel>×</button>
   </div>
-  <div class="pbody pane-conv">{% include "helpdesk/_thread.html" %}</div>
-  <div class="pbody pane-details">
-    <div class="kv">
-      <span>Requester</span><span>{{ t.contact_name|default:"—" }}</span>
-      <span>Email</span><span style="overflow-wrap:anywhere">{{ t.contact_email|default:"—" }}</span>
-      <span>Source</span><span>{{ t.source }}</span>
-      <span>Created</span><span>{{ t.created_at|date:"M j, g:i A" }}</span>
-      <span>Updated</span><span>{{ t.updated_at|date:"M j, g:i A" }}</span>
-      {% if t.due_date %}<span>Due</span><span>{{ t.due_date|date:"M j" }}</span>{% endif %}
-      {% if t.closed_at %}<span>Closed</span><span>{{ t.closed_at|date:"M j, g:i A" }}</span>{% endif %}
-      {% if t.resolution %}<span>Resolution</span><span>{{ t.resolution }}</span>{% endif %}
-      <span>Cc</span><span>{{ t.cc|default:"—" }}</span>
-      <span>Response</span><span>{% if t.first_response_at %}Answered {{ t.first_response_at|ago }}{% elif t.response_due_at %}Due {{ t.response_due_at|date:"M j, g:i A" }}{% else %}—{% endif %}</span>
-      <span>Resolve by</span><span>{{ t.resolve_due_at|date:"M j, g:i A"|default:"—" }}</span>
-      <span>Logged</span><span>{{ minutes|minutes_text }}</span>
-      <span>Billable</span><span>{{ billable_minutes|minutes_text }}</span>
-    </div>
+  {% if t.client.account_alert %}<div class="warn">⚠ {{ t.client.account_alert }}</div>{% endif %}
+  <h2>{{ t.subject }}</h2>
+  <div class="meta">
+    <div><span class="k">Status</span><span class="st {{ t.status|tkg_st }}" style="display:inline-flex">{{ t.status }}</span></div>
+    <div><span class="k">Priority</span><span class="pri {{ t.priority|tkg_pri }}">{{ t.priority }}</span></div>
+    <div><span class="k">Company</span>{% if t.client %}<a href="/clients/{{ t.client.pk }}/">{{ t.client.name }}</a>{% else %}<span style="color:var(--mute)">No client</span>{% endif %}</div>
+    <div><span class="k">Computer</span>{% if computer %}<span class="pc">{{ computer.computer }}</span>{% if computer.report_link %} · <a href="{{ computer.report_link }}" target="_blank" rel="noopener noreferrer">open in MSP360</a>{% endif %}{% else %}<span style="color:var(--mute)">—</span>{% endif %}</div>
+    <div><span class="k">Assignee</span>{% if t.assigned_to %}<span class="who"><i style="background:{{ t.assigned_to_id|avatar_color }}">{{ t.assigned_to.name|initials }}</i>{{ t.assigned_to.name }}</span>{% else %}<span class="who un"><i>—</i>Unassigned</span>{% endif %}</div>
+    <div><span class="k">Queue</span>{% if t.queue %}<span class="qd" style="--qc:{{ t.queue.color }}">{{ t.queue.name }}</span>{% else %}<span style="color:var(--mute)">—</span>{% endif %}</div>
   </div>
-  <div class="pbody pane-history"><div class="timeline">{% for m in history %}<div><span>{{ m.body }} <span class="muted">· {{ m.created_at|ago }}</span></span></div>{% empty %}<span class="muted">No changes yet.</span>{% endfor %}</div></div>
-  {% if can_edit %}{% include "helpdesk/_composer.html" %}{% endif %}
+  {% with chips=t.grid_sla %}{% if chips %}<div class="pslas">{% for c in chips %}<span class="sla {{ c.cls }}" title="{{ c.title }}">{{ c.text }}</span>{% endfor %}</div>{% endif %}{% endwith %}
+  {% if ai_on %}<div style="margin-top:8px">{% include "helpdesk/_ai.html" %}</div>{% endif %}
+  <div class="acts">
+    {% if can_edit %}
+    <details class="tkg-pop"><summary class="tkg-btn" title="Set status">⚑ Set status <span class="arr">▾</span></summary>
+      <div class="tkg-menu">{% for s in statuses %}<button type="button" class="{% if s == t.status %}cur{% endif %}" hx-post="/tickets/{{ t.pk }}/update/" hx-vals='{"status":"{{ s }}","ctx":"panel"}' hx-target="#panel" hx-swap="outerHTML">{{ s }}</button>{% endfor %}</div></details>
+    <details class="tkg-pop"><summary class="tkg-btn" title="Assign">👤 {% if t.assigned_to %}{{ t.assigned_to.name|first_name }}{% else %}Assign{% endif %} <span class="arr">▾</span></summary>
+      <div class="tkg-menu" style="max-height:300px;overflow:auto">
+        <button type="button" class="{% if not t.assigned_to %}cur{% endif %}" hx-post="/tickets/{{ t.pk }}/update/" hx-vals='{"assigned_to":"","ctx":"panel"}' hx-target="#panel" hx-swap="outerHTML">Unassigned</button>
+        {% for u in users %}<button type="button" class="{% if u.pk == t.assigned_to_id %}cur{% endif %}" hx-post="/tickets/{{ t.pk }}/update/" hx-vals='{"assigned_to":"{{ u.pk }}","ctx":"panel"}' hx-target="#panel" hx-swap="outerHTML">{{ u.name }}{% if u.pk == request.user.pk %} (me){% endif %}</button>{% endfor %}</div></details>
+    <details class="tkg-pop"><summary class="tkg-btn">✎ Edit</summary>
+      <form class="tkg-edit" hx-post="/tickets/{{ t.pk }}/update/" hx-target="#panel" hx-swap="outerHTML"><input type="hidden" name="ctx" value="panel">
+        <label>Subject<input name="subject" class="tkg-in" value="{{ t.subject }}" maxlength="255" required></label>
+        <label>Priority<select name="priority" class="tkg-in">{% for p in priorities %}<option{% if p == t.priority %} selected{% endif %}>{{ p }}</option>{% endfor %}</select></label>
+        <label>Queue<select name="queue" class="tkg-in"><option value="">No queue</option>{% for q in queues %}<option value="{{ q.pk }}"{% if q.pk == t.queue_id %} selected{% endif %}>{{ q.name }}</option>{% endfor %}</select></label>
+        <label>Category<select name="category" class="tkg-in"><option value="">—</option>{% for c in categories %}<option{% if c == t.category %} selected{% endif %}>{{ c }}</option>{% endfor %}</select></label>
+        <label>Cc (also notify)<input name="cc" class="tkg-in" value="{{ t.cc }}" placeholder="manager@client.com, accounts@client.com"></label>
+        <label style="display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0;font-size:12px"><input type="hidden" name="billable" value="0"><input type="checkbox" name="billable" value="1"{% if t.billable %} checked{% endif %}> Billable</label>
+        <button class="tkg-btn p">Save</button></form></details>
+    {% if t.is_open %}<button type="button" class="tkg-btn" hx-post="/tickets/{{ t.pk }}/update/" hx-vals='{"status":"Closed","ctx":"panel"}' hx-target="#panel" hx-swap="outerHTML">✓ Close ticket</button>
+    {% else %}<button type="button" class="tkg-btn" hx-post="/tickets/{{ t.pk }}/update/" hx-vals='{"status":"Open","ctx":"panel"}' hx-target="#panel" hx-swap="outerHTML">↺ Reopen</button>{% endif %}
+    {% endif %}
+  </div>
+  {% if t.merged_into %}<div class="warn">⇢ This ticket was merged into <a href="/tickets/{{ t.merged_into_id }}/">{{ t.merged_into.number }}</a>.</div>{% endif %}
+  {% if t.is_snoozed %}<div class="warn">⏰ Snoozed until {{ t.snoozed_until|when }}.</div>{% endif %}
+  {% if t.client %}
+  <div class="tkg-strip">
+    <a class="cn" href="/clients/{{ t.client.pk }}/">🏢 {{ t.client.name }}</a>
+    {% if t.client.plan %}<span class="plan{% if t.client.plan == 'Managed' %} ok{% endif %}" title="Billing plan">{{ t.client.plan }}</span>{% endif %}
+    {% if contract %}<span class="plan ok" title="{{ contract }}">✓ Contract active</span>{% endif %}
+    {% if t.client.phone %}<span class="sep">·</span><a href="tel:{{ t.client.phone }}" style="color:inherit">☎ {{ t.client.phone }}</a>{% endif %}
+    {% if t.client.email %}<span class="sep">·</span><a href="mailto:{{ t.client.email }}" style="color:inherit">✉ {{ t.client.email }}</a>{% endif %}
+    <span class="sp"></span>
+    {% if client_open %}<a href="/tickets/?tab=all&company={{ t.client.pk }}" class="mute" title="This client's other open tickets">{{ client_open|length }} other open</a>{% else %}<span class="mute">no other open tickets</span>{% endif %}
+  </div>
+  {% endif %}
+  <div class="tkg-ptabs" role="tablist">
+    <button type="button" class="on" data-ptab="conv" role="tab">💬 Conversation <b>{{ conversation_count }}</b></button>
+    <button type="button" data-ptab="details" role="tab">ⓘ Details</button>
+    <button type="button" data-ptab="history" role="tab">🕘 History <b>{{ history|length }}</b></button>
+  </div>
+</div>
+
+<div class="body" data-pbody="conv">
+  {% if t.details or loose_files %}
+  <div class="tkg-msg"><div class="mh"><span class="tag">Public</span><b>{{ t.contact_name|default:"Request" }}</b>{% if t.client and t.source != "MSP360" %}<small class="co">({{ t.client.name }})</small>{% endif %}<small title="{{ t.created_at|when }}">{{ t.created_at|ago }}</small></div>
+    <p>{% if t.details %}{{ t.details }}{% else %}<span style="color:var(--mute)">(no description)</span>{% endif %}</p>
+    {% if loose_files %}<div class="att">{% for u in loose_files %}{% include "helpdesk/_file.html" %}{% endfor %}</div>{% endif %}</div>
+  {% endif %}
+  {% for m in msgs %}
+    {% if m.kind == "event" %}<div class="tkg-sys">{{ m.body }} · {{ m.created_at|ago }}</div>
+    {% else %}
+    <div class="tkg-msg{% if m.kind != 'reply' %} priv{% endif %}">
+      <div class="mh"><span class="tag">{% if m.kind == "note" %}Admins only{% elif m.kind == "work" %}Work log{% else %}Public{% endif %}</span>
+        <b>{{ m.who }}</b>{% if not m.author_id and t.client %}<small class="co">({{ t.client.name }})</small>{% endif %}
+        {% if m.via == "portal" %}<small class="co">via portal</small>{% elif m.via == "email" and not m.author_id %}<small class="co">via email</small>{% endif %}
+        <small title="{{ m.created_at|when }}">{{ m.created_at|ago }}</small></div>
+      <p>{{ m.body }}</p>
+      {% if m.files %}<div class="att">{% for u in m.files %}{% include "helpdesk/_file.html" %}{% endfor %}</div>{% endif %}
+    </div>
+    {% endif %}
+  {% empty %}{% if not t.details %}<div class="tkg-sys">No messages yet.</div>{% endif %}{% endfor %}
+</div>
+
+<div class="body" data-pbody="details" hidden>
+  {% if t.client %}<div class="tkg-card"><h4>🏢 Client <a class="r" href="/clients/{{ t.client.pk }}/">Open client →</a></h4>
+    <dl class="tkg-dl"><dt>Name</dt><dd>{{ t.client.name }}</dd>{% if t.client.plan %}<dt>Plan</dt><dd>{{ t.client.plan }}</dd>{% endif %}
+      <dt>Phone</dt><dd>{{ t.client.phone|default:"—" }}</dd><dt>Contract</dt><dd>{% if contract %}{{ contract }}{% else %}<span class="mute">None</span>{% endif %}</dd>
+      {% if t.client.hourly_rate %}<dt>Rate</dt><dd>${{ t.client.hourly_rate }}/h</dd>{% endif %}</dl>
+    {% if client_open %}<ul class="tkg-ol">{% for o in client_open %}<li><span class="pc">{{ o.number }}</span><a class="s" href="/tickets/{{ o.pk }}/">{{ o.subject }}</a></li>{% endfor %}</ul>{% endif %}</div>{% endif %}
+  <div class="tkg-card"><h4>🎫 Ticket</h4>
+    <dl class="tkg-dl">
+      <dt>Requester</dt><dd>{{ t.contact_name|default:"—" }}</dd><dt>Email</dt><dd>{{ t.contact_email|default:"—" }}</dd>
+      <dt>Source</dt><dd>{{ t.source }}</dd><dt>Category</dt><dd>{{ t.category|default:"—" }}</dd>
+      <dt>Created</dt><dd>{{ t.created_at|when }}</dd><dt>Updated</dt><dd>{{ t.updated_at|when }}</dd>
+      {% if t.closed_at %}<dt>Closed</dt><dd>{{ t.closed_at|when }}</dd>{% endif %}
+      {% if t.resolution %}<dt>Resolution</dt><dd>{{ t.resolution }}</dd>{% endif %}
+      <dt>Cc</dt><dd>{{ t.cc|default:"—" }}</dd>
+      <dt>Response</dt><dd>{% if t.first_response_at %}Answered {{ t.first_response_at|ago }}{% elif t.response_due_at %}Due {{ t.response_due_at|when }}{% else %}—{% endif %}</dd>
+      <dt>Resolve by</dt><dd>{{ t.resolve_due_at|when|default:"—" }}</dd>
+    </dl></div>
+  <div class="tkg-card"><h4>⏱ Time</h4><dl class="tkg-dl"><dt>Logged</dt><dd>{{ minutes|minutes_text }}{% if value %} ≈ ${{ value }}{% endif %}</dd><dt>Billable</dt><dd>{{ billable_minutes|minutes_text }}</dd><dt>Not invoiced</dt><dd>{{ unbilled_minutes|minutes_text }}</dd><dt>Billable ticket</dt><dd>{{ t.billable|yesno:"Yes,No" }}</dd></dl></div>
+</div>
+
+<div class="body" data-pbody="history" hidden>
+  {% if history %}<div class="tkg-card"><ul class="tkg-hist">{% for m in history %}<li><i></i><div>{{ m.body }}<small>{{ m.author.name|default:"System" }} · <span title="{{ m.created_at|when }}">{{ m.created_at|ago }}</span></small></div></li>{% endfor %}</ul></div>
+  {% else %}<div class="tkg-sys">No status, assignment or queue changes recorded yet.</div>{% endif %}
+</div>
+
+{% if can_edit %}
+<div class="reply">
+  <form id="compose" hx-post="/tickets/{{ t.pk }}/message/" hx-encoding="multipart/form-data" hx-target="#panel" hx-swap="outerHTML" data-composer>
+    <input type="hidden" name="ctx" value="panel">
+    <div class="tkg-mode" role="radiogroup" aria-label="Message type">
+      <label class="lbl"><input type="radio" name="kind" value="reply" class="sr" checked>↩ Reply to client</label>
+      <label class="lbl note"><input type="radio" name="kind" value="note" class="sr">🔒 Internal note</label>
+      <span class="hint hint-reply">Emailed to the requester and shown in the portal.</span>
+      <span class="hint hint-note"><b>Private.</b> Only staff can see this — the client is never emailed.</span>
+      <button type="button" class="cc" data-cc-toggle title="Copy more people on this reply">CC{% if t.cc %} ✓{% endif %}</button>
+    </div>
+    <div class="ccrow" data-cc-row-panel><label for="cc-{{ t.pk }}">Cc</label><input type="text" name="cc" id="cc-{{ t.pk }}" class="tkg-in" value="" placeholder="manager@client.com, accounts@client.com"></div>
+    <label for="body-{{ t.pk }}" class="sr">Message</label>
+    <textarea id="body-{{ t.pk }}" name="body" placeholder="Write a reply to the client… (Ctrl+Enter sends)"></textarea>
+    <input type="file" name="files" multiple class="files-in" id="files-{{ t.pk }}" data-files>
+    <div class="files" data-file-names style="display:block"></div>
+    <div class="opts">
+      <label title="Hours, decimals — 0.25 = 15 minutes">⏱ Time spent <input type="number" name="hours" class="tkg-in" min="0" max="24" step="0.05" placeholder="0.25" inputmode="decimal"> <span class="u">h</span></label>
+      <label><input type="checkbox" name="billable" value="1"{% if t.billable %} checked{% endif %}> Billable</label>
+      <label title="Change the status when this is sent">⚑ <select name="status_after" class="tkg-in"><option value="">Keep {{ t.status }}</option>{% for s in statuses %}{% if s != t.status %}<option>{{ s }}</option>{% endif %}{% endfor %}</select></label>
+    </div>
+    <div class="rrow">
+      <label class="tkg-btn" for="files-{{ t.pk }}" title="Attach files">📎 Attach</label>
+      <span class="sp"></span>
+      {% if saved_replies %}<label class="sr" for="sr-{{ t.pk }}">Saved reply</label><select id="sr-{{ t.pk }}" class="tkg-in" style="max-width:190px" data-saved-reply><option value="">Insert saved reply ▾</option>{% for r in saved_replies %}<option value="{{ r.body }}">{{ r.title }}</option>{% endfor %}</select>{% endif %}
+      {% if ai_on %}<button type="button" class="tkg-btn" data-ai-draft="/tickets/{{ t.pk }}/ai/" data-target="body-{{ t.pk }}">✦ Draft</button>{% endif %}
+      <button class="tkg-btn p" data-send>➤ <span>Send reply</span></button>
+    </div>
+  </form>
+</div>
+{% else %}<div class="reply" style="color:var(--mute);font-size:12px">You can read this ticket but your role cannot reply.</div>{% endif %}
 </aside>

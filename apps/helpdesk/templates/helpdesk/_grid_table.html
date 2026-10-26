@@ -1,34 +1,35 @@
 {% load ws %}
-<div class="tkg-table" id="grid-body" hx-get="{{ request.get_full_path }}" hx-trigger="ticketsChanged from:body, every 60s" hx-select="#grid-body" hx-swap="outerHTML">
+<div class="tkg-grid" id="grid-body" hx-get="{{ request.get_full_path }}" hx-trigger="ticketsChanged from:body, every 60s" hx-select="#grid-body" hx-swap="outerHTML">
+  <div class="tbl">
   <table>
     <thead><tr>
-      <th style="width:28px"><input type="checkbox" aria-label="Select all" data-tick-all></th>
-      {% for key, label in sort_cols %}<th class="{% if key == 'queue' or key == 'created' %}col-wide{% endif %}"><a href="{% if sort == key %}{% if desc %}{% qs_replace sort=key dir='asc' page='' %}{% else %}{% qs_replace sort=key dir='desc' page='' %}{% endif %}{% else %}{% qs_replace sort=key dir='' page='' %}{% endif %}" class="{% if sort == key %}on{% endif %}">{{ label }} {% if sort == key %}{% if desc %}▾{% else %}▴{% endif %}{% else %}⇅{% endif %}</a></th>{% endfor %}
+      {% if can_tickets_edit %}<th class="c-sel"><input type="checkbox" aria-label="Select all" title="Select all on this page" data-tick-all></th>{% endif %}
+      {% for key, label in sort_cols %}<th class="{% if key == 'subject' %}c-subj{% elif key == 'company' %}c-company{% elif key == 'queue' %}c-queue{% elif key == 'computer' %}c-computer{% elif key == 'created' %}c-creator{% endif %}"><a href="{% if sort == key %}{% if desc %}{% qs_replace sort=key dir='asc' page='' %}{% else %}{% qs_replace sort=key dir='desc' page='' %}{% endif %}{% else %}{% qs_replace sort=key dir='' page='' %}{% endif %}">{{ label }}<span class="srt{% if sort == key %} on{% endif %}">{% if sort == key %}{% if desc %}▾{% else %}▴{% endif %}{% else %}⇅{% endif %}</span></a></th>{% endfor %}
     </tr></thead>
     <tbody>
     {% for x in page %}
       <tr data-open="{{ x.pk }}" class="{% if x.pk == open_pk %}sel{% endif %}">
-        <td><input type="checkbox" name="ids" value="{{ x.pk }}" form="bulk" aria-label="Select {{ x.number }}" data-tick></td>
-        <td class="mono">{{ x.number }}</td>
-        <td style="min-width:220px"><a href="/tickets/{{ x.pk }}/" class="strong" style="color:inherit;text-decoration:none" data-open-link>{{ x.subject }}</a>
-          <div class="small muted">{{ x.contact_name|default:"—" }}{% if x.contact_email %} · {{ x.contact_email }}{% endif %}</div></td>
-        <td>{{ x.client.name|default:"—" }}</td>
-        <td class="col-wide">{% if x.queue %}<span class="dot" style="background:{{ x.queue.color }}"></span>{{ x.queue.name }}{% else %}<span class="muted">—</span>{% endif %}</td>
-        <td style="white-space:nowrap"><span class="dot" style="background:var(--{% if x.status|grid_status == 'Open' %}accent{% elif x.status|grid_status == 'Closed' %}muted{% elif x.status|grid_status == 'Pending' %}st-new{% else %}st-res{% endif %})"></span>{{ x.status|grid_status }}
-          {% if x.status|grid_status != x.status %}<div class="small muted">{{ x.status }}</div>{% endif %}
-          {% for c in x.sla_chips %}<div><span class="sla {{ c.tone }}">{{ c.text }}</span></div>{% endfor %}</td>
-        <td><span class="pri {{ x.priority|p_class }}">{{ x.priority|short_pri }}</span></td>
-        <td style="white-space:nowrap">{% if x.assigned_to %}<span class="av xs" style="background:#0b3d6e;display:inline-grid;vertical-align:middle">{{ x.assigned_to.name|initials }}</span> {{ x.assigned_to.get_short_name }}{% else %}<span class="muted">—</span>{% endif %}</td>
-        <td class="col-wide small">{{ x.created_by.name|default:"—" }}</td>
-        <td class="small muted" style="white-space:nowrap">{{ x.updated_at|ago }}</td>
+        {% if can_tickets_edit %}<td class="c-sel"><input type="checkbox" name="ids" value="{{ x.pk }}" form="bulk" aria-label="Select {{ x.number }}" data-tick></td>{% endif %}
+        <td class="pc"><a href="/tickets/{{ x.pk }}/?classic=1" title="Open the full ticket page">{{ x.number }}</a>{% if x.unread_n %}<span class="unread" title="{{ x.unread_n }} new client repl{{ x.unread_n|pluralize:'y,ies' }}">{{ x.unread_n }}</span>{% endif %}</td>
+        <td class="subj"><a href="/tickets/{{ x.pk }}/" data-open-link>{{ x.subject }}</a><small>{% if x.source == "MSP360" %}MSP360{% if x.details %} · {{ x.details|truncatechars:90 }}{% endif %}{% elif x.contact_name or x.contact_email %}{{ x.contact_name }}{% if x.contact_name and x.contact_email %} · {% endif %}{{ x.contact_email }}{% else %}{{ x.queue.name|default:"" }}{% endif %}</small></td>
+        <td class="c-company">{% if x.client %}{{ x.client.name }}{% else %}<span style="color:var(--mute)">—</span>{% endif %}</td>
+        <td class="c-queue">{% if x.queue %}<span class="qd" style="--qc:{{ x.queue.color }}">{{ x.queue.name }}</span>{% else %}<span style="color:var(--mute)">—</span>{% endif %}</td>
+        <td class="pc c-computer">{{ x.computer_name|default:"—" }}</td>
+        <td><div class="stc"><span class="st {{ x.status|tkg_st }}" title="{{ x.status }}">{{ x.status|grid_status }}{% if x.status|grid_status != x.status and x.status != "New" %} <small>· {{ x.status }}</small>{% endif %}</span>
+          {% with chips=x.grid_sla %}{% if chips %}<span class="slas">{% for c in chips %}<span class="sla {{ c.cls }}" title="{{ c.title }}">{{ c.text }}</span>{% endfor %}</span>{% endif %}{% endwith %}</div></td>
+        <td><span class="pri {{ x.priority|tkg_pri }}">{{ x.priority }}</span></td>
+        <td>{% if x.assigned_to %}<span class="who"><i style="background:{{ x.assigned_to_id|avatar_color }}">{{ x.assigned_to.name|initials }}</i>{{ x.assigned_to.name|first_name }}</span>{% else %}<span class="who un"><i>—</i>Unassigned</span>{% endif %}</td>
+        <td class="c-creator">{% if x.created_by %}{{ x.created_by.name }}{% elif x.source == "Email" %}Email{% elif x.source == "Portal" %}Portal{% elif x.source == "MSP360" %}MSP360{% else %}{{ x.source }}{% endif %}</td>
+        <td title="{{ x.updated_at|when }}">{{ x.updated_at|ago }}</td>
       </tr>
     {% empty %}
-      <tr><td colspan="10" class="empty">No tickets here.</td></tr>
+      <tr><td colspan="12" class="tkg-empty">No tickets match this view.</td></tr>
     {% endfor %}
     </tbody>
   </table>
-  <div class="tkg-pager"><span>{% if page.paginator.count %}Showing {{ page.start_index }}–{{ page.end_index }} of {{ page.paginator.count }}{% endif %}</span>
-    <span>{% if page.has_previous %}<a href="{% qs_replace page=page.previous_page_number %}">‹</a>{% endif %}
-      {% for n in page.paginator.page_range %}{% if n == page.number %}<b>{{ n }}</b>{% elif n >= page.number|add:-2 and n <= page.number|add:2 %}<a href="{% qs_replace page=n %}">{{ n }}</a>{% endif %}{% endfor %}
-      {% if page.has_next %}<a href="{% qs_replace page=page.next_page_number %}">›</a>{% endif %}</span></div>
+  </div>
+  <div class="tkg-foot"><span>{% if page.paginator.count %}Showing {{ page.start_index }}–{{ page.end_index }} of {{ page.paginator.count }}{% else %}Showing 0{% endif %}</span>
+    {% if page.paginator.num_pages > 1 %}<span class="pg">{% if page.has_previous %}<a href="{% qs_replace page=page.previous_page_number %}">‹</a>{% endif %}
+      {% for n in page.paginator.page_range %}{% if n == page.number %}<span class="on">{{ n }}</span>{% elif n >= page.number|add:-2 and n <= page.number|add:2 %}<a href="{% qs_replace page=n %}">{{ n }}</a>{% endif %}{% endfor %}
+      {% if page.has_next %}<a href="{% qs_replace page=page.next_page_number %}">›</a>{% endif %}</span>{% endif %}</div>
 </div>

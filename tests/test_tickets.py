@@ -120,3 +120,17 @@ def test_bulk_snooze_merge_timer(tech):
     b.refresh_from_db()
     assert b.merged_into_id == a.pk and b.status == "Closed"
     assert a.messages.filter(body="second request").exists()
+
+
+def test_classic_ticket_page_keeps_the_queue_when_status_changes(client):
+    from apps.core.models import Setting
+    from apps.helpdesk.models import Queue
+
+    from .helpers import make_user, signed_in
+    Setting.put("security.require_mfa", "nobody")
+    u = signed_in(client, make_user(role="admin"))
+    q = Queue.objects.create(name="Level 1")
+    from apps.helpdesk import services
+    t = services.create_ticket(subject="Printer", queue=q)
+    page = u.get(f"/tickets/{t.pk}/?classic=1").content.decode()
+    assert f'<option value="{q.pk}" selected>Level 1</option>' in page
