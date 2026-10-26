@@ -6,6 +6,7 @@ import string
 import qrcode
 import qrcode.image.svg
 from django import forms
+from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth import logout as django_logout
 from django.contrib.auth import update_session_auth_hash
@@ -81,10 +82,11 @@ def google_callback(request):
     except google.GoogleSignInError as e:
         security.record_attempt(e.email or "(google)", request, False, e.code)
         return render(request, "accounts/login.html", {"error": str(e), "google": True, "password_login": True}, status=400)
-    user = User.objects.filter(email__iexact=email).first()
+    user = User.objects.filter(email__iexact=email).first() or User.objects.filter(google_email__iexact=email).first()
     problem = None
     if user is None:
-        problem = ("google_no_account", f"There's no Weststar ONE staff account for {email}. Ask an admin to add you in Settings › Staff users (same email as your Google account).")
+        problem = ("google_no_account", f"Google says you're signed in as {email}, and no staff account uses that address. "
+                   "If your staff account has a different email, an admin can put this address in “Google account email” on your user in Settings › Staff users.")
     elif not user.is_active:
         problem = ("google_inactive", f"The staff account for {email} is turned off. Ask an admin to turn it back on in Settings › Staff users.")
     elif user.locked_until and user.locked_until > timezone.now():
@@ -281,9 +283,10 @@ def _temp_password() -> str:
 class UserForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ["name", "email", "role", "hr_access", "google_only", "title", "phone"]
+        fields = ["name", "email", "google_email", "role", "hr_access", "google_only", "title", "phone"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "input"}), "email": forms.EmailInput(attrs={"class": "input"}),
+            "google_email": forms.EmailInput(attrs={"class": "input"}),
             "role": forms.Select(attrs={"class": "select"}), "title": forms.TextInput(attrs={"class": "input"}),
             "phone": forms.TextInput(attrs={"class": "input"}),
         }
@@ -293,6 +296,12 @@ class UserForm(forms.ModelForm):
         if User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
             raise ValidationError("Someone already uses that email address.")
         return email
+
+    def clean_google_email(self):
+        g = (self.cleaned_data.get("google_email") or "").strip().lower()
+        if g and (User.objects.filter(Q(email__iexact=g) | Q(google_email__iexact=g)).exclude(pk=self.instance.pk).exists()):
+            raise ValidationError("Another staff member already signs in with that Google address.")
+        return g
 
 
 @login_required

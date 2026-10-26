@@ -117,3 +117,12 @@ def test_signin_settings_show_checkup(client, monkeypatch):
     web = signed_in(client, make_user("boss@weststarmsp.com", role="admin"))
     page = web.get("/settings/signin/").content.decode()
     assert "/login/google/callback/" in page and "someone@gmail.com" in page and "google_no_account" in page
+
+
+def test_different_google_address_can_be_linked(client, monkeypatch):
+    u = make_user("chervey@weststarmsp.com", role="admin")
+    r = _go(client, monkeypatch, email="casey@weststarmsp.com", hd="weststarmsp.com")
+    assert r.status_code == 403 and b"casey@weststarmsp.com" in r.content and b"Google account email" in r.content
+    u.google_email = " Casey@WeststarMSP.com "
+    u.save()
+    assert _go(client, monkeypatch, email="casey@weststarmsp.com", hd="weststarmsp.com")["Location"] == "/"

@@ -202,7 +202,7 @@ def settings_page(request, page):
                 ("Allowed domains filled in", bool(domains)),
                 ("Google sign-in counts as two-factor", Setting.get("google.counts_as_2fa", "yes") != "no"),
             ],
-            "outside": [u for u in staff if u.email.rsplit("@", 1)[-1].lower() not in domains],
+            "outside": [u for u in staff if not any(a and a.rsplit("@", 1)[-1].lower() in domains for a in (u.email, u.google_email))],
             "staff_n": len(staff),
             "failures": LoginAttempt.objects.filter(success=False, reason__startswith="google").order_by("-created_at")[:15],
 
