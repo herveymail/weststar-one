@@ -24,8 +24,8 @@
       </div>
       {% if can_edit %}
       <div class="hd-actions">
-        <a class="btn primary" href="#compose" data-mode="reply">Reply</a>
-        <a class="btn" href="#compose" data-mode="note">Add note</a>
+        <a class="btn primary" href="#compose" data-compose="reply">Reply</a>
+        <a class="btn" href="#compose" data-compose="note">Add note</a>
         {% if t.is_open %}
         <details class="pop"><summary class="btn">Resolve</summary>
           <form class="pop-body stack" method="post" action="/tickets/{{ t.pk }}/resolve/">{% csrf_token %}

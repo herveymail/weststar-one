@@ -82,8 +82,8 @@
     }
   });
   document.addEventListener('click', (e) => {
-    const m = e.target.closest('[data-mode]');
-    if (m) { const f = $('form[data-composer]'); if (f) { setKind(f, m.dataset.mode); setTimeout(() => f.querySelector('textarea').focus(), 0); } }
+    const m = e.target.closest('[data-compose]');
+    if (m) { const f = $('form[data-composer]'); if (f) { setKind(f, m.dataset.compose); setTimeout(() => f.querySelector('textarea').focus(), 0); } }
     if (e.target.closest('[data-bulk-close]')) {
       const f = $('#bulk'); const n = $$('[data-tick]:checked').length;
       if (n && window.confirm(`Close ${n} ticket(s)?`)) { $('[data-bulk-action]', f).value = 'close'; f.requestSubmit(); }
