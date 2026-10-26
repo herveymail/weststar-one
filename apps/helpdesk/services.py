@@ -164,7 +164,12 @@ def add_message(ticket: Ticket, *, user, kind: str, body: str, minutes: int = 0,
         TimeEntry.objects.create(ticket=t, user=user, minutes=minutes, work_type=work_type, billable=billable,
                                  description=body[:500], work_date=timezone.localdate())
     if status_after and status_after in dict(Ticket._meta.get_field("status").choices) and status_after != t.status:
-        update_ticket(t, user=user, request=request, status=status_after)
+        from .signoff import SignoffRequired
+        try:
+            with transaction.atomic():
+                update_ticket(t, user=user, request=request, status=status_after)
+        except SignoffRequired:
+            event(t, f"Not closed: break/fix ticket needs the customer's sign-off first ({user.name} tried)", user)
     audit(request, kind, "ticket", t.pk, f"{ {'reply': 'Replied on', 'note': 'Added note to', 'work': 'Logged work on'}.get(kind, 'Updated') } {t.number}", area="tickets")
     if kind == "reply":
         send_ticket_email(t, "reply", "email/ticket_reply", {"m": msg}, msg)
@@ -187,7 +192,7 @@ def client_reply(ticket: Ticket, *, portal_user=None, body: str, name: str = "",
 
 
 @transaction.atomic
-def update_ticket(ticket: Ticket, *, user, request=None, **changes) -> Ticket:
+def update_ticket(ticket: Ticket, *, user, request=None, skip_signoff=False, **changes) -> Ticket:
     t = Ticket.objects.select_for_update().get(pk=ticket.pk)
     notes = []
     if "priority" in changes and changes["priority"] != t.priority:
@@ -221,6 +226,9 @@ def update_ticket(ticket: Ticket, *, user, request=None, **changes) -> Ticket:
         t.cc = changes["cc"]
     if "status" in changes and changes["status"] != t.status:
         new = changes["status"]
+        if not skip_signoff:
+            from .signoff import check_close
+            check_close(t, new)  # break/fix: the customer signs off first
         notes.append(f"Status {t.status} → {new}")
         t.status = new
         if new == "Resolved":

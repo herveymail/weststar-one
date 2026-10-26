@@ -1,0 +1,51 @@
+{% load static ws %}<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>{% if kind == "dropoff" %}Equipment drop-off{% else %}Customer sign-off{% endif %} · {{ t.number }}</title>
+<link rel="stylesheet" href="{% static 'helpdesk/signoff.css' %}"><script src="{% static 'helpdesk/signoff.js' %}" defer></script></head>
+<body><div class="wrap" id="so-page" data-type="{{ kind }}" data-rate="{{ ch.rate }}" data-tax="{{ ch.tax_rate }}" data-company="{{ company }}">
+<div class="top"><a href="/tickets/{{ t.pk }}/?classic=1">‹ Back to ticket</a><span class="muted">{{ company }}</span></div>
+{% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
+<div class="card">
+  <h1>{% if kind == "dropoff" %}Equipment drop-off{% else %}Service completion sign-off{% endif %}</h1>
+  <div class="muted">{{ t.number }} · {{ t.client.name|default:"No client" }} {% if breakfix %}<span class="badge">Break/fix</span>{% endif %}<br>{{ t.subject }}</div>
+  <div class="tabs"><a class="{% if kind == 'completion' %}on{% endif %}" href="?type=completion">Work completed</a><a class="{% if kind == 'dropoff' %}on{% endif %}" href="?type=dropoff">Drop-off</a></div>
+</div>
+<form method="post" id="so-form">{% csrf_token %}
+<input type="hidden" name="type" value="{{ kind }}"><input type="hidden" name="signature" id="sig-data"><input type="hidden" name="override" id="ov-flag" value="0">
+<div class="card">
+{% if kind == "completion" %}
+  <label for="so-sum">Work performed</label><textarea id="so-sum" name="summary" maxlength="4000" placeholder="What was done">{{ post.summary|default:summary }}</textarea>
+  <div class="row"><div><label for="so-h">Hours</label><input id="so-h" name="hours" type="number" step="0.25" min="0" inputmode="decimal" value="{{ post.hours|default:ch.hours }}"></div>
+    <div><label>Rate</label><input value="${{ ch.rate }}/hr" readonly style="background:#f2f4f7" aria-label="Rate"></div></div>
+  <div class="row"><div style="flex:2"><label for="so-pd">Parts / materials (optional)</label><input id="so-pd" name="parts_desc" maxlength="255" placeholder="e.g. 500 GB SSD" value="{{ post.parts_desc }}"></div>
+    <div><label for="so-pa">Amount</label><input id="so-pa" name="parts_amount" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0.00" value="{{ post.parts_amount }}"></div></div>
+  <div class="charges"><div><span>Labor</span><span id="c-lab"></span></div><div id="c-parts-row"><span>Parts</span><span id="c-parts"></span></div>
+    {% if ch.tax_rate %}<div><span>Tax ({{ ch.tax_rate|floatformat:"-3" }}%)</span><span id="c-tax"></span></div>{% endif %}<div class="tot"><span>Total</span><span id="c-tot"></span></div></div>
+{% else %}
+  <label for="so-items">Items dropped off *</label><textarea id="so-items" name="items" maxlength="4000" required placeholder="e.g. Dell Latitude 5540 laptop, S/N ABC123, with charger">{{ post.items }}</textarea>
+  <label for="so-sum">Notes (optional)</label><textarea id="so-sum" name="summary" maxlength="4000" style="min-height:60px">{{ post.summary }}</textarea>
+{% endif %}
+</div>
+<div class="card">
+  <div class="stmt" id="stmt"></div>
+  <div class="row"><div><label for="so-n">Customer name *</label><input id="so-n" name="signer_name" maxlength="200" autocomplete="off" value="{{ post.signer_name|default:signer_name }}"></div>
+    <div><label for="so-t">Title</label><input id="so-t" name="signer_title" maxlength="100" autocomplete="off" value="{{ post.signer_title|default:signer_title }}"></div></div>
+  <label for="so-e">Email for their copy</label><input id="so-e" name="signer_email" type="email" maxlength="200" autocomplete="off" value="{{ post.signer_email|default:signer_email }}">
+  <label>Customer signature *</label><div class="sig" id="sig-wrap"><canvas id="sig-canvas" aria-label="Sign here"></canvas></div>
+  <button type="button" class="btn btn-l" id="sig-clear">Clear signature</button>
+  {% if kind == "completion" %}<label class="chk"><input type="checkbox" name="close" value="1" checked> Resolve the ticket after signing</label>{% endif %}
+  <button type="submit" class="btn btn-p" id="sign-btn" disabled>Sign &amp; agree</button>
+</div>
+<div class="card"><details>
+  <summary>Tech override: no customer signature</summary>
+  <p class="muted">Only when the customer can't sign (not on site, refused, remote work…). Your name, the reason and the time go on the ticket.</p>
+  <label for="so-r">Reason *</label><textarea id="so-r" name="override_reason" maxlength="1000" style="min-height:60px">{{ post.override_reason }}</textarea>
+  <button type="button" class="btn btn-s" id="ov-btn">Override &amp; save</button>
+</details></div>
+</form>
+{% if history %}<div class="card"><b style="font-size:14px">On file for this ticket</b>
+{% for s in history %}<div class="hist"><b>{{ s.get_type_display }}</b> · {{ s.created_at|when }} ·
+  {% if s.overridden %}<span style="color:#b54708">Overridden by {{ s.user.name|default:"a tech" }}: {{ s.override_reason }}</span>
+  {% else %}Signed by {{ s.signer_name }}{% if s.type == "completion" %} · ${{ s.total }}{% endif %}{% if s.signature %}<br><img src="{{ s.signature }}" alt="Signature of {{ s.signer_name }}">{% endif %}{% endif %}
+  {% if s.items %}<br>Items: {{ s.items|linebreaksbr }}{% endif %}</div>{% endfor %}</div>{% endif %}
+</div></body></html>

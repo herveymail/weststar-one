@@ -110,6 +110,7 @@ MAP = {
     "tai_firstresponse_hours": ("ai.first_response_when", lambda v: "after_hours" if "after" in v.lower() else "always"),
     "tai_firstresponse_skip": ("ai.first_response_skip", same), "ai_model": ("ai.model", same), "ai_api_key": ("ai.api_key", same),
     "msp360_login": ("msp360.login", same), "msp360_password": ("msp360.password", same),
+    "signoff_breakfix_required": ("tickets.signoff_breakfix_required", b),
     "msp360_enabled": ("msp360.enabled", b), "msp360_base_url": ("msp360.base_url", same), "msp360_ticket_on_failure": ("msp360.ticket_on_failure", b),
     "msp360_overdue_hours": ("msp360.overdue_hours", num), "msp360_auto_resolve": ("msp360.auto_resolve", b),
     "msp360_ticket_priority": ("msp360.ticket_priority", lambda v: str(v).strip().title() if str(v).strip().lower() in ("low", "medium", "high", "critical") else None),

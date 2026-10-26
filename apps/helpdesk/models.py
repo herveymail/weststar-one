@@ -244,3 +244,50 @@ class AiLog(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class TicketSignoff(models.Model):
+    """Customer sign-off (old app 2026.0.89). completion: break/fix customer confirms the work is done, working, and
+    agrees to the charges. dropoff: customer confirms they received equipment. A tech may override with a reason."""
+    TYPES = [("completion", "Work completed"), ("dropoff", "Drop-off")]
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="signoffs")
+    type = models.CharField(max_length=12, choices=TYPES)
+    signer_name = models.CharField(max_length=200, blank=True)
+    signer_title = models.CharField(max_length=100, blank=True)
+    signer_email = models.EmailField(blank=True)
+    signature = models.TextField(blank=True)  # PNG data: URL, checked on save
+    summary = models.TextField(blank=True)
+    items = models.TextField(blank=True)
+    hours = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    rate = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    parts_desc = models.CharField(max_length=255, blank=True)
+    parts_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    tax_rate = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True)
+    total = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    statement = models.TextField(blank=True)
+    hash = models.CharField(max_length=64, blank=True)
+    overridden = models.BooleanField(default=False)
+    override_reason = models.TextField(blank=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    ip = models.CharField(max_length=45, blank=True)
+    via = models.CharField(max_length=20, default="web")
+    legacy_id = models.BigIntegerField(null=True, blank=True, unique=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
+class TicketApproval(models.Model):
+    """Scope/budget approval log: the client OK'd out-of-scope or over-budget work (protects against billing disputes)."""
+    VIA = [("email", "Email"), ("phone", "Phone"), ("in_person", "In person"), ("text", "Text message"), ("portal", "Portal")]
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="approvals")
+    description = models.CharField(max_length=500)
+    approved_by = models.CharField(max_length=200, blank=True)
+    via = models.CharField(max_length=20, choices=VIA, default="email")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    legacy_id = models.BigIntegerField(null=True, blank=True, unique=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-created_at"]

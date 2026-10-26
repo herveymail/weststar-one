@@ -297,6 +297,7 @@ class Importer:
                 self.hr()
                 self.tickets()
                 self.msp360()
+                self.signoffs()
                 self.files()
                 self.settings()
                 self.bump_counters()
@@ -827,6 +828,40 @@ class Importer:
         for r in rows:  # escalation targets need every queue first
             if r.get("tq_escalate_to"):
                 Queue.objects.filter(legacy_id=int(r["tq_id"])).update(escalate_to_id=self.ref("queues", r["tq_escalate_to"]))
+
+    def signoffs(self):
+        """Customer sign-offs (signatures and all) and scope/budget approvals from old tickets."""
+        from apps.helpdesk.models import TicketApproval, TicketSignoff
+        rows = self.read("ticket_signoffs", "so_id")
+        step = Step("ticket sign-offs & approvals", source=len(rows))
+        for r in rows:
+            tid = self.ref("tickets", r.get("so_ticket_id"))
+            if not tid:
+                step.skipped += 1
+                continue
+            sig = str(r.get("so_signature") or "")
+            TicketSignoff.objects.update_or_create(legacy_id=int(r["so_id"]), defaults={
+                "ticket_id": tid, "type": "dropoff" if r.get("so_type") == "dropoff" else "completion",
+                "signer_name": s(r.get("so_signer_name"), 200) or "", "signer_title": s(r.get("so_signer_title"), 100) or "",
+                "signer_email": email(r.get("so_signer_email")) or "", "signature": sig if sig.startswith("data:image/png;base64,") else "",
+                "summary": txt(r.get("so_summary")) or "", "items": txt(r.get("so_items")) or "", "hours": num(r.get("so_hours")), "rate": num(r.get("so_rate")),
+                "parts_desc": s(r.get("so_parts_desc"), 255) or "", "parts_amount": num(r.get("so_parts_amount")), "tax_rate": num(r.get("so_tax_rate")),
+                "total": num(r.get("so_total")), "statement": txt(r.get("so_statement")) or "", "hash": s(r.get("so_hash"), 64) or "",
+                "overridden": yes(r.get("so_overridden")), "override_reason": txt(r.get("so_override_reason")) or "",
+                "user_id": self.ref("users", r.get("so_user_id")), "ip": s(r.get("so_ip"), 45) or "", "via": s(r.get("so_via"), 20) or "web",
+                "created_at": ts(r.get("so_created_at")) or timezone.now()})
+            step.imported += 1
+        for r in self.read("ticket_approvals", "approval_id"):
+            tid = self.ref("tickets", r.get("approval_ticket_id"))
+            if not tid:
+                continue
+            via = str(r.get("approval_via") or "email")
+            TicketApproval.objects.update_or_create(legacy_id=int(r["approval_id"]), defaults={
+                "ticket_id": tid, "description": s(r.get("approval_description"), 500) or "", "approved_by": s(r.get("approval_approved_by"), 200) or "",
+                "via": via if via in dict(TicketApproval.VIA) else "email", "user_id": self.ref("users", r.get("approval_staff_user_id")),
+                "created_at": ts(r.get("approval_created_at")) or timezone.now()})
+            step.imported += 1
+        self._done(step)
 
     def msp360(self):
         """MSP360 backup data, with each company's client and the ticket already open for a failed plan (so no duplicates)."""

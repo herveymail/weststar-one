@@ -123,3 +123,6 @@ details.pop > summary::-webkit-details-marker { display: none; }
 .hd-rail .hd-rail-i.active { background: var(--sel); font-weight: 600; }
 .hd .select, .hd .input { min-height: 32px; font-size: 13px; }
 .hd-side .select { min-height: 30px; }
+.hd .btn.danger { color: var(--crit); }
+.hd .btn.warn-btn { border-color: #f79009; color: #b54708; }
+.banner.warn-banner { background: var(--high-bg); color: var(--high); font-weight: 500; margin-top: 10px; }

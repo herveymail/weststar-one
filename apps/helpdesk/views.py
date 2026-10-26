@@ -15,12 +15,14 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.accounts.models import User
+from apps.core.audit import audit
 from apps.core.models import Setting
 from apps.core.permissions import can
 from apps.crm.models import Client, Contact
 
 from . import queries, services
-from .models import CATEGORIES, OPEN_STATUSES, PRIORITIES, STATUSES, WORK_TYPES, Queue, Ticket, TicketTimer
+from .models import CATEGORIES, OPEN_STATUSES, PRIORITIES, STATUSES, WORK_TYPES, Queue, Ticket, TicketApproval, TicketTimer
+from .signoff import SignoffRequired, completion_required
 
 AVATAR_COLORS = ["#2c5cc5", "#12805c", "#a35b00", "#5a3fc0", "#0b6e8f", "#b83a8a", "#c2410c", "#0f766e"]
 TIME_CHOICES = [(0, "0h"), (15, "15m"), (30, "30m"), (45, "45m"), (60, "1h"), (90, "1.5h"), (120, "2h"), (180, "3h"), (240, "4h"), (360, "6h"), (480, "8h")]
@@ -179,6 +181,8 @@ def _detail_ctx(request, t: Ticket, panel=False) -> dict:
     return {
         "t": t, "msgs": msgs, "loose_files": by_msg.get(None, []), "panel": panel,
         "computer": __import__("apps.integrations.models", fromlist=["Msp360Plan"]).Msp360Plan.objects.filter(ticket=t).first(),
+        "signoffs": list(t.signoffs.select_related("user")), "approvals": list(t.approvals.select_related("user")),
+        "approval_via": TicketApproval.VIA, "signoff_needed": t.is_open and completion_required(t),
         "conversation_count": sum(1 for m in msgs if m.kind != "event"),
         "history": [m for m in msgs if m.kind == "event"],
         "minutes": time_rows["m"] or 0, "billable_minutes": time_rows["b"] or 0, "unbilled_minutes": time_rows["unbilled"] or 0,
@@ -212,10 +216,12 @@ def ticket_panel(request, pk):
     return render(request, "helpdesk/_panel.html", _detail_ctx(request, t, panel=True))
 
 
-def _after_change(request, t):
+def _after_change(request, t, signoff_needed=False):
     """Re-render whatever the change came from: the grid's panel, or reload the classic page."""
+    if signoff_needed:
+        messages.error(request, f"{t.number} is a break/fix ticket: get the customer's sign-off (or override it) before closing.")
     if request.POST.get("ctx") == "panel" or request.GET.get("ctx") == "panel":
-        resp = render(request, "helpdesk/_panel.html", _detail_ctx(request, t, panel=True))
+        resp = render(request, "helpdesk/_panel.html", {**_detail_ctx(request, t, panel=True), "signoff_needed": signoff_needed})
         resp["HX-Trigger"] = "ticketsChanged"
         return resp
     if request.headers.get("HX-Request"):
@@ -249,7 +255,10 @@ def ticket_update(request, pk):
         changes["subject"] = request.POST["subject"].strip()[:255]
     if "cc" in request.POST:
         changes["cc"] = request.POST["cc"].strip()[:1000]
-    services.update_ticket(t, user=request.user, request=request, **changes)
+    try:
+        services.update_ticket(t, user=request.user, request=request, **changes)
+    except SignoffRequired:
+        return _after_change(request, t, signoff_needed=True)
     return _after_change(request, t)
 
 
@@ -352,7 +361,10 @@ def ticket_resolve(request, pk):
     if not note:
         messages.error(request, "Add a short resolution note.")
         return _after_change(request, t)
-    services.update_ticket(t, user=request.user, request=request, status="Resolved", resolution=note)
+    try:
+        services.update_ticket(t, user=request.user, request=request, status="Resolved", resolution=note)
+    except SignoffRequired:
+        return _after_change(request, t, signoff_needed=True)
     return _after_change(request, t)
 
 
@@ -362,8 +374,8 @@ def bulk(request):
     _need(request, "edit")
     ids = [int(i) for i in request.POST.getlist("ids") if i.isdigit()][:200]
     action, value = request.POST.get("action"), request.POST.get("value", "")
-    n = 0
-    for t in Ticket.objects.filter(pk__in=ids):
+
+    def apply(t):
         if action == "assign":
             user = None if value == "" else User.objects.filter(pk=_int(value) or 0, is_active=True).first()
             services.update_ticket(t, user=request.user, request=request, assigned_to=user)
@@ -374,9 +386,18 @@ def bulk(request):
         elif action == "close":
             services.update_ticket(t, user=request.user, request=request, status="Closed")
         else:
-            continue
-        n += 1
+            return False
+        return True
+
+    n, held = 0, []
+    for t in Ticket.objects.filter(pk__in=ids):
+        try:
+            n += apply(t)
+        except SignoffRequired:
+            held.append(t.number)
     messages.success(request, f"Updated {n} ticket{'s' if n != 1 else ''}.")
+    if held:
+        messages.error(request, f"Not closed (break/fix, customer sign-off needed first): {', '.join(held)}.")
     r = HttpResponse(status=204)
     r["HX-Refresh"] = "true"
     return r
@@ -475,3 +496,79 @@ def ticket_ai(request, pk):
         resp["HX-Refresh"] = "true"
         return resp
     return render(request, "helpdesk/_ai.html", {"t": t, "ai_on": True})
+
+
+# ── customer sign-off, approvals, delete (from the old classic ticket page) ──
+@login_required
+def ticket_signoff(request, pk):
+    """Full-screen page for the tech's phone or tablet: the customer signs for completed work or a drop-off."""
+    from . import signoff as so
+    _need(request, "edit")
+    t = get_object_or_404(Ticket.objects.select_related("client", "contact"), pk=pk)
+    kind = "dropoff" if request.GET.get("type", request.POST.get("type")) == "dropoff" else "completion"
+    error = ""
+    if request.method == "POST":
+        data = {k: request.POST.get(k, "") for k in ("signer_name", "signer_title", "signer_email", "signature", "summary", "items",
+                                                     "hours", "parts_desc", "parts_amount", "override_reason")}
+        data["type"], data["override"] = kind, request.POST.get("override") == "1"
+        rec, error = so.record(t, data, request.user, ip=request.META.get("REMOTE_ADDR", ""))
+        if rec:
+            close = kind == "completion" and request.POST.get("close") == "1"
+            if close and t.status not in ("Resolved", "Closed"):
+                services.update_ticket(t, user=request.user, request=request, status="Resolved",
+                                       resolution=t.resolution or (data["summary"] or "Completed and signed off by the customer"))
+            what = "Drop-off" if kind == "dropoff" else "Completion"
+            messages.success(request, f"{what} sign-off overridden and noted on the ticket." if rec.overridden else
+                             f"{what} signed by the customer." + (" A copy was emailed to them." if (rec.signer_email or t.contact_email) else ""))
+            return redirect(f"/tickets/{t.pk}/?classic=1")
+    ch = so.charges(t)
+    summary = t.resolution or (t.messages.filter(kind__in=["work", "reply"], author__isnull=False).order_by("-created_at").values_list("body", flat=True).first() or "")[:1000]
+    return render(request, "helpdesk/signoff.html", {
+        "t": t, "kind": kind, "ch": ch, "breakfix": so.is_breakfix(t.client), "error": error, "post": request.POST,
+        "summary": summary, "signer_name": t.contact.name if t.contact else t.contact_name, "signer_email": t.contact.email if t.contact else t.contact_email,
+        "signer_title": t.contact.title if t.contact else "", "history": t.signoffs.select_related("user"),
+        "company": Setting.get("company.name", "") or "Weststar MSP"}, status=422 if error else 200)
+
+
+@login_required
+@require_POST
+def ticket_approval(request, pk):
+    _need(request, "edit")
+    t = get_object_or_404(Ticket, pk=pk)
+    if request.POST.get("delete"):
+        a = TicketApproval.objects.filter(ticket=t, pk=_int(request.POST["delete"]) or 0).first()
+        if a:
+            a.delete()
+            audit(request, "delete", "ticket", t.pk, f"{t.number}: removed a scope/budget approval", area="tickets")
+            messages.success(request, "Approval removed.")
+        return redirect(f"/tickets/{t.pk}/?classic=1")
+    desc = request.POST.get("description", "").strip()[:500]
+    if not desc:
+        messages.error(request, "Describe what the client approved.")
+        return redirect(f"/tickets/{t.pk}/?classic=1")
+    via = request.POST.get("via", "email") if request.POST.get("via") in dict(TicketApproval.VIA) else "email"
+    TicketApproval.objects.create(ticket=t, description=desc, approved_by=request.POST.get("approved_by", "").strip()[:200], via=via, user=request.user)
+    services.event(t, f"✅ Scope/budget approval logged: {desc}", request.user)
+    audit(request, "create", "ticket", t.pk, f"{t.number}: scope/budget approval logged", area="tickets")
+    messages.success(request, "Approval logged.")
+    return redirect(f"/tickets/{t.pk}/?classic=1")
+
+
+@login_required
+@require_POST
+def ticket_delete(request, pk):
+    """Admins only, like the old app. Messages, time and files go with it."""
+    if request.user.role != "admin":
+        raise PermissionDenied
+    t = get_object_or_404(Ticket, pk=pk)
+    if request.POST.get("confirm") != t.number:
+        messages.error(request, f"Type {t.number} to confirm the delete.")
+        return redirect(f"/tickets/{t.pk}/?classic=1")
+    number = t.number
+    for u in t.uploads.all():
+        u.file.delete(save=False)
+        u.delete()
+    t.delete()
+    audit(request, "delete", "ticket", pk, f"Deleted ticket {number}", area="tickets")
+    messages.success(request, f"Deleted {number}.")
+    return redirect("/tickets/")

@@ -19,7 +19,9 @@
         {% endif %}
         {% if escalate_to %}<button type="button" hx-post="/tickets/{{ t.pk }}/update/" hx-vals='{"queue":"{{ escalate_to.pk }}","ctx":"panel"}' hx-target="#panel" hx-swap="outerHTML">⇪ Escalate to {{ escalate_to.name }}</button>{% endif %}
         <button type="button" hx-post="/tickets/{{ t.pk }}/update/" hx-vals='{"assigned_to":"me","ctx":"panel"}' hx-target="#panel" hx-swap="outerHTML">👤 Assign to me</button>
-        <a href="/tickets/{{ t.pk }}/?classic=1">↗ Full page (resolve, merge, billing)</a>
+        <a href="/tickets/{{ t.pk }}/signoff/?type=completion">✍ Customer sign-off</a>
+        <a href="/tickets/{{ t.pk }}/signoff/?type=dropoff">📦 Drop-off</a>
+        <a href="/tickets/{{ t.pk }}/?classic=1">↗ Full page (resolve, merge, approvals)</a>
       </div></details>
     {% endif %}
     <button type="button" class="close" title="Close panel" aria-label="Close panel" style="margin-left:0" data-close-panel>×</button>
@@ -57,6 +59,7 @@
     {% else %}<button type="button" class="tkg-btn" hx-post="/tickets/{{ t.pk }}/update/" hx-vals='{"status":"Open","ctx":"panel"}' hx-target="#panel" hx-swap="outerHTML">↺ Reopen</button>{% endif %}
     {% endif %}
   </div>
+  {% if signoff_needed %}<div class="warn"><b>Break/fix:</b> the customer signs off before this ticket can be closed. <a href="/tickets/{{ t.pk }}/signoff/?type=completion"><b>Get signature</b></a></div>{% endif %}
   {% if t.merged_into %}<div class="warn">⇢ This ticket was merged into <a href="/tickets/{{ t.merged_into_id }}/">{{ t.merged_into.number }}</a>.</div>{% endif %}
   {% if t.is_snoozed %}<div class="warn">⏰ Snoozed until {{ t.snoozed_until|when }}.</div>{% endif %}
   {% if t.client %}

@@ -1,0 +1,22 @@
+{% autoescape off %}Here is your copy of what you signed for ticket {{ t.number }} ({{ t.subject }}).
+
+{{ so.get_type_display }} · signed by {{ so.signer_name }}{% if so.signer_title %} ({{ so.signer_title }}){% endif %} on {{ so.created_at|date:"M j, Y g:i A" }}
+{% if so.summary %}
+Work performed / notes:
+{{ so.summary }}
+{% endif %}{% if so.items %}
+Items:
+{{ so.items }}
+{% endif %}{% if so.type == "completion" %}
+Hours: {{ so.hours }} at ${{ so.rate }}/hour{% if so.parts_amount %}
+Parts: ${{ so.parts_amount }}{% if so.parts_desc %} ({{ so.parts_desc }}){% endif %}{% endif %}{% if so.tax_rate %}
+Tax: {{ so.tax_rate|floatformat:"-3" }}%{% endif %}
+Total: ${{ so.total }}
+{% endif %}
+What you agreed to:
+"{{ so.statement }}"
+
+Reference: {{ so.hash|slice:":16" }}
+
+— {{ company }}
+{% endautoescape %}

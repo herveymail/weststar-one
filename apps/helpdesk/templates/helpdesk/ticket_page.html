@@ -35,6 +35,8 @@
         {% else %}
         <button class="btn" hx-post="/tickets/{{ t.pk }}/update/" hx-vals='{"status":"Open"}' hx-swap="none">Reopen</button>
         {% endif %}
+        <a class="btn{% if signoff_needed %} warn-btn{% endif %}" href="/tickets/{{ t.pk }}/signoff/?type=completion" title="Customer signs that the work is done, everything works, and they agree to the charges">✍ Customer sign-off</a>
+        <a class="btn" href="/tickets/{{ t.pk }}/signoff/?type=dropoff" title="Customer signs for equipment you dropped off">📦 Drop-off</a>
         {% if escalate_to %}<button class="btn" hx-post="/tickets/{{ t.pk }}/update/" hx-vals='{"queue":"{{ escalate_to.pk }}"}' hx-swap="none">Escalate to {{ escalate_to.name }}</button>{% endif %}
         {% if t.is_open %}
         <details class="pop"><summary class="btn">Snooze</summary>
@@ -54,7 +56,15 @@
           <form class="row" hx-post="/tickets/{{ t.pk }}/timer/" hx-swap="none"><button class="btn" name="action" value="stop">■ Stop timer <span class="num" data-since="{{ timer.started_at|date:'U' }}">0:00</span></button><button class="btn small" name="action" value="discard" aria-label="Discard timer">✕</button></form>
         {% elif other_timer %}<span class="small muted">{{ other_timer.user.name }}'s timer is running</span>
         {% else %}<button class="btn" hx-post="/tickets/{{ t.pk }}/timer/" hx-vals='{"action":"start"}' hx-swap="none">▶ Start timer</button>{% endif %}
+        {% if user.role == "admin" %}
+        <details class="pop"><summary class="btn danger">Delete</summary>
+          <form class="pop-body stack" method="post" action="/tickets/{{ t.pk }}/delete/">{% csrf_token %}
+            <b>Delete {{ t.number }} for good?</b><span class="small muted">Its messages, time entries and files are deleted too. This can't be undone.</span>
+            <label for="del-{{ t.pk }}" class="small">Type <b>{{ t.number }}</b> to confirm</label><input id="del-{{ t.pk }}" name="confirm" class="input" autocomplete="off" required>
+            <button class="btn danger">Delete ticket</button></form></details>
+        {% endif %}
       </div>
+      {% if signoff_needed %}<div class="banner warn-banner"><b>Break/fix client: the customer signs off before this ticket can be closed.</b> They confirm the work is done, everything works, and they agree to the charges. You can override on the sign-off screen if they aren't available. <a href="/tickets/{{ t.pk }}/signoff/?type=completion"><b>Get signature</b></a></div>{% endif %}
       {% endif %}
     </section>
 
@@ -108,6 +118,28 @@
         {% if t.due_date %}<span>Due</span><span>{{ t.due_date|date:"M j" }}</span>{% endif %}
       </div>
       {% if unbilled_minutes %}<span class="small muted">{{ unbilled_minutes|minutes_text }} not invoiced yet</span>{% endif %}
+    </section>
+
+    {% if signoffs %}
+    <section class="hd-card"><span class="lbl">Customer sign-offs</span>
+      {% for so in signoffs %}<div class="small" style="border-top:1px solid var(--line);padding-top:6px">
+        <b>{{ so.get_type_display }}</b> · {{ so.created_at|when }}<br>
+        {% if so.overridden %}<span style="color:var(--high)">Overridden by {{ so.user.name|default:"a tech" }}: {{ so.override_reason }}</span>
+        {% else %}Signed by {{ so.signer_name }}{% if so.type == "completion" %} · ${{ so.total }} ({{ so.hours }} h){% endif %}{% if so.signature %}<br><img src="{{ so.signature }}" alt="Signature of {{ so.signer_name }}" style="max-height:48px;background:#fff;border:1px solid var(--line);border-radius:4px;margin-top:4px">{% endif %}{% endif %}
+        {% if so.items %}<br>Items: {{ so.items|linebreaksbr }}{% endif %}</div>{% endfor %}
+    </section>{% endif %}
+
+    <section class="hd-card"><span class="lbl">⚠ Scope / budget approvals</span>
+      <p class="small muted" style="margin:0">Log the client's OK before out-of-scope or over-budget work starts. Protects against billing disputes.</p>
+      {% for a in approvals %}<div class="small" style="border-top:1px solid var(--line);padding-top:6px;display:flex;gap:6px">
+        <div style="flex:1">✅ {{ a.description }}<br><span class="muted">{% if a.approved_by %}{{ a.approved_by }} · {% endif %}{{ a.get_via_display }} · {{ a.created_at|when }}{% if a.user %} · logged by {{ a.user.name }}{% endif %}</span></div>
+        {% if can_edit %}<form method="post" action="/tickets/{{ t.pk }}/approval/">{% csrf_token %}<input type="hidden" name="delete" value="{{ a.pk }}"><button class="link-btn small" aria-label="Remove approval">✕</button></form>{% endif %}</div>{% endfor %}
+      {% if can_edit %}<details><summary class="btn small" style="width:100%">Log approval</summary>
+        <form method="post" action="/tickets/{{ t.pk }}/approval/" class="stack" style="gap:6px;margin-top:8px">{% csrf_token %}
+          <label class="sr" for="ap-d">What was approved</label><textarea id="ap-d" name="description" class="textarea" rows="2" maxlength="500" required placeholder="What out-of-scope or over-budget work was approved"></textarea>
+          <label class="sr" for="ap-b">Approved by</label><input id="ap-b" name="approved_by" class="input" maxlength="200" placeholder="Approved by (client contact)">
+          <label class="sr" for="ap-v">How</label><select id="ap-v" name="via" class="select">{% for k, l in approval_via %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select>
+          <button class="btn primary small">Save approval</button></form></details>{% endif %}
     </section>
 
     {% if client_open %}
