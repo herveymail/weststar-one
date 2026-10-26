@@ -41,9 +41,15 @@ def test_create_reply_close(tech):
 def test_contact_must_belong_to_client(tech):
     """L9."""
     a, b = Client.objects.create(name="A"), Client.objects.create(name="B")
-    k = Contact.objects.create(client=b, name="Bo")
-    r = tech.post("/tickets/new/", {"subject": "x", "client": a.pk, "contact": k.pk, "priority": "Low"})
-    assert r.status_code == 422 and not Ticket.objects.exists()
+    Contact.objects.create(client=b, name="Bo", email="bo@b.test")
+    mine = Contact.objects.create(client=a, name="Al", email="al@a.test")
+    # Requesters are linked by email, and only to a contact at the chosen client.
+    tech.post("/tickets/new/", {"subject": "x", "client": a.pk, "contact_name": "Bo", "contact_email": "bo@b.test", "priority": "Low", "device": "PC-07"})
+    t = Ticket.objects.get()
+    assert t.contact is None and t.contact_email == "bo@b.test" and t.device == "PC-07"
+    tech.post("/tickets/new/", {"subject": "y", "client": a.pk, "contact_email": "AL@a.test", "priority": "Low"})
+    assert Ticket.objects.get(subject="y").contact == mine
+    assert tech.post("/tickets/new/", {"subject": "z", "priority": "Low"}).status_code == 422  # client is required, like before
 
 
 def test_attachments_upload_download_and_blocked_types(tech, client):

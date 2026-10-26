@@ -1,18 +1,25 @@
 {% extends "base.html" %}{% load ws %}
 {% block content %}
 <div class="set-wrap">
-  <aside class="set-nav" aria-label="Settings menu">
-    <a href="/settings/" class="set-title">Settings</a>
-    <label for="set-filter" class="sr">Search settings</label>
-    <input id="set-filter" class="input set-filter" placeholder="Search settings" autocomplete="off" data-set-filter>
-    {% for g in settings_nav %}
-    <div class="set-group{% if not g.open %} closed{% endif %}" data-set-group>
-      <button type="button" class="set-group-title" aria-expanded="{% if g.open %}true{% else %}false{% endif %}">{{ g.title }}{% icon "chevron" 12 %}</button>
-      {% for pg in g.pages %}<a href="/settings/{{ pg.id }}/" class="set-link{% if pg.active %} on{% endif %}"{% if pg.active %} aria-current="page"{% endif %} data-words="{{ pg.words }}">{{ pg.title }}</a>{% endfor %}
-    </div>
-    {% endfor %}
-    <p class="small muted set-none" hidden>No setting matches.</p>
-  </aside>
+  {% for g in settings_nav %}{% for pg in g.pages %}{% if pg.active %}
+  <nav class="sx-crumb" aria-label="Settings">
+    <a href="/settings/" class="sx-crumb-home"><i class="bi bi-gear" aria-hidden="true"></i> Settings</a>
+    <i class="bi bi-chevron-right sx-crumb-sep" aria-hidden="true"></i><a href="/settings/#g-{{ g.id }}">{{ g.title }}</a>
+    <i class="bi bi-chevron-right sx-crumb-sep" aria-hidden="true"></i><span class="sx-crumb-cur" aria-current="page">{{ pg.title }}</span>
+    <details class="sx-jump"><summary><i class="bi bi-search" aria-hidden="true"></i>Jump to…</summary>
+      <div class="sx-jump-menu">
+        <label for="set-filter" class="sr">Find a setting</label>
+        <input id="set-filter" class="input set-filter" placeholder="Find a setting…" autocomplete="off" data-set-filter>
+        {% for g2 in settings_nav %}
+        <div class="set-group" data-set-group><div class="set-group-title">{{ g2.title }}</div>
+          {% for p2 in g2.pages %}<a href="/settings/{{ p2.id }}/" class="set-link{% if p2.active %} on{% endif %}" data-words="{{ p2.words }}"><i class="bi {{ p2.icon }}" style="color:{{ p2.color }}" aria-hidden="true"></i>{{ p2.title }}</a>{% endfor %}
+        </div>
+        {% endfor %}
+        <p class="small muted set-none" hidden>No setting matches.</p>
+      </div>
+    </details>
+  </nav>
+  {% endif %}{% endfor %}{% endfor %}
   <section class="set-main">{% block settings %}{% endblock %}</section>
 </div>
 {% endblock %}

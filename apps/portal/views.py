@@ -41,10 +41,15 @@ PRIORITY_CHOICES = [("Low", "Low — when you can"), ("Medium", "Medium — it's
                     ("Critical", "Critical — the whole office is down")]
 
 
+NAV_ICONS = {"home": "bi-house", "tickets": "bi-ticket", "invoices": "bi-receipt", "quotes": "bi-file-earmark-text", "contracts": "bi-file-earmark-check",
+             "policies": "bi-shield-check", "training": "bi-mortarboard", "assets": "bi-pc-display", "help": "bi-life-preserver", "messages": "bi-envelope-check"}
+
+
 def _ctx(request, **extra) -> dict:
+    from apps.core.branding import login_brand
     pu = request.portal_user
     ctx = {"pu": pu, "company": Setting.get("company.name") or "Weststar MSP", "company_phone": Setting.get("company.phone", ""),
-           "nav": [], "active": (request.path.split("/") + ["", "", ""])[2] or "home", **extra}
+           "nav": [], "nav_icons": NAV_ICONS, "active": (request.path.split("/") + ["", "", ""])[2] or "home", **login_brand(), **extra}
     if pu:
         from .models import PERMS
         ctx["can"] = {p: pu.can(p) for p, _l in PERMS}
@@ -62,6 +67,7 @@ def _ctx(request, **extra) -> dict:
         if pu.can("messages") and enabled("show_messages"):
             nav.append(("messages", "Messages", "/client-portal/messages/"))
         ctx["nav"] = nav
+        ctx["nav_has_help"] = any(k == "help" for k, _l, _u in nav)
         ctx["open_count"] = my_tickets(pu).filter(status__in=OPEN_STATUSES).count()
         ctx["unread_count"] = _threads(pu).filter(replies__direction="Outbound", replies__client_read_at__isnull=True).distinct().count() \
             + _threads(pu).filter(direction="Outbound", client_read_at__isnull=True).count() if pu.can("messages") else 0
@@ -188,11 +194,12 @@ def link_view(request, token):
 @portal_login_required()
 def home(request):
     pu = request.portal_user
-    ctx = _ctx(request, recent=my_tickets(pu).order_by("-updated_at")[:5], welcome=Setting.get("portal.welcome", ""))
+    ctx = _ctx(request, recent=my_tickets(pu).order_by("-updated_at")[:5], welcome=Setting.get("portal.welcome", ""),
+               company_hours=Setting.get("company.hours", ""), after_hours_phone=Setting.get("company.after_hours_phone", ""))
     if pu.can("billing") and enabled("show_billing"):
         unpaid = Invoice.objects.filter(client=pu.client, status__in=UNPAID, archived_at__isnull=True)
         agg = unpaid.aggregate(t=Sum("total"), p=Sum("amount_paid"))
-        ctx.update(unpaid=unpaid.order_by("due_date")[:5], balance=(agg["t"] or 0) - (agg["p"] or 0),
+        ctx.update(unpaid=unpaid.order_by("due_date")[:5], unpaid_count=unpaid.count(), balance=(agg["t"] or 0) - (agg["p"] or 0),
                    quotes_waiting=Quote.objects.filter(client=pu.client, status="Sent", archived_at__isnull=True)[:5])
     if pu.can("contracts") and enabled("show_contracts"):
         ctx["active_contracts"] = Contract.objects.filter(client=pu.client, status="Active", archived_at__isnull=True).count()

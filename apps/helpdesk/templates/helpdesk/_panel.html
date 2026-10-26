@@ -32,7 +32,7 @@
     <div><span class="k">Status</span><span class="st {{ t.status|tkg_st }}" style="display:inline-flex">{{ t.status }}</span></div>
     <div><span class="k">Priority</span><span class="pri {{ t.priority|tkg_pri }}">{{ t.priority }}</span></div>
     <div><span class="k">Company</span>{% if t.client %}<a href="/clients/{{ t.client.pk }}/">{{ t.client.name }}</a>{% else %}<span style="color:var(--mute)">No client</span>{% endif %}</div>
-    <div><span class="k">Computer</span>{% if computer %}<span class="pc">{{ computer.computer }}</span>{% if computer.report_link %} · <a href="{{ computer.report_link }}" target="_blank" rel="noopener noreferrer">open in MSP360</a>{% endif %}{% else %}<span style="color:var(--mute)">—</span>{% endif %}</div>
+    <div><span class="k">Computer</span>{% if computer %}<span class="pc">{{ computer.computer }}</span>{% if computer.report_link %} · <a href="{{ computer.report_link }}" target="_blank" rel="noopener noreferrer">open in MSP360</a>{% endif %}{% elif t.device %}<span class="pc">{{ t.device }}</span>{% else %}<span style="color:var(--mute)">—</span>{% endif %}</div>
     <div><span class="k">Assignee</span>{% if t.assigned_to %}<span class="who"><i style="background:{{ t.assigned_to_id|avatar_color }}">{{ t.assigned_to.name|initials }}</i>{{ t.assigned_to.name }}</span>{% else %}<span class="who un"><i>—</i>Unassigned</span>{% endif %}</div>
     <div><span class="k">Queue</span>{% if t.queue %}<span class="qd" style="--qc:{{ t.queue.color }}">{{ t.queue.name }}</span>{% else %}<span style="color:var(--mute)">—</span>{% endif %}</div>
   </div>

@@ -7,7 +7,7 @@
   // Ctrl/Cmd+K focuses the search; Escape closes pop-ups and the drawer.
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('#jump')?.focus(); }
-    if (e.key === 'Escape') { closeModal(); closeFly(); $('#jump-results') && ($('#jump-results').innerHTML = ''); hide('#user-pop', '#user-btn'); }
+    if (e.key === 'Escape') { closeModal(); closeFly(); $('#jump-results') && ($('#jump-results').innerHTML = ''); hide('#user-pop', '#user-btn'); hide('#new-pop', '#new-btn'); }
   });
 
   function closeModal() { const m = $('#modal'); if (m) m.innerHTML = ''; }
@@ -15,11 +15,20 @@
     const t = e.target;
     if (t.closest('[data-close]') || (t.classList && t.classList.contains('shade'))) { e.preventDefault(); closeModal(); }
     if (!t.closest('#jump-box')) { const r = $('#jump-results'); if (r) r.innerHTML = ''; }
-    if (!t.closest('.user-menu')) hide('#user-pop', '#user-btn');
+    if (!t.closest('#user-pop') && !t.closest('#user-btn')) hide('#user-pop', '#user-btn');
+    if (!t.closest('#new-btn') || t.closest('#new-pop')) { if (!t.closest('#new-btn')) hide('#new-pop', '#new-btn'); }
   });
 
   function hide(popSel, btnSel) { const p = $(popSel); if (p) p.hidden = true; $(btnSel)?.setAttribute('aria-expanded', 'false'); }
-  $('#user-btn')?.addEventListener('click', () => { const p = $('#user-pop'); p.hidden = !p.hidden; $('#user-btn').setAttribute('aria-expanded', String(!p.hidden)); });
+  $('#user-btn')?.addEventListener('click', () => { const p = $('#user-pop'); p.hidden = !p.hidden; $('#user-btn').setAttribute('aria-expanded', String(!p.hidden)); hide('#new-pop', '#new-btn'); });
+  $('#new-btn')?.addEventListener('click', () => { const p = $('#new-pop'); p.hidden = !p.hidden; $('#new-btn').setAttribute('aria-expanded', String(!p.hidden)); hide('#user-pop', '#user-btn'); });
+
+  // Top bar clock, like the old app.
+  const clk = $('[data-clock]'), dt = $('[data-date]');
+  if (clk) {
+    const tick = () => { const n = new Date(); clk.textContent = n.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' }); if (dt) dt.textContent = n.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); };
+    tick(); setInterval(tick, 1000);
+  }
 
   // Look 2: icon bar fly-outs.
   function closeFly() { $$('.fly').forEach((f) => (f.hidden = true)); $$('[data-fly]').forEach((b) => b.setAttribute('aria-expanded', 'false')); const s = $('#fly-shade'); if (s) s.hidden = true; }
@@ -305,3 +314,70 @@ function alertBox(near, msg) {
   near.insertAdjacentElement('beforebegin', p); setTimeout(() => p.remove(), 8000);
 }
 document.addEventListener('click', (e) => { if (e.target.closest('[data-print]')) window.print(); });
+
+// Settings home: filter the tiles as you type (like the old app); "/" jumps to the box.
+(() => {
+  const q = document.querySelector('[data-sx-search]');
+  if (q) {
+    const tiles = Array.from(document.querySelectorAll('.sx-tile'));
+    const run = () => {
+      const words = q.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      let n = 0;
+      tiles.forEach((t) => { const hit = words.every((w) => t.dataset.q.includes(w)); t.classList.toggle('sx-hidden', !hit); if (hit) n++; });
+      document.querySelectorAll('.sx-grp').forEach((g) => g.classList.toggle('sx-hidden', !g.querySelector('.sx-tile:not(.sx-hidden)')));
+      ['sx-jumps', 'sx-attn'].forEach((id) => document.getElementById(id)?.classList.toggle('sx-hidden', words.length > 0));
+      const e = document.getElementById('sx-empty'); if (e) e.hidden = n > 0;
+    };
+    q.addEventListener('input', run);
+    q.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { const f = document.querySelector('.sx-tile:not(.sx-hidden)'); if (f && q.value.trim()) { e.preventDefault(); location.href = f.href; } }
+      if (e.key === 'Escape') { q.value = ''; run(); }
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === '/' && document.activeElement !== q && !/input|textarea|select/i.test(document.activeElement.tagName)) { e.preventDefault(); q.focus(); } });
+  }
+  // Close the "Jump to…" menu when clicking elsewhere; focus its filter when it opens.
+  const j = document.querySelector('.sx-jump');
+  if (j) {
+    j.addEventListener('toggle', () => { if (j.open) j.querySelector('[data-set-filter]')?.focus(); });
+    document.addEventListener('click', (e) => { if (j.open && !j.contains(e.target)) j.open = false; });
+  }
+})();
+
+// New ticket: type to filter the client list (like the old app), and suggest that client's contacts as requesters.
+document.body.addEventListener('input', (e) => {
+  const q = e.target.closest('[data-filter-select]');
+  if (!q) return;
+  const sel = document.getElementById(q.dataset.filterSelect); if (!sel) return;
+  const words = q.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  let first = null, shown = 0;
+  Array.from(sel.options).forEach((o) => {
+    if (!o.value) { o.hidden = words.length > 0; return; }
+    const hit = words.every((w) => o.text.toLowerCase().includes(w));
+    o.hidden = !hit; if (hit) { shown++; if (!first) first = o; }
+  });
+  sel.size = words.length && shown > 1 ? Math.min(shown, 8) : 1;
+  if (first && words.length) { sel.value = first.value; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+});
+document.body.addEventListener('keydown', (e) => {
+  const q = e.target.closest('[data-filter-select]');
+  if (q && (e.key === 'Enter' || e.key === 'ArrowDown')) { e.preventDefault(); const sel = document.getElementById(q.dataset.filterSelect); if (e.key === 'ArrowDown') sel?.focus(); else { if (sel) sel.size = 1; document.querySelector('[data-new-ticket] [name=subject]')?.focus(); } }
+});
+document.body.addEventListener('change', (e) => {
+  const f = e.target.closest('[data-new-ticket]');
+  if (!f) return;
+  const data = JSON.parse(document.getElementById('nt-contact-data')?.textContent || '[]');
+  if (e.target.name === 'client') {
+    if (e.target.size > 1 && e.isTrusted) e.target.size = 1;
+    const list = document.getElementById('nt-contacts'); if (!list) return;
+    list.innerHTML = '';
+    data.filter((c) => String(c.c) === e.target.value).forEach((c) => { const o = document.createElement('option'); o.value = c.n; o.label = c.e; list.appendChild(o); });
+  }
+  if (e.target.name === 'contact_name') {
+    const cl = f.querySelector('[name=client]').value, m = data.find((c) => c.n === e.target.value && String(c.c) === cl);
+    const em = f.querySelector('[name=contact_email]'); if (m && em && !em.value) em.value = m.e;
+  }
+});
+document.body.addEventListener('click', (e) => {
+  const sel = e.target.closest('[data-new-ticket] select[name=client]');
+  if (sel && sel.size > 1 && e.target.tagName === 'OPTION') { sel.size = 1; }
+});

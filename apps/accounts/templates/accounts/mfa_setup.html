@@ -1,7 +1,7 @@
 {% extends "plain.html" %}
 {% block heading %}Two-factor sign-in{% endblock %}
 {% block sub %}<p class="desc">{% if required %}Your account needs a code from an authenticator app every time you sign in.{% else %}Adds a code from your phone to every sign-in.{% endif %}</p>{% endblock %}
-{% block form %}
+{% block inner %}
 {% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
 {% if codes %}
   <div class="stack">

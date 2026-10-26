@@ -53,6 +53,8 @@ MAP = {
     "company_after_hours_phone": ("company.after_hours_phone", same), "company_license_number": ("company.license_number", same),
     "company_email_signature": ("email.signature", same), "google_review_link": ("company.review_link", same),
     "company_portal_theme_color": ("brand.color", lambda v: v if v.startswith("#") and len(v) == 7 else None),
+    "login_bg_color": ("brand.login_color", same), "login_heading": ("brand.login_heading", same), "login_subtext": ("brand.login_text", same),
+    "login_terms": ("brand.login_terms", same),
     "navbar_app_name": ("brand.app_name", same), "dashboard_welcome": ("brand.welcome", same), "timezone": ("app.timezone", same),
     "date_format": ("app.date_format", same), "max_upload_mb": ("files.max_upload_mb", num),
     # billing & documents

@@ -1,8 +1,16 @@
-{% extends "portal/base.html" %}
-{% block body %}
-<div class="login-wrap"><div class="login-card stack">
-  <div class="row" style="justify-content:center">{% if logo_url %}<img src="{{ logo_url }}" alt="{{ company }}" style="max-height:56px;max-width:240px">{% else %}<span class="logo">{{ company|slice:":1" }}</span><b style="font-size:18px">{{ company }}</b>{% endif %}</div>
-  <section class="card pad stack">{% block card %}{% endblock %}</section>
-  <p class="small muted" style="text-align:center;margin:0">Client portal{% if company_phone %} · Need help now? Call {{ company_phone }}{% endif %}</p>
-</div></div>
+{% extends "auth_split.html" %}
+{% block title %}Client portal{% endblock %}
+{% block kicker %}Client portal{% endblock %}
+{% block headline %}Your IT support, one sign-in away.{% endblock %}
+{% block tagline %}Open and track requests, pay invoices and find answers from the {{ lb_name }} team.{% endblock %}
+{% block points %}
+<li><span class="ic"><i class="bi bi-ticket-detailed" aria-hidden="true"></i></span><div><b>Submit &amp; track tickets</b><span>See every request and its status, start to finish.</span></div></li>
+<li><span class="ic"><i class="bi bi-credit-card" aria-hidden="true"></i></span><div><b>View &amp; pay invoices</b><span>Statements, payment history and secure online payment.</span></div></li>
+<li><span class="ic"><i class="bi bi-book" aria-hidden="true"></i></span><div><b>Knowledge base</b><span>Step-by-step guides for common questions.</span></div></li>
+<li><span class="ic"><i class="bi bi-pc-display" aria-hidden="true"></i></span><div><b>Your devices</b><span>The equipment and work on your account.</span></div></li>
 {% endblock %}
+{% block mobile_switch %}<a class="wl-mobile-link" href="/login/">Staff sign-in <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% endblock %}
+{% block switch %}Team member? <a href="/login/">Staff sign-in</a>{% endblock %}
+{% block terms %}{% endblock %}
+{% block form %}<div class="stack">{% block card %}{% endblock %}</div>{% endblock %}
+{% block foot %}{% if company_phone %}Need help now? Call {{ company_phone }} · {% endif %}Powered by Weststar One{% endblock %}

@@ -2,31 +2,44 @@
 {% block title %}Home{% endblock %}
 {% block content %}
 <section class="hero">
-  <div style="flex:1 1 420px"><h1>Welcome back, {{ pu.first_name }}!</h1><p>{{ pu.client.name }}{% if welcome %} · {{ welcome }}{% else %} · Need help? Open a ticket and we'll get right on it.{% endif %}</p></div>
-  {% if can.submit_tickets %}<a class="btn light" href="/client-portal/tickets/#new">New Ticket</a>{% endif %}
-  {% if company_phone %}<a class="btn ghost" href="tel:{{ company_phone }}">Call Us {{ company_phone }}</a>{% endif %}
+  <div style="flex:1 1 420px"><h1>Welcome back, {{ pu.first_name }}!</h1><p>{% if welcome %}{{ welcome }}{% else %}Welcome to our client portal. Submit tickets, view invoices, and manage your IT services.{% endif %}</p></div>
+  {% if can.submit_tickets %}<a class="btn light" href="/client-portal/tickets/#new"><i class="bi bi-plus-lg" aria-hidden="true"></i>New Ticket</a>{% endif %}
+  {% if company_phone %}<a class="btn ghost" href="tel:{{ lb_tel }}"><i class="bi bi-telephone" aria-hidden="true"></i>Call Us</a>{% endif %}
 </section>
 <div class="stats">
-  <div class="card stat"><div class="l">Open Tickets</div><div class="v">{{ open_count }}</div></div>
-  {% if balance is not None %}<div class="card stat"><div class="l">Balance Due</div><div class="v"{% if balance > 0 %} style="color:var(--bad)"{% endif %}>{{ balance|dollars }}</div></div>{% endif %}
-  {% if active_contracts is not None %}<div class="card stat"><div class="l">Active Contracts</div><div class="v">{{ active_contracts }}</div></div>{% endif %}
-  {% if asset_count is not None %}<div class="card stat"><div class="l">Assets</div><div class="v">{{ asset_count }}</div></div>{% endif %}
+  <div class="p-stat"><div class="v" style="color:#2563eb">{{ open_count }}</div><div class="l">Open Tickets</div></div>
+  {% if balance is not None %}<div class="p-stat"><div class="v" style="color:{% if balance > 0 %}#dc2626{% else %}#16a34a{% endif %}">{{ balance|dollars }}</div><div class="l">Balance Due</div></div>{% endif %}
+  {% if active_contracts is not None %}<div class="p-stat"><div class="v" style="color:#16a34a">{{ active_contracts }}</div><div class="l">Active Contracts</div></div>{% endif %}
+  {% if asset_count is not None %}<div class="p-stat"><div class="v">{{ asset_count }}</div><div class="l">Assets</div></div>{% endif %}
+</div>
+<div class="qa-row">
+  {% if can.submit_tickets %}<a class="quick-action" href="/client-portal/tickets/#new"><span class="qa-icon" style="background:#dbeafe;color:#2563eb"><i class="bi bi-plus-circle" aria-hidden="true"></i></span><span><span class="qa-title">Submit a Ticket</span><br><span class="qa-sub">Report an issue or request help</span></span></a>{% endif %}
+  {% if balance is not None %}<a class="quick-action" href="/client-portal/invoices/"><span class="qa-icon" style="background:#dcfce7;color:#16a34a"><i class="bi bi-credit-card" aria-hidden="true"></i></span><span><span class="qa-title">Pay an Invoice</span><br><span class="qa-sub">{{ unpaid_count }} unpaid invoice{{ unpaid_count|pluralize }}</span></span></a>{% endif %}
+  {% if nav_has_help %}<a class="quick-action" href="/client-portal/help/"><span class="qa-icon" style="background:#fef3c7;color:#d97706"><i class="bi bi-book" aria-hidden="true"></i></span><span><span class="qa-title">Help Center</span><br><span class="qa-sub">Browse guides and FAQs</span></span></a>{% endif %}
 </div>
 <div class="grid2">
-  <section class="card" style="overflow:hidden">
-    <div class="row pad" style="padding-bottom:10px"><h2 class="grow">Recent Tickets</h2><a href="/client-portal/tickets/">View All</a></div>
-    {% for t in recent %}<a class="list-a" href="/client-portal/tickets/{{ t.pk }}/"><span class="muted small" style="width:100px">{{ t.number }}</span><span class="grow strong">{{ t.subject }}</span>{% include "portal/_status.html" with s=t.status %}</a>
-    {% empty %}<p class="pad muted" style="margin:0">No tickets yet.</p>{% endfor %}
+  <section class="p-card">
+    <div class="p-card-header"><span><i class="bi bi-ticket" aria-hidden="true"></i>Recent Tickets</span><a class="btn" href="/client-portal/tickets/">View All</a></div>
+    {% for t in recent %}<a class="rt-item" href="/client-portal/tickets/{{ t.pk }}/"><span><b>{{ t.subject }}</b><small>{{ t.number }} · {{ t.created_at|date:"M j, Y" }}</small></span>{% include "portal/_status.html" with s=t.status %}</a>
+    {% empty %}<p class="muted" style="margin:0">No tickets yet.</p>{% endfor %}
   </section>
-  <div class="stack">
-    {% if unpaid %}<section class="card pad stack"><h2>Unpaid Invoices</h2>
-      {% for i in unpaid %}<div class="row"><a class="grow" href="/client-portal/invoices/{{ i.pk }}/">{{ i.number }} · due {{ i.due_date|date:"M j" }}</a><b>{{ i.total|dollars }}</b></div>{% endfor %}</section>{% endif %}
-    {% if quotes_waiting %}<section class="card pad stack"><h2>Quotes to approve</h2>
-      {% for q in quotes_waiting %}<div class="row"><span class="grow">{{ q.number }}{% if q.scope %} · {{ q.scope|truncatechars:40 }}{% endif %}</span><b>{{ q.total|dollars }}</b><a class="btn small" href="/client-portal/quotes/{{ q.pk }}/">Review</a></div>{% endfor %}</section>{% endif %}
-    {% if to_sign %}<section class="card pad stack"><h2>Contracts to sign</h2>
-      {% for c in to_sign %}<div class="row"><span class="grow">{{ c.name }}</span><a class="btn small" href="/client-portal/contracts/{{ c.pk }}/">Review &amp; sign</a></div>{% endfor %}</section>{% endif %}
-    {% if policies_due %}<section class="card pad stack"><h2>Policies to acknowledge</h2>
-      {% for p in policies_due %}<div class="row"><span class="grow">{{ p.name }}{% if p.version %} v{{ p.version }}{% endif %}</span><a href="/client-portal/policies/{{ p.pk }}/">Read &amp; acknowledge</a></div>{% endfor %}</section>{% endif %}
+  <div class="stack" style="gap:18px">
+    {% if balance is not None %}<section class="p-card"><div class="p-card-header"><span><i class="bi bi-receipt" aria-hidden="true"></i>Unpaid Invoices</span></div>
+      {% for i in unpaid %}<div class="row" style="padding:6px 0"><a class="grow" href="/client-portal/invoices/{{ i.pk }}/">{{ i.number }} · due {{ i.due_date|date:"M j" }}</a><b>{{ i.total|dollars }}</b></div>
+      {% empty %}<div class="allpaid"><i class="bi bi-check-circle" aria-hidden="true"></i>All paid — thank you!</div>{% endfor %}</section>{% endif %}
+    {% if quotes_waiting %}<section class="p-card"><div class="p-card-header"><span><i class="bi bi-file-earmark-text" aria-hidden="true"></i>Quotes to approve</span></div>
+      {% for q in quotes_waiting %}<div class="row" style="padding:6px 0"><span class="grow">{{ q.number }}{% if q.scope %} · {{ q.scope|truncatechars:40 }}{% endif %}</span><b>{{ q.total|dollars }}</b><a class="btn small" href="/client-portal/quotes/{{ q.pk }}/">Review</a></div>{% endfor %}</section>{% endif %}
+    {% if to_sign %}<section class="p-card"><div class="p-card-header"><span><i class="bi bi-file-earmark-check" aria-hidden="true"></i>Contracts to sign</span></div>
+      {% for c in to_sign %}<div class="row" style="padding:6px 0"><span class="grow">{{ c.name }}</span><a class="btn small" href="/client-portal/contracts/{{ c.pk }}/">Review &amp; sign</a></div>{% endfor %}</section>{% endif %}
+    {% if policies_due %}<section class="p-card"><div class="p-card-header"><span><i class="bi bi-shield-check" aria-hidden="true"></i>Policies to acknowledge</span></div>
+      {% for p in policies_due %}<div class="row" style="padding:6px 0"><span class="grow">{{ p.name }}{% if p.version %} v{{ p.version }}{% endif %}</span><a href="/client-portal/policies/{{ p.pk }}/">Read &amp; acknowledge</a></div>{% endfor %}</section>{% endif %}
+    <section class="p-card"><div class="p-card-header"><span><i class="bi bi-telephone" aria-hidden="true"></i>Need Help?</span></div>
+      <div class="help-list">
+        {% if lb_phone %}<a href="tel:{{ lb_tel }}"><i class="bi bi-telephone" aria-hidden="true"></i>{{ lb_phone }}</a>{% endif %}
+        {% if lb_email %}<a href="mailto:{{ lb_email }}"><i class="bi bi-envelope" aria-hidden="true"></i>{{ lb_email }}</a>{% endif %}
+        {% if company_hours %}<span><i class="bi bi-clock" aria-hidden="true"></i>{{ company_hours }}</span>{% endif %}
+        {% if after_hours_phone %}<span class="small"><i class="bi bi-exclamation-triangle" style="color:#d97706" aria-hidden="true"></i>After hours / emergencies: <a href="tel:{{ after_hours_phone }}">{{ after_hours_phone }}</a></span>{% endif %}
+      </div></section>
   </div>
 </div>
 {% endblock %}

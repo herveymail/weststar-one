@@ -9,6 +9,7 @@
   <link rel="icon" href="{% static 'core/favicon.svg' %}" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{% static 'core/bi/bootstrap-icons.min.css' %}">
   <link rel="stylesheet" href="{% static 'core/styles.css' %}">
   <link rel="stylesheet" href="{% static 'core/app.css' %}">
   <link rel="stylesheet" href="{% static 'helpdesk/tickets.css' %}">
@@ -16,6 +17,7 @@
   {% if ui_font %}<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family={{ ui_font }}&display=swap">{% endif %}
   <link rel="stylesheet" href="{% static 'core/themes.css' %}">
   <link rel="stylesheet" href="{% static 'core/ui-styles.css' %}">
+  <link rel="stylesheet" href="{% static 'core/paper.css' %}">
   <script src="{% static 'core/htmx-2.0.4.min.js' %}" defer></script>
   <script src="{% static 'core/app.js' %}" defer></script>
 </head>
@@ -48,15 +50,14 @@
   <nav class="side" id="main-nav" aria-label="Main">
     <a href="/" class="brand">{% if logo_url %}<img class="brand-img" src="{{ logo_url }}" alt="{{ app_name }}">{% else %}<span class="logo">W</span>{{ app_name }}{% endif %}</a>
     {% for g in nav %}
-      {% if g.group and g.items|length > 1 %}
-      <div class="nav-group">
-        <div class="nav-section">{{ g.group }}</div>
+      <div class="nav-group sb-group sb-group-{{ g.color }}">
+        {% if g.group %}<div class="nav-section">{{ g.group }}</div>{% endif %}
         <div class="nav-items">
-      {% endif %}
       {% for i in g.items %}
-        <a href="{{ i.url }}" class="nav-item{% if i.active %} on{% endif %}"{% if i.active %} aria-current="page"{% endif %}>{% icon i.id %}{{ i.label }}{% if i.id == "tickets" and open_ticket_count %}<span class="badge">{{ open_ticket_count }}</span>{% endif %}</a>
+        <a href="{{ i.url }}" class="nav-item{% if i.active %} on{% endif %}"{% if i.active %} aria-current="page"{% endif %}><span class="sb-ic"><i class="bi {{ i.bi }}" aria-hidden="true"></i></span><span class="sb-label">{{ i.label }}</span>{% if i.id == "tickets" and open_ticket_count %}<span class="badge">{{ open_ticket_count }}</span>{% endif %}</a>
       {% endfor %}
-      {% if g.group and g.items|length > 1 %}</div></div>{% endif %}
+        </div>
+      </div>
     {% endfor %}
   </nav>
   {% endif %}
@@ -64,29 +65,49 @@
   <div class="main">
     <header class="topbar">
       <button type="button" class="btn menu-btn" id="menu-btn" aria-controls="main-nav" aria-expanded="false">Menu</button>
+      <a href="/" class="tb-brand">{% if logo_url %}<img src="{{ logo_url }}" alt="{{ app_name }}">{% else %}{{ company_name|default:app_name }}{% endif %}</a>
+      <div class="tb-clock" aria-hidden="true"><span class="tb-time" data-clock>—</span><span class="tb-dot"></span><span data-date></span></div>
       <div class="search" id="jump-box">
         {% icon "search" 16 %}
         <label for="jump" class="sr">Search or jump to a page</label>
-        <input id="jump" name="q" autocomplete="off" placeholder="Search tickets and clients, or jump to any page…"
+        <input id="jump" name="q" autocomplete="off" placeholder="Search…"
                hx-get="/search/" hx-trigger="input changed delay:200ms, focus" hx-target="#jump-results" hx-swap="innerHTML">
         <span class="kbd">Ctrl K</span>
         <div id="jump-results"></div>
       </div>
       <div class="spacer"></div>
-      <button type="button" class="btn" hx-post="/clock/" hx-swap="none">{% icon "clock" 16 %}{% if clocked_in %}Clock out{% else %}Clock in{% endif %}</button>
-      {% if can_tickets_edit %}<button type="button" class="btn primary" hx-get="/tickets/new/" hx-target="#modal" hx-swap="innerHTML">{% icon "plus" 16 %}New ticket</button>{% endif %}
+      <span class="tb-sep"></span>
+      <button type="button" class="btn tb-clockin{% if clocked_in %} in{% endif %}" hx-post="/clock/" hx-swap="none" title="{% if clocked_in %}Clock out{% else %}Clock in{% endif %}"><i class="bi bi-clock" aria-hidden="true"></i><span class="tb-txt">{% if clocked_in %}Clock out{% else %}Clock in{% endif %}</span></button>
+      <span class="tb-sep"></span>
+      <form method="post" action="/profile/" class="tb-mode">{% csrf_token %}<input type="hidden" name="look" value="{% if look_mode == 'dark' %}paper{% else %}graphite{% endif %}"><input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button class="tb-icon" title="{% if look_mode == 'dark' %}Light mode{% else %}Dark mode{% endif %}" aria-label="{% if look_mode == 'dark' %}Switch to light mode{% else %}Switch to dark mode{% endif %}"><i class="bi {% if look_mode == 'dark' %}bi-sun{% else %}bi-moon{% endif %}" aria-hidden="true"></i></button></form>
+      <div class="user-menu tb-new">
+        <button type="button" class="btn primary tb-newbtn" id="new-btn" aria-expanded="false" aria-controls="new-pop">{% icon "plus" 16 %}<span>New</span></button>
+        <div class="jump" id="new-pop" hidden>
+          {% if can_tickets_edit %}<button type="button" class="jump-item" hx-get="/tickets/new/" hx-target="#modal" hx-swap="innerHTML"><i class="bi bi-ticket-detailed" style="color:#2563eb"></i>Ticket</button>{% endif %}
+          <a class="jump-item" href="/m/clients/new/"><i class="bi bi-building" style="color:#16a34a"></i>Client</a>
+          <a class="jump-item" href="/m/invoices/new/"><i class="bi bi-receipt" style="color:#d97706"></i>Invoice</a>
+          <a class="jump-item" href="/m/quotes/new/"><i class="bi bi-file-text" style="color:#0891b2"></i>Quote</a>
+          <a class="jump-item" href="/m/leads/new/"><i class="bi bi-funnel" style="color:#7c3aed"></i>Lead</a>
+          <a class="jump-item" href="/m/contracts/new/"><i class="bi bi-file-earmark-check" style="color:#6b7280"></i>Contract</a>
+        </div>
+      </div>
       <div class="user-menu">
-        <button type="button" class="icon-btn" id="user-btn" aria-expanded="false" aria-controls="user-pop" aria-label="Your account">{{ user.initials }}</button>
+        <button type="button" class="icon-btn tb-user" id="user-btn" aria-expanded="false" aria-controls="user-pop" aria-label="Your account"><span class="tb-av">{{ user.initials }}</span><span class="tb-name">{{ user.name }}</span><i class="bi bi-chevron-down tb-caret" aria-hidden="true"></i></button>
         <div class="jump" id="user-pop" hidden>
           <div class="jump-head">{{ user.name }}<br><span class="small">{{ user.email }}</span></div>
-          <a class="jump-item" href="/profile/">Profile &amp; look</a>
-          <a class="jump-item" href="/settings/my_security/">My sign-in &amp; 2FA</a>
-          <form method="post" action="/logout/">{% csrf_token %}<button class="jump-item" style="width:100%">Sign out</button></form>
+          <a class="jump-item" href="/profile/"><i class="bi bi-person"></i>Profile &amp; look</a>
+          <a class="jump-item" href="/my-hr/"><i class="bi bi-clock-history"></i>HR Portal</a>
+          <a class="jump-item" href="/settings/my_security/"><i class="bi bi-shield-lock"></i>My sign-in &amp; 2FA</a>
+          <a class="jump-item" href="/settings/"><i class="bi bi-gear"></i>Settings</a>
+          <a class="jump-item" href="/portal/" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i>Customer Portal</a>
+          <form method="post" action="/logout/">{% csrf_token %}<button class="jump-item" style="width:100%;color:#dc2626"><i class="bi bi-box-arrow-right"></i>Log Out</button></form>
         </div>
       </div>
     </header>
     {% if messages %}<div class="flash">{% for m in messages %}<div role="status" class="banner {% if m.level_tag == 'error' %}{% else %}info{% endif %}">{{ m }}</div>{% endfor %}</div>{% endif %}
     <main id="content" class="{% block main_class %}page{% endblock %}">{% block content %}{% endblock %}</main>
+    <footer class="app-foot"><span>Weststar One {{ app_version }}</span><span class="spacer"></span><a href="/settings/">Settings</a><a href="/profile/">Profile</a></footer>
   </div>
 </div>
 <div id="modal"></div>

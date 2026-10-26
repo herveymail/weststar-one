@@ -9,21 +9,23 @@
   <title>{% block title %}Client Portal{% endblock %} · {{ company }}</title>
   <link rel="icon" href="{% static 'core/favicon.svg' %}" type="image/svg+xml">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{% static 'core/bi/bootstrap-icons.min.css' %}">
   <link rel="stylesheet" href="{% static 'portal/portal.css' %}">
 </head>
 <body>
 {% block body %}
 <header class="top">
   <nav aria-label="Portal">
-    <a href="/client-portal/" class="brand">{% if logo_url %}<img src="{{ logo_url }}" alt="{{ company }}" style="max-height:36px;max-width:180px">{% else %}<span class="logo">{{ company|initials|slice:":1" }}</span>{{ company }}{% endif %}</a>
-    {% for key, label, url in nav %}<a href="{{ url }}" class="nav-a{% if active == key %} on{% endif %}"{% if active == key %} aria-current="page"{% endif %}>{{ label }}{% if key == "tickets" and open_count %} <span class="badge">{{ open_count }}</span>{% endif %}{% if key == "messages" and unread_count %} <span class="badge red">{{ unread_count }}</span>{% endif %}</a>{% endfor %}
+    <a href="/client-portal/" class="brand">{% if logo_url %}<img src="{{ logo_url }}" alt="{{ company }}" style="max-height:36px;max-width:180px">{% else %}{{ company }}{% endif %}</a>
+    {% for key, label, url in nav %}<a href="{{ url }}" class="nav-a{% if active == key %} on{% endif %}"{% if active == key %} aria-current="page"{% endif %}><i class="bi {{ nav_icons|get_item:key }}" aria-hidden="true"></i>{{ label }}{% if key == "tickets" and open_count %} <span class="badge">{{ open_count }}</span>{% endif %}{% if key == "messages" and unread_count %} <span class="badge red">{{ unread_count }}</span>{% endif %}</a>{% endfor %}
     <span class="grow"></span>
-    <details class="menu"><summary class="btn small">{{ pu.name }} ▾</summary>
-      <div class="menu-pop"><a href="/client-portal/profile/">My profile</a>
-        <form method="post" action="/client-portal/logout/">{% csrf_token %}<button>Sign out</button></form></div></details>
+    <details class="menu"><summary class="portal-user"><i class="bi bi-person-circle" aria-hidden="true"></i> {{ pu.name }} <i class="bi bi-chevron-down" style="font-size:11px" aria-hidden="true"></i></summary>
+      <div class="menu-pop"><a href="/client-portal/profile/"><i class="bi bi-person" aria-hidden="true"></i> My Profile</a>
+        <form method="post" action="/client-portal/logout/">{% csrf_token %}<button><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Log Out</button></form></div></details>
   </nav>
 </header>
 <main class="wrap{% block main_extra %}{% endblock %}">{% block content %}{% endblock %}</main>
+<footer class="portal-footer">&copy; {% now "Y" %} {{ company }}. All rights reserved.{% if nav_has_help %} · <a href="/client-portal/help/">Help Center</a>{% endif %}</footer>
 {% endblock %}
 </body>
 </html>

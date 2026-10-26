@@ -1,21 +1,30 @@
-<div class="shade center">
-  <section class="dialog" role="dialog" aria-modal="true" aria-label="New ticket" style="width:min(720px,100%)"><h2>New ticket</h2>
-    <form hx-post="/tickets/new/" hx-target="#modal" class="stack">
-      {% if form.non_field_errors %}<div class="banner">{{ form.non_field_errors|join:" " }}</div>{% endif %}
-      <div class="form-grid">
-        <div class="field"><label for="{{ form.client.id_for_label }}">Client</label>{{ form.client }}{{ form.client.errors }}</div>
-        <div class="field"><label for="{{ form.contact.id_for_label }}">Requester</label>{{ form.contact }}{{ form.contact.errors }}</div>
-        <div class="field wide"><label for="{{ form.subject.id_for_label }}">Subject *</label>{{ form.subject }}{{ form.subject.errors }}</div>
-        <div class="field wide"><label for="{{ form.details.id_for_label }}">Details</label>{{ form.details }}</div>
-        <div class="field"><label for="{{ form.priority.id_for_label }}">Priority</label>{{ form.priority }}</div>
-        <div class="field"><label for="{{ form.queue.id_for_label }}">Queue</label>{{ form.queue }}</div>
-        <div class="field"><label for="{{ form.assigned_to.id_for_label }}">Assignee</label>{{ form.assigned_to }}</div>
-        <div class="field"><label for="{{ form.category.id_for_label }}">Category</label>{{ form.category }}</div>
+{% load ws %}<div class="shade center">
+  <section class="dialog nt-dlg" role="dialog" aria-modal="true" aria-labelledby="nt-title">
+    <form hx-post="/tickets/new/" hx-target="#modal" class="nt-form" data-new-ticket>
+      <header class="nt-head"><h2 id="nt-title"><i class="bi bi-plus-circle" aria-hidden="true"></i>New ticket</h2><button type="button" class="nt-x" data-close aria-label="Close">×</button></header>
+      <div class="nt-body">
+        {% if form.non_field_errors %}<div class="banner">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+        <div class="field"><label for="nt-client-q">Client <span class="req">*</span></label>
+          <input id="nt-client-q" class="input" placeholder="Type to filter clients…" autocomplete="off" data-filter-select="{{ form.client.id_for_label }}" autofocus>
+          {{ form.client }}{{ form.client.errors }}</div>
+        <div class="field"><label for="{{ form.subject.id_for_label }}">Subject <span class="req">*</span></label>{{ form.subject }}{{ form.subject.errors }}</div>
+        <div class="field"><label for="{{ form.details.id_for_label }}">Details</label>{{ form.details }}</div>
+        <div class="nt-grid">
+          <div class="field"><label for="{{ form.priority.id_for_label }}">Priority</label>{{ form.priority }}</div>
+          <div class="field"><label for="{{ form.queue.id_for_label }}">Queue</label>{{ form.queue }}</div>
+          <div class="field"><label for="{{ form.assigned_to.id_for_label }}">Assignee</label>{{ form.assigned_to }}</div>
+          <div class="field"><label for="{{ form.contact_name.id_for_label }}">Requester name</label>{{ form.contact_name }}</div>
+          <div class="field"><label for="{{ form.contact_email.id_for_label }}">Requester email</label>{{ form.contact_email }}{{ form.contact_email.errors }}</div>
+          <div class="field"><label for="{{ form.device.id_for_label }}">Device</label>{{ form.device }}</div>
+          <div class="field"><label for="{{ form.category.id_for_label }}">Category</label>{{ form.category }}</div>
+          <div class="field"><label for="{{ form.due_date.id_for_label }}">Due date</label>{{ form.due_date }}</div>
+        </div>
+        <datalist id="nt-contacts"></datalist>
+        {{ contacts|json_script:"nt-contact-data" }}
       </div>
-      <div class="row" style="justify-content:flex-end">
+      <footer class="nt-foot"><span>Billable follows the client's plan; the queue can auto-route when left on Auto.</span>
         <button type="button" class="btn" data-close>Cancel</button>
-        <button type="submit" class="btn primary">✓ Create ticket</button>
-      </div>
+        <button type="submit" class="btn primary"><i class="bi bi-check-lg" aria-hidden="true"></i>Create ticket</button></footer>
     </form>
   </section>
 </div>

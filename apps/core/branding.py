@@ -64,3 +64,38 @@ def logo_view(request):
     r["X-Content-Type-Options"] = "nosniff"
     r["Content-Security-Policy"] = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
     return r
+
+
+def _shade(hex_color: str, amt: float) -> str:
+    """Darken (amt < 0) or lighten (amt > 0) a #rrggbb colour — same maths as the old login page."""
+    import re
+    m = re.fullmatch(r"#?([0-9a-fA-F]{6})", (hex_color or "").strip())
+    h = m.group(1) if m else "0b2545"
+    out = "#"
+    for i in (0, 2, 4):
+        v = int(h[i:i + 2], 16)
+        v = v * (1 + amt) if amt < 0 else v + (255 - v) * amt
+        out += f"{max(0, min(255, round(v))):02x}"
+    return out
+
+
+def login_brand() -> dict:
+    """Everything the split sign-in pages (staff and client portal) show, like the old Weststar One."""
+    import re
+
+    from .models import Setting
+    color = (Setting.get("brand.login_color", "") or "").strip()
+    if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+        color = "#0b2545"
+    site = (Setting.get("company.website", "") or "").strip()
+    return {
+        "lb_name": Setting.get("company.name", "") or Setting.get("brand.app_name", "") or "Weststar ONE",
+        "lb_phone": Setting.get("company.phone", ""),
+        "lb_tel": re.sub(r"[^0-9+]", "", Setting.get("company.phone", "") or ""),
+        "lb_email": Setting.get("company.email", "") or Setting.get("email.support_address", ""),
+        "lb_site": site, "lb_site_url": site if site.startswith(("http://", "https://")) else (f"https://{site}" if site else ""),
+        "lb_site_label": re.sub(r"^https?://", "", site).rstrip("/"),
+        "lb_panel": color, "lb_panel2": _shade(color, -0.45),
+        "lb_terms": Setting.get("brand.login_terms", ""),
+        "lb_year": __import__("django.utils.timezone", fromlist=["now"]).now().year,
+    }

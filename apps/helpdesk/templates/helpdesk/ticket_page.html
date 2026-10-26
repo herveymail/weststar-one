@@ -84,6 +84,7 @@
       <div class="kv">
         <span>Email</span><span style="overflow-wrap:anywhere">{{ t.contact_email|default:"—" }}</span>
         <span>Phone</span><span>{% if t.contact.phone %}{{ t.contact.phone }}{% elif t.client.phone %}{{ t.client.phone }}{% else %}—{% endif %}</span>
+        {% if t.device %}<span>Device</span><span>{{ t.device }}</span>{% endif %}
         {% if t.client %}<span>Plan</span><span>{{ t.client.plan|default:"—" }}</span>
         <span>Contract</span><span>{% if contract %}Active · {{ contract.number|default:contract.name }}{% else %}None{% endif %}</span>
         <span>Rate</span><span>{% if t.client.hourly_rate %}{{ t.client.hourly_rate|dollars }}/h{% else %}Default{% endif %}</span>

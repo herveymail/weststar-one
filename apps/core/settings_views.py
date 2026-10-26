@@ -13,7 +13,7 @@ from apps.accounts.views import my_security_view, security_log_view, users_view
 from .audit import audit
 from .models import AuditLog, JobRun, Setting
 from .permissions import AREAS, can
-from .settings_catalog import DEFAULTS, SETTINGS, field_specs, find
+from .settings_catalog import DEFAULTS, GROUP_ICONS, SETTINGS, TILE_LOOK, field_specs, find
 from .settings_widgets import decorate
 
 
@@ -44,10 +44,15 @@ def settings_home(request):
             labels = " ".join(f[1] for f in item[3]) if isinstance(item[3], list) else ""
             if q and q not in f"{title} {item[1]} {item[2]} {labels}".lower():
                 continue
-            visible.append(item)
+            icon, color = TILE_LOOK.get(item[0], ("bi-gear", "#64748b"))
+            visible.append({"id": item[0], "title": item[1], "desc": item[2], "icon": icon, "color": color,
+                            "words": f"{item[1]} {item[2]} {labels} {title}".lower()})
         if visible:
-            groups.append((title, desc, visible))
-    return render(request, "core/settings_home.html", {"groups": groups, "q": q, "status": _status() if admin else {}})
+            groups.append({"id": gid, "title": title, "desc": desc, "icon": GROUP_ICONS.get(gid, "bi-gear"), "items": visible})
+    status = _status() if admin else {}
+    attention = [(k, v[2]) for k, v in status.items() if len(v) > 2]
+    from django.conf import settings as dj
+    return render(request, "core/settings_home.html", {"groups": groups, "q": q, "status": status, "attention": attention, "app_version": dj.APP_VERSION})
 
 
 def _status() -> dict:
@@ -65,6 +70,23 @@ def _status() -> dict:
     st["google_chat"] = ("On", "good") if Setting.get("chat.webhook_url", "") else ("Off", "")
     st["branding"] = ("Logo set", "good") if Setting.get("brand.logo", "") else ("No logo yet", "")
     st["msp360"] = (("Error", "bad") if Setting.get("msp360.last_error", "") else ("On", "good") if Setting.get("msp360.enabled", "") == "true" else ("Off", "")) if Setting.get("msp360.login", "") else ("Not set up", "")
+    if st["email"][1] == "bad":
+        st["email"] = ("Not set up", "bad", "Connect email")
+    if not stripe_api.configured():
+        st["payments"] = ("Not set up", "warn", "Turn on online payments")
+    if not Setting.get("company.review_link", ""):
+        st["company_extras"] = ("No review link", "warn")
+    from django.utils import timezone
+
+    from apps.accounts.models import LoginAttempt, User
+    from apps.helpdesk.models import Queue
+    st["users"] = (f"{User.objects.filter(is_active=True).count()} staff", "")
+    st["queues"] = (f"{Queue.objects.count()} queues", "")
+    st["company"] = (Setting.get("company.name", "") or "Not set", "")
+    st["appearance"] = ("Light · Dark", "")
+    failed = LoginAttempt.objects.filter(success=False, created_at__date=timezone.localdate()).count()
+    st["security_log"] = (f"{failed} failed today", "warn", f"{failed} failed sign-ins today") if failed >= 10 else \
+        ((f"{failed} failed today", "warn") if failed else ("Clean today", "good"))
     return st
 
 

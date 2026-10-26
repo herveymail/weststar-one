@@ -918,7 +918,7 @@ class Importer:
                     "assigned_to": R("users", r.get("ticket_assigned_to")), "priority": title(r.get("ticket_priority"), ["Critical", "High", "Medium", "Low"], "Medium"),
                     "status": TICKET_STATUS.get(str(r.get("ticket_status") or "").lower(), "Open"), "category": s(r.get("ticket_category"), 100),
                     "source": "MSP360" if str(r.get("ticket_source") or "").lower() == "msp360" else title(r.get("ticket_source"), ["Manual", "Email", "Portal", "Phone", "Alert", "Import"], "Import"),
-                    "billable": True if r.get("ticket_billable") is None else yes(r.get("ticket_billable")), "due_date": day(r.get("ticket_due_date")),
+                    "billable": True if r.get("ticket_billable") is None else yes(r.get("ticket_billable")), "due_date": day(r.get("ticket_due_date")), "device": (txt(r.get("ticket_device")) or "")[:150],
                     "response_due_at": ts(r.get("ticket_sla_response_due")), "first_response_at": ts(r.get("ticket_first_response_at")),
                     "resolved_at": ts(r.get("ticket_resolved_at")), "closed_at": ts(r.get("ticket_closed_at")), "sla_breached": yes(r.get("ticket_sla_breached")),
                     "queue": R("queues", r.get("ticket_queue_id")), "cc": txt(r.get("ticket_cc")) or "", "resolution": txt(r.get("ticket_resolution")) or "",

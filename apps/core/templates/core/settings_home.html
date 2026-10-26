@@ -1,13 +1,39 @@
-{% extends "core/settings_frame.html" %}{% load ws %}
+{% extends "base.html" %}{% load ws %}
 {% block title %}Settings · {{ app_name }}{% endblock %}
-{% block settings %}
-<div class="set-head"><div><h1>Settings</h1><p class="desc">Pick a page on the left, or start with one of these.</p></div></div>
-<div class="set-overview">
-{% for title, desc, items in groups %}
-  <section class="card set-ov-card">
-    <div class="set-ov-title">{{ title }}</div>
-    {% for item in items %}<a href="/settings/{{ item.0 }}/" class="set-ov-row"><span class="set-ov-name">{{ item.1 }}</span><span class="set-ov-desc">{% with st=status|get_item:item.0 %}{% if st %}<span class="pill {{ st.1 }}">{{ st.0 }}</span>{% else %}{{ item.2 }}{% endif %}{% endwith %}</span>{% icon "chevron-right" 14 %}</a>{% endfor %}
-  </section>
-{% empty %}<div class="empty">No setting matches “{{ q }}”.</div>{% endfor %}
+{% block content %}
+<div class="sx-wrap">
+<div class="sx-top">
+  <div><h1><i class="bi bi-gear" aria-hidden="true"></i>Settings</h1><p>Everything that controls how Weststar One works, in one place.</p></div>
+  <form class="sx-search" method="get" action="/settings/" role="search"><i class="bi bi-search" aria-hidden="true"></i>
+    <label for="sx-q" class="sr">Search settings</label>
+    <input type="search" id="sx-q" name="q" value="{{ q }}" placeholder="Search settings — email, dark mode, SLA, backups…" autocomplete="off" data-sx-search><kbd>/</kbd></form>
+</div>
+
+<nav class="sx-jumps" id="sx-jumps" aria-label="Settings groups">
+  {% for g in groups %}<a href="#g-{{ g.id }}"><i class="bi {{ g.icon }}" aria-hidden="true"></i>{{ g.title }}</a>{% endfor %}
+</nav>
+
+{% if attention %}
+<div class="sx-attn" id="sx-attn"><b><i class="bi bi-exclamation-circle" aria-hidden="true"></i>Needs attention</b>
+  {% for page, text in attention %}<a href="/settings/{{ page }}/">{{ text }} <i class="bi bi-arrow-right-short" aria-hidden="true"></i></a>{% endfor %}
+</div>
+{% endif %}
+
+{% for g in groups %}
+<section class="sx-grp" id="g-{{ g.id }}">
+  <div class="sx-grp-h"><h2><i class="bi {{ g.icon }}" aria-hidden="true"></i>{{ g.title }}</h2><span>{{ g.desc }}</span></div>
+  <div class="sx-grid">
+  {% for it in g.items %}{% with st=status|get_item:it.id %}
+    <a href="/settings/{{ it.id }}/" class="sx-tile" data-q="{{ it.words }}">
+      <span class="sx-ico" style="background:{{ it.color }}1f;color:{{ it.color }}"><i class="bi {{ it.icon }}" aria-hidden="true"></i></span>
+      <span class="sx-txt"><b>{{ it.title }}</b><small>{{ it.desc }}</small>
+      {% if st and st.0 %}<span class="sx-st"><span class="sx-badge {% if st.1 == 'good' %}ok{% elif st.1 == 'warn' or st.1 == 'bad' %}warn{% else %}n{% endif %}">{{ st.0 }}</span></span>{% endif %}</span>
+    </a>
+  {% endwith %}{% endfor %}
+  </div>
+</section>
+{% empty %}<div class="sx-empty">No settings match “{{ q }}”. Try a different word.</div>
+{% endfor %}
+<div class="sx-empty" id="sx-empty" hidden><i class="bi bi-search" aria-hidden="true"></i> No settings match that. Try a different word.</div>
 </div>
 {% endblock %}

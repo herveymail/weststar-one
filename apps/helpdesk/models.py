@@ -65,6 +65,7 @@ class Ticket(models.Model):
     source = models.CharField(max_length=10, choices=C(*SOURCES), default="Manual")
     billable = models.BooleanField(default=True)
     due_date = models.DateField(null=True, blank=True)
+    device = models.CharField(max_length=150, blank=True, help_text="Computer or device the ticket is about (e.g. PC-07).")
     response_due_at = models.DateTimeField(null=True, blank=True)
     first_response_at = models.DateTimeField(null=True, blank=True)
     resolve_due_at = models.DateTimeField(null=True, blank=True)

@@ -1,3 +1,12 @@
+[data-look="paper"] {
+  --font: 'Inter', -apple-system, system-ui, sans-serif;
+  --bg: #EEF0F5; --surface: #FFFFFF; --surface2: #F6F7FB; --input: #FFFFFF; --line: #E5E7EF;
+  --text: #191C24; --muted: #6B7280; --faint: #9AA1B4;
+  --tab: #EEF0F5; --tab-on: #FFFFFF; --tab-on-text: #191C24;
+  --nav: #F8F9FC; --nav-line: #ECEFF5; --nav-text: #454B5C; --nav-strong: #191C24; --nav-on: #FFFFFF; --nav-on-text: #4338CA; --section: #8890A3;
+  --accent: #0070D2; --link: #0070D2; --chip-on: #E0F0FF; --chip-on-text: #005BB5; --sel: #EAF3FD;
+  --r: 11px;
+}
 /* Themes (Profile › Theme). Each sets its own colours on top of the light or dark base in styles.css. */
 [data-look="weststar"] {
   --bg: #F4F7FB; --line: #DDE5EF; --tab: #E6EDF5; --sel: #E7F0FA;

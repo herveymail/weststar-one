@@ -2,7 +2,8 @@
 (static/core/themes.css). `swatch` = (background, menu, accent) for the little previews."""
 
 THEMES = [
-    ("indigo", "Indigo", "light", ("#F5F7FA", "#FFFFFF", "#4F46E5"), "Clean and bright — the default"),
+    ("paper", "Weststar One", "light", ("#EEF0F5", "#F8F9FC", "#0070D2"), "The original Weststar One look — the default"),
+    ("indigo", "Indigo", "light", ("#F5F7FA", "#FFFFFF", "#4F46E5"), "Clean and bright"),
     ("weststar", "Weststar Blue", "light", ("#F4F7FB", "#0B2A4A", "#0A4B85"), "Company blue with a navy menu"),
     ("slate", "Slate", "light", ("#F6F7F9", "#1E293B", "#334155"), "Quiet greys, dark menu"),
     ("forest", "Forest", "light", ("#F4F8F5", "#FFFFFF", "#15803D"), "Calm greens"),

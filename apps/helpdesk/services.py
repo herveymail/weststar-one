@@ -119,7 +119,7 @@ def _client_recipients(t: Ticket) -> tuple[list[str], list[str]]:
 @transaction.atomic
 def create_ticket(*, user=None, subject, details="", client=None, contact=None, priority="Medium", source="Manual",
                   assigned_to=None, queue=None, category="", cc="", portal_user=None, contact_name="", contact_email="",
-                  request=None) -> Ticket:
+                  request=None, device="", due_date=None) -> Ticket:
     from apps.core.numbering import next_number
     number = next_number("ticket")
     now = timezone.now()
@@ -129,7 +129,7 @@ def create_ticket(*, user=None, subject, details="", client=None, contact=None, 
         contact_name=contact_name or (contact.name if contact else (portal_user.name if portal_user else "")),
         contact_email=contact_email or (contact.email if contact else (portal_user.email if portal_user else "")),
         priority=priority, status="New", source=source, assigned_to=assigned_to, created_by=user, queue=queue,
-        category=category, cc=cc,
+        category=category, cc=cc, device=device[:150], due_date=due_date,
         response_due_at=now + timedelta(minutes=response_minutes(priority, client)) if (queue is None or queue.sla_enabled) else None,
         resolve_due_at=now + timedelta(hours=resolve_hours(priority, client)) if (queue is None or queue.sla_enabled) else None,
     )

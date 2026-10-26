@@ -1,17 +1,19 @@
-{% extends "base.html" %}
-{% block body %}
-<div class="auth">
-  <svg class="auth-bg" viewBox="0 0 1400 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><pattern id="auth-grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#1D2939" stroke-width="1"/></pattern></defs><rect width="1400" height="900" fill="url(#auth-grid)"/><circle cx="1150" cy="120" r="320" fill="#312E81" opacity=".55"/><circle cx="180" cy="820" r="260" fill="#0A4B85" opacity=".5"/></svg>
-  <div class="auth-inner">
-    <div class="auth-brand">
-      {% if logo_url %}<img class="auth-logo" src="{{ logo_url }}" alt="{{ app_name|default:'Weststar ONE' }}">{% else %}<div class="auth-wordmark"><span class="logo">W</span>{{ app_name|default:"Weststar ONE" }}</div>{% endif %}
-      <h1 class="auth-headline">{{ login_heading }}</h1>
-      <p class="auth-text">{{ login_text }}</p>
-    </div>
-    <div class="auth-card">
-      <h2 class="auth-h">{% block heading %}{% endblock %}</h2>{% block sub %}{% endblock %}
-      {% block form %}{% endblock %}
-    </div>
-  </div>
-</div>
+{% extends "auth_split.html" %}
+{% block title %}{% block heading_title %}Sign in{% endblock %}{% endblock %}
+{% block kicker %}Staff sign-in{% endblock %}
+{% block headline %}{{ login_heading }}{% endblock %}
+{% block tagline %}{{ login_text }}{% endblock %}
+{% block points %}
+<li><span class="ic"><i class="bi bi-headset" aria-hidden="true"></i></span><div><b>Helpdesk &amp; ticketing</b><span>Queues, SLAs and saved replies to resolve requests faster.</span></div></li>
+<li><span class="ic"><i class="bi bi-building" aria-hidden="true"></i></span><div><b>Clients &amp; assets</b><span>Contacts, devices and history for every account.</span></div></li>
+<li><span class="ic"><i class="bi bi-receipt" aria-hidden="true"></i></span><div><b>Billing &amp; contracts</b><span>Invoices, payments and recurring agreements.</span></div></li>
+<li><span class="ic"><i class="bi bi-shield-check" aria-hidden="true"></i></span><div><b>Secure by design</b><span>Encrypted connection and two-factor authentication.</span></div></li>
+{% endblock %}
+{% block mobile_switch %}<a class="wl-mobile-link" href="/client-portal/login/">Customer portal <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% endblock %}
+{% block switch %}Are you a client? <a href="/client-portal/login/">Customer portal</a>{% endblock %}
+{% block secure %}Encrypted connection · two-factor authentication available{% endblock %}
+{% block form %}
+<h2 class="wl-title">{% block heading %}{% endblock %}</h2>
+{% block sub %}{% endblock %}
+{% block inner %}{% endblock %}
 {% endblock %}

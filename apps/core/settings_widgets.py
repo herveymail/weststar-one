@@ -59,6 +59,7 @@ WIDGETS = {
     # General
     "app.timezone": {"kind": "tz"},
     "brand.color": {"kind": "color", "presets": BRAND_COLORS},
+    "brand.login_color": {"kind": "color", "presets": BRAND_COLORS},
     "app.default_look": {"kind": "theme"},
     "numbers.ticket_padding": {"kind": "preset", "presets": [("0", "No padding (T-917)"), ("4", "4 digits (T-0917)"), ("5", "5 digits (T-00917)"), ("6", "6 digits (T-000917)")]},
     "numbers.invoice_padding": {"kind": "preset", "presets": [("0", "No padding"), ("4", "4 digits (0042)"), ("5", "5 digits (00042)"), ("6", "6 digits (000042)")]},

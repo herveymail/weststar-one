@@ -18,10 +18,11 @@ SETTINGS = [
             ("numbers.quote_prefix", "Quote prefix (default QT-)", T), ("numbers.quote_padding", "Quote number digits", I),
             ("numbers.contract_prefix", "Contract prefix (default CT-)", T), ("numbers.project_prefix", "Project prefix (default PRJ-)", T), ("billing.default_tax_rate", "Default tax rate %", T), ("billing.hourly_rate", "Default hourly rate", T), ("billing.mileage_rate", "Mileage rate per mile", T), ("billing.net_terms", "Default net terms (days)", I)]),
         ("hours", "Hours & switches", "Business hours and helpdesk switches", [("app.business_hours", "Business hours", T), ("tickets.auto_assign", "Auto-assign new tickets", B)]),
-        ("appearance", "Appearance", "Default look for new users (each person can change theirs in Profile)", [("app.default_look", "Theme for new users", SEL, ["indigo", "weststar", "slate", "forest", "teal", "violet", "rose", "sunset", "sand", "contrast", "graphite", "midnight", "nord", "neon"])]),
+        ("appearance", "Appearance", "Default look for new users (each person can change theirs in Profile)", [("app.default_look", "Theme for new users", SEL, ["paper", "indigo", "weststar", "slate", "forest", "teal", "violet", "rose", "sunset", "sand", "contrast", "graphite", "midnight", "nord", "neon"])]),
         ("branding", "Branding & logo", "Logo, app name and the sign-in page", [H("Logo"), ("brand.logo", "Logo", IMG, "PNG, JPG, WebP or SVG, up to 2 MB. A wide logo on a transparent background looks best. Shown on sign-in, in the menu and in the client portal."),
             H("Names & colour"), ("brand.color", "Brand colour for emails and documents (e.g. #0A4B85)", T), ("brand.app_name", "App name", T), ("brand.welcome", "Dashboard welcome", T),
-            H("Sign-in page"), ("brand.login_heading", "Headline", T, "e.g. One vendor. One bill. One phone number."), ("brand.login_text", "Text under the headline", TA)]),
+            H("Sign-in page"), ("brand.login_heading", "Headline", T, "e.g. One vendor. One bill. One phone number."), ("brand.login_text", "Text under the headline", TA),
+            ("brand.login_color", "Sign-in panel colour (e.g. #894d10)", T), ("brand.login_terms", "Terms people must agree to before signing in (leave blank for none)", TA)]),
         ("company_extras", "Company extras", "Social links, Google review link", [("company.review_link", "Google review link", T), ("company.social", "Social links", TA)]),
     ]),
     ("helpdesk", "Helpdesk", "How tickets come in, get routed and answered", [
@@ -134,3 +135,23 @@ def field_specs(item):
 
 
 ALL_FIELDS = {f["key"]: f for _g, _t, item in all_pages() if isinstance(item[3], list) for f in field_specs(item) if f["type"] != "section"}
+
+# How each page looks on the Settings home tile grid (same icons and colours as the old Weststar One).
+GROUP_ICONS = {"general": "bi-sliders", "helpdesk": "bi-headset", "comms": "bi-envelope-paper", "billing": "bi-receipt",
+               "people": "bi-people", "integrations": "bi-plug", "system": "bi-shield-lock"}
+TILE_LOOK = {
+    "company": ("bi-building", "#d97706"), "numbers": ("bi-123", "#059669"), "hours": ("bi-clock", "#2563eb"),
+    "appearance": ("bi-palette", "#c25f76"), "branding": ("bi-brush", "#db2777"), "company_extras": ("bi-megaphone", "#ea580c"),
+    "tickets": ("bi-ticket-detailed", "#6366f1"), "sla": ("bi-stopwatch", "#dc2626"), "email_in": ("bi-inbox", "#0891b2"),
+    "ticket_emails": ("bi-envelope-check", "#2563eb"), "afterhours": ("bi-moon-stars", "#4f46e5"), "queues": ("bi-diagram-3", "#2c5cc5"),
+    "saved_replies": ("bi-chat-left-quote", "#0d9488"), "portal": ("bi-globe", "#0891b2"),
+    "email": ("bi-envelope-paper", "#2563eb"), "email_designs": ("bi-envelope-heart", "#c25f76"), "google_chat": ("bi-chat-square-text", "#1a73e8"),
+    "phone": ("bi-telephone", "#0067c5"),
+    "invoice_defaults": ("bi-receipt-cutoff", "#ea580c"), "late_fees": ("bi-hourglass-split", "#dc2626"), "quote_defaults": ("bi-file-earmark-text", "#0891b2"),
+    "contract_defaults": ("bi-file-earmark-richtext", "#7c3aed"), "payments": ("bi-credit-card", "#059669"),
+    "users": ("bi-people", "#16a34a"), "portal_groups": ("bi-people-fill", "#0d9488"), "signin": ("bi-key", "#7c3aed"),
+    "integrations": ("bi-plug", "#9333ea"), "msp360": ("bi-cloud-check", "#0e7490"), "rmm": ("bi-pc-display-horizontal", "#2563eb"),
+    "ai": ("bi-stars", "#9333ea"), "jobs": ("bi-clock-history", "#0d9488"), "offsite": ("bi-cloud-download", "#059669"),
+    "my_security": ("bi-shield-lock", "#dc2626"), "audit": ("bi-journal-text", "#6b7280"), "security_log": ("bi-shield-exclamation", "#b91c1c"),
+    "import": ("bi-truck", "#0f766e"), "old_settings": ("bi-archive", "#64748b"),
+}

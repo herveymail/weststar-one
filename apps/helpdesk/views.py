@@ -414,31 +414,36 @@ def switch_ui(request):
 
 # ── new ticket ──
 class NewTicketForm(forms.Form):
-    client = forms.ModelChoiceField(Client.objects.none(), required=False, widget=forms.Select(attrs={"class": "select"}))
-    subject = forms.CharField(max_length=255, widget=forms.TextInput(attrs={"class": "input", "autofocus": True, "placeholder": "What's going on?"}))
-    details = forms.CharField(required=False, max_length=50000, widget=forms.Textarea(attrs={"class": "textarea", "rows": 4}))
-    contact = forms.ModelChoiceField(Contact.objects.none(), required=False, label="Requester", widget=forms.Select(attrs={"class": "select"}))
-    priority = forms.ChoiceField(choices=[(p, p) for p in PRIORITIES], initial="Medium", widget=forms.Select(attrs={"class": "select"}))
-    queue = forms.ModelChoiceField(Queue.objects.none(), required=False, empty_label="Auto — from trigger words", widget=forms.Select(attrs={"class": "select"}))
+    """Same fields and order as the old Weststar One "New ticket" box."""
+    client = forms.ModelChoiceField(Client.objects.none(), required=False, widget=forms.Select(attrs={"class": "select", "size": "1"}))
+    subject = forms.CharField(max_length=255, widget=forms.TextInput(attrs={"class": "input", "placeholder": "Brief description of the issue"}))
+    details = forms.CharField(required=False, max_length=50000, widget=forms.Textarea(attrs={"class": "textarea", "rows": 4, "placeholder": "What is happening, what was tried…"}))
+    priority = forms.ChoiceField(choices=[(p, p) for p in PRIORITIES], initial="Low", widget=forms.Select(attrs={"class": "select"}))
+    queue = forms.ModelChoiceField(Queue.objects.none(), required=False, empty_label="Auto — trigger words / AI", widget=forms.Select(attrs={"class": "select"}))
     assigned_to = forms.ModelChoiceField(User.objects.none(), required=False, label="Assignee", empty_label="Unassigned", widget=forms.Select(attrs={"class": "select"}))
+    contact_name = forms.CharField(required=False, max_length=150, label="Requester name", widget=forms.TextInput(attrs={"class": "input", "placeholder": "Who has the issue?", "list": "nt-contacts", "autocomplete": "off"}))
+    contact_email = forms.EmailField(required=False, label="Requester email", widget=forms.EmailInput(attrs={"class": "input", "placeholder": "name@client.com"}))
+    device = forms.CharField(required=False, max_length=150, widget=forms.TextInput(attrs={"class": "input", "placeholder": "PC-07, ACME-DC01…"}))
     category = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "select"}))
+    due_date = forms.DateField(required=False, label="Due date", widget=forms.DateInput(attrs={"class": "input", "type": "date"}))
 
     def __init__(self, *a, **kw):
         super().__init__(*a, **kw)
         self.fields["client"].queryset = Client.objects.filter(archived_at__isnull=True).order_by("name")
-        self.fields["contact"].queryset = Contact.objects.filter(archived_at__isnull=True).select_related("client").order_by("name")
-        self.fields["contact"].label_from_instance = lambda c: f"{c.name} — {c.client.name}"
+        self.fields["client"].empty_label = ""
         self.fields["queue"].queryset = Queue.objects.filter(active=True)
         self.fields["assigned_to"].queryset = User.objects.filter(is_active=True).order_by("name")
         self.fields["category"].choices = [("", "—")] + [(c, c) for c in categories()]
 
     def clean(self):
         data = super().clean()
-        c, k = data.get("client"), data.get("contact")
-        if k and not c:
-            data["client"] = k.client
-        elif k and c and k.client_id != c.pk:
-            self.add_error("contact", "That contact belongs to a different client.")
+        if not data.get("client"):
+            self.add_error("client", "Pick the client.")
+        # Link the requester to a saved contact when the email matches one at this client.
+        data["contact"] = None
+        c, em = data.get("client"), (data.get("contact_email") or "").strip().lower()
+        if c and em:
+            data["contact"] = Contact.objects.filter(client=c, email__iexact=em, archived_at__isnull=True).first()
         return data
 
 
@@ -456,12 +461,15 @@ def ticket_new(request):
         d = form.cleaned_data
         t = services.create_ticket(user=request.user, subject=d["subject"], details=d["details"], client=d["client"], contact=d["contact"],
                                    priority=d["priority"], queue=d["queue"], assigned_to=d["assigned_to"], category=d["category"] or "",
-                                   request=request)
+                                   contact_name=d["contact_name"], contact_email=(d["contact_email"] or "").lower(), device=d["device"],
+                                   due_date=d["due_date"], request=request)
         messages.success(request, f"Created {t.number}.")
         resp = HttpResponse(status=204)
         resp["HX-Redirect"] = f"/tickets/{t.pk}/"
         return resp
-    return render(request, "helpdesk/_new.html", {"form": form}, status=422 if request.method == "POST" else 200)
+    contacts = [{"n": n, "e": e, "c": c} for n, e, c in Contact.objects.filter(archived_at__isnull=True).exclude(email="")
+                .order_by("name").values_list("name", "email", "client_id")]
+    return render(request, "helpdesk/_new.html", {"form": form, "contacts": contacts}, status=422 if request.method == "POST" else 200)
 
 
 _ = Http404

@@ -2,7 +2,7 @@
 {% block title %}Two-factor code · Weststar ONE{% endblock %}
 {% block heading %}Enter your code{% endblock %}
 {% block sub %}<p class="desc">Open your authenticator app and type the 6-digit code for Weststar ONE. No phone? Use one of your recovery codes.</p>{% endblock %}
-{% block form %}
+{% block inner %}
 <form method="post" class="stack">{% csrf_token %}
   {% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
   <div class="field"><label for="code">Code</label><input id="code" name="code" class="input num" inputmode="numeric" autocomplete="one-time-code" maxlength="20" required autofocus style="font-size:20px;letter-spacing:.2em"></div>

@@ -252,7 +252,7 @@ def profile_view(request):
         messages.success(request, "Ticket screen changed.")
         return redirect("/profile/")
     if request.method == "POST" and request.POST.get("reset_look"):
-        User.objects.filter(pk=user.pk).update(look="indigo", ui_style="classic", menu_style="list", tickets_ui="classic")
+        User.objects.filter(pk=user.pk).update(look="paper", ui_style="classic", menu_style="list", tickets_ui="classic")
         messages.success(request, "Back to the standard Weststar ONE look.")
         return redirect("/profile/")
     if request.method == "POST" and request.POST.get("menu_style") in ("icons", "list"):
@@ -266,6 +266,9 @@ def profile_view(request):
         return redirect("/profile/")
     if request.method == "POST" and request.POST.get("look") in BY_KEY:
         User.objects.filter(pk=user.pk).update(look=request.POST["look"])
+        nxt = request.POST.get("next", "")
+        if nxt.startswith("/") and not nxt.startswith("//"):
+            return redirect(nxt)  # the dark-mode button in the top bar
         messages.success(request, "Look changed.")
         return redirect("/profile/")
     form = ProfileForm(request.POST or None, instance=user)

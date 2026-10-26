@@ -66,3 +66,15 @@ NAV = [
     ("H/R", "H/R", "my_hr", [("my_hr", "My HR", "/my-hr/", "*"), ("hr", "H/R Admin", "/hr/", "hr")]),
     ("Admin", "Admin", "settings", [("settings", "Settings", "/settings/", "*")]),
 ]
+
+# Old Weststar One sidebar look: each section is its own tinted card, with a Bootstrap icon per page.
+NAV_COLORS = {None: "indigo", "CRM & Marketing": "indigo", "Sales & Marketing": "coral", "Billing": "teal", "Tools": "amber", "H/R": "pink", "Admin": "slate"}
+NAV_BI = {
+    "dashboard": "bi-speedometer2", "tickets": "bi-ticket-detailed", "projects": "bi-kanban", "clients": "bi-people",
+    "leads": "bi-funnel", "marketing": "bi-megaphone", "invoices": "bi-receipt", "payments": "bi-credit-card",
+    "recurring": "bi-arrow-repeat", "banking": "bi-bank", "quotes": "bi-file-earmark-text", "contracts": "bi-file-earmark-check",
+    "policies": "bi-shield-check", "training": "bi-mortarboard", "renewals": "bi-calendar-check", "expenses": "bi-cash-stack",
+    "vendors": "bi-shop", "calendar": "bi-calendar3", "inventory": "bi-box-seam", "mileage": "bi-car-front",
+    "messages": "bi-envelope-paper", "domains": "bi-globe", "backups": "bi-cloud-check", "rmm": "bi-pc-display-horizontal",
+    "kb": "bi-book", "workflows": "bi-lightning", "my_hr": "bi-person-badge", "hr": "bi-people-fill", "settings": "bi-gear",
+}
