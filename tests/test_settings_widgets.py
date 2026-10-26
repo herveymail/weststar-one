@@ -75,3 +75,27 @@ def test_ui_style_picker(admin):
     assert 'data-style="terminal"' in page and "JetBrains+Mono" in page
     admin.post("/profile/", {"ui_style": "nope"})
     assert 'data-style="terminal"' in admin.get("/").content.decode()
+
+
+def test_forms_opened_directly_show_in_the_app_and_have_dates(admin):
+    from apps.crm.models import Client
+    r = admin.get("/m/clients/new/")
+    assert r.status_code == 302 and r["Location"].startswith("/m/clients/?open_form=")
+    page = admin.get(r["Location"]).content.decode()
+    assert 'hx-get="/m/clients/new/"' in page
+    assert 'hx-get="https://evil.test/"' not in admin.get("/m/clients/?open_form=https://evil.test/").content.decode()
+    assert admin.get("/tickets/new/").status_code == 302
+    Client.objects.create(name="Acme")
+    Setting.put("billing.net_terms", "15")
+    form = admin.get("/m/invoices/new/", HTTP_HX_REQUEST="true").content.decode()
+    from datetime import timedelta
+
+    from django.utils import timezone
+    today = timezone.localdate()
+    assert f'value="{today:%Y-%m-%d}"' in form and f'value="{today + timedelta(days=15):%Y-%m-%d}"' in form
+    assert form.index('name="client"') < form.index('name="tax_rate"')
+
+
+def test_settings_pages_show_the_real_defaults(admin):
+    page = admin.get("/settings/ai/").content.decode()
+    assert 'name="ai.summary" checked' in page or 'name="ai.summary"  checked' in page or ('name="ai.summary"' in page and "checked" in page.split('name="ai.summary"')[1][:20])

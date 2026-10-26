@@ -206,7 +206,7 @@ a.kpi:hover { border-color: var(--accent); }
   body, .app { background: #fff !important; }
   .doc-paper { border: 0; box-shadow: none; padding: 0; max-width: none; }
 }
-@media (max-width: 700px) { .doc-paper { padding: 22px 18px; } .wsdoc-top, .wsdoc-parties { flex-direction: column; } }
+@media (max-width: 700px) { .doc-paper { padding: 22px 12px; } .wsdoc-top, .wsdoc-parties { flex-direction: column; } .wsdoc-lines th, .wsdoc-lines td { padding-left: 4px; padding-right: 4px; font-size: 12px; } .wsdoc-lines td:first-child { overflow-wrap: anywhere; } }
 
 /* Theme picker */
 .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }

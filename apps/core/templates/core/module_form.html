@@ -40,16 +40,16 @@
                 <td><label class="sr" for="{{ lf.qty.id_for_label }}">Qty</label>{{ lf.qty }}</td>
                 <td><label class="sr" for="{{ lf.rate.id_for_label }}">Rate</label>{{ lf.rate }}</td>
                 <td><label class="check">{{ lf.taxable }}<span class="sr">Taxable</span></label></td>
-                <td class="num">{% if lf.instance.pk %}{{ lf.instance.line_total|dollars }}{% else %}<span class="muted">—</span>{% endif %}</td>
+                <td class="num" data-line-total>{% if lf.instance.pk %}{{ lf.instance.line_total|dollars }}{% else %}<span class="muted">—</span>{% endif %}</td>
                 <td>{% if lf.instance.pk %}<label class="check">{{ lf.DELETE }}<span class="sr">Remove</span></label>{% endif %}</td>
               </tr>{% endfor %}
             </tbody>
           </table>
         </div>
         <div class="pager"><button type="button" class="btn small" data-add-line>{% icon "plus" 14 %}Add line</button>
-          {% if obj %}<span class="num">Subtotal {{ obj.subtotal|dollars }} · Tax {{ obj.tax_amount|dollars }} · <b>Total {{ obj.total|dollars }}</b></span>{% else %}<span class="muted small">Totals are calculated when you save.</span>{% endif %}</div></div>
+          <span class="num" data-doc-totals>{% if obj %}Subtotal {{ obj.subtotal|dollars }} · Tax {{ obj.tax_amount|dollars }} · <b>Total {{ obj.total|dollars }}</b>{% else %}<span class="muted small">Totals show as you type.</span>{% endif %}</span></div></div>
         <template id="line-template"><tr>{% with lf=lines.empty_form %}{% for h in lf.hidden_fields %}{{ h }}{% endfor %}
-          <td>{{ lf.description }}</td><td>{{ lf.qty }}</td><td>{{ lf.rate }}</td><td><label class="check">{{ lf.taxable }}</label></td><td class="num"><span class="muted">—</span></td><td></td>{% endwith %}</tr></template>
+          <td>{{ lf.description }}</td><td>{{ lf.qty }}</td><td>{{ lf.rate }}</td><td><label class="check">{{ lf.taxable }}</label></td><td class="num" data-line-total><span class="muted">—</span></td><td></td>{% endwith %}</tr></template>
       {% endif %}
     </form>
     {% if obj and m.slug == "projects" %}<div class="drawer-files"><h3>Files</h3><div hx-get="/files/project/{{ obj.pk }}/" hx-trigger="load" hx-swap="outerHTML"><div class="empty">Loading…</div></div></div>{% endif %}

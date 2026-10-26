@@ -100,7 +100,9 @@ DEFAULTS = {
     "chat.notify_new_ticket": "true", "chat.notify_client_replies": "true", "email.imap_host": "imap.gmail.com", "email.imap_port": "993",
     "email.imap_folder": "INBOX", "email.smtp_host": "smtp.gmail.com", "email.smtp_port": "587", "email.fetch_enabled": "false",
     "email.provider": "Gmail / SMTP", "autopay.enabled": "true", "autopay.timing": "immediate", "autopay.retry_days": "3", "autopay.max_attempts": "4",
-    "tickets.email_new_subject": "[{number}] {subject}", "billing.late_fee_repeat": "true", "msp360.base_url": "https://api.mspbackups.com", "msp360.ticket_on_failure": "true", "msp360.auto_resolve": "true", "msp360.ticket_priority": "High", "msp360.overdue_hours": "36", "ai.first_response_skip": "security, outage, critical", "tickets.email_reply_subject": "Re: [{number}] {subject}", "tickets.email_closed_subject": "[{number}] Resolved: {subject}",
+    "tickets.email_new_subject": "[{number}] {subject}", "billing.late_fee_repeat": "true", "ai.triage": "true", "ai.suggest": "true", "ai.summary": "true", "ai.first_response": "false",
+    "ai.first_response_when": "always", "google.counts_as_2fa": "yes", "security.idle_minutes": "30", "security.password_login": "everyone",
+    "security.require_mfa": "privileged", "tickets.auto_close_days": "7", "billing.late_fee_type": "flat", "brand.app_name": "Weststar ONE", "msp360.base_url": "https://api.mspbackups.com", "msp360.ticket_on_failure": "true", "msp360.auto_resolve": "true", "msp360.ticket_priority": "High", "msp360.overdue_hours": "36", "ai.first_response_skip": "security, outage, critical", "tickets.email_reply_subject": "Re: [{number}] {subject}", "tickets.email_closed_subject": "[{number}] Resolved: {subject}",
 }
 
 

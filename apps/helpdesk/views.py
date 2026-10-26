@@ -405,6 +405,9 @@ class NewTicketForm(forms.Form):
 @login_required
 def ticket_new(request):
     _need(request, "edit")
+    if request.method == "GET" and not request.headers.get("HX-Request"):
+        from urllib.parse import urlencode
+        return redirect("/tickets/?" + urlencode({"open_form": request.get_full_path()}))
     initial = {}
     if _int(request.GET.get("client_id")):
         initial["client"] = int(request.GET["client_id"])

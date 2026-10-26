@@ -159,6 +159,24 @@
     total.value = String(n + 1);
   });
 
+  // Line items: show each line's total and the document total as you type.
+  const money = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const recalcLines = () => {
+    const body = $('#lines-body'); if (!body) return;
+    let sub = 0, taxable = 0;
+    $$('tr', body).forEach((tr) => {
+      const q = parseFloat($('input[name$="-qty"]', tr)?.value || '0') || 0, r = parseFloat($('input[name$="-rate"]', tr)?.value || '0') || 0;
+      const del = $('input[name$="-DELETE"]', tr)?.checked, tax = $('input[name$="-taxable"]', tr)?.checked;
+      const total = Math.round(q * r * 100) / 100, cell = $('[data-line-total]', tr);
+      if (cell && ($('input[name$="-description"]', tr)?.value || r)) cell.textContent = money(total);
+      if (!del) { sub += total; if (tax) taxable += total; }
+    });
+    const rate = parseFloat($('#module-form [name="tax_rate"]')?.value || '0') || 0, t = Math.round(taxable * rate) / 100;
+    const out = $('[data-doc-totals]'); if (out) out.innerHTML = `Subtotal ${money(sub)} · Tax ${money(t)} · <b>Total ${money(sub + t)}</b>`;
+  };
+  document.addEventListener('input', (e) => { if (e.target.closest('#lines-body') || e.target.name === 'tax_rate') recalcLines(); });
+  document.addEventListener('change', (e) => { if (e.target.closest('#lines-body')) recalcLines(); });
+
   // Ticket list: highlight the row you picked.
   document.addEventListener('click', (e) => {
     const r = e.target.closest('.t-row');
@@ -191,6 +209,16 @@
     });
     xhr.addEventListener('error', () => { label.textContent = 'Upload failed: check your connection and try again.'; $$('button', form).forEach((b) => (b.disabled = false)); });
     xhr.send(data);
+  });
+
+  // A form opened from a link (?open_form=…): drop it from the address so a reload after saving doesn't open it again.
+  { const u = new URL(window.location.href); if (u.searchParams.has('open_form')) { u.searchParams.delete('open_form'); window.history.replaceState(null, '', u); } }
+
+  // Ticket grid: the automatic refresh waits while you have tickets ticked or a menu open, so it never undoes what you're doing.
+  document.body.addEventListener('htmx:beforeRequest', (e) => {
+    if (e.detail.elt.id !== 'grid-body' || e.detail.requestConfig.verb !== 'get') return;
+    const busy = $$('[data-tick]:checked').length || (document.activeElement && document.activeElement.closest('#grid-body, .tkg-bar, #bulk') && document.activeElement.matches('select, input'));
+    if (busy && !(e.detail.requestConfig.triggeringEvent && e.detail.requestConfig.triggeringEvent.type === 'ticketsChanged')) e.preventDefault();
   });
 
   // After an htmx swap into the drawer, focus the first field.

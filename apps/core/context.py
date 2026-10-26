@@ -9,6 +9,9 @@ def app_context(request):
         from apps.core.branding import logo_url
         return {"app_name": Setting.get("brand.app_name", "Weststar ONE"), "logo_url": logo_url(), **_auth_copy()}
     path = request.path
+    import re as _re
+    of = request.GET.get("open_form", "")
+    open_form = of if _re.fullmatch(r"/(m/[a-z_]+/(new|\d+)|tickets/new)/(\?[A-Za-z0-9_=&%.+-]*)?", of) else ""
     nav = []
     for group, short, icon, items in NAV:
         visible = []
@@ -25,6 +28,7 @@ def app_context(request):
         "logo_url": logo_url(),
         "app_name": Setting.get("brand.app_name", "Weststar ONE"),
         "nav": nav,
+        "open_form": open_form,
         "look": user.look,
         "ui_style": user.ui_style,
         "ui_font": __import__("apps.core.ui_styles", fromlist=["font_query"]).font_query(user.ui_style),

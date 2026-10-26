@@ -89,6 +89,7 @@
   </div>
 </div>
 <div id="modal"></div>
+{% if open_form %}<div hidden hx-get="{{ open_form }}" hx-trigger="load" hx-target="#modal" hx-swap="innerHTML"></div>{% endif %}
 {% endblock %}
 </body>
 </html>

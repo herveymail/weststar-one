@@ -7,7 +7,7 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, Q
 from django.http import Http404, HttpResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -110,7 +110,39 @@ def _defaults_from_query(request, m: Module) -> dict:
                     initial[name] = int(value)
             except Exception:  # noqa: BLE001
                 pass
+    initial.update(_date_defaults(m))
     return initial
+
+
+def _date_defaults(m: Module) -> dict:
+    """Sensible starting values on new records: today's date, due / expiry dates from Settings, default tax rate."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from .models import Setting
+
+    def n(key, default):
+        try:
+            return int(float(Setting.get(key, "") or default))
+        except ValueError:
+            return default
+    today = timezone.localdate()
+    names = {f.name for f in m.model._meta.get_fields()}
+    out = {}
+    for f in ("invoice_date", "quote_date", "paid_on", "posted_on", "trip_date", "spent_on"):
+        if f in names:
+            out[f] = today
+    if "due_date" in names and "invoice_date" in names:
+        out["due_date"] = today + timedelta(days=n("billing.net_terms", 30))
+    if "expires_on" in names and "quote_date" in names:
+        out["expires_on"] = today + timedelta(days=n("billing.quote_valid_days", 30))
+    if "tax_rate" in names and Setting.get("billing.default_tax_rate", ""):
+        try:
+            out["tax_rate"] = float(Setting.get("billing.default_tax_rate", ""))
+        except ValueError:
+            pass
+    return out
 
 
 @login_required
@@ -120,6 +152,11 @@ def module_edit(request, slug, pk=None):
         raise Http404
     guard(request, m, "edit")
     obj = get_object_or_404(scoped(request, m), pk=pk) if pk else None
+    if request.method == "GET" and not request.headers.get("HX-Request"):
+        # Opened directly (new tab, bookmark, link from elsewhere): show the list with this form open in the drawer.
+        from urllib.parse import urlencode
+        here = request.get_full_path()
+        return redirect(f"/m/{slug}/?" + urlencode({"open_form": here}))
     manager = is_manager(request.user, m)
     # Private records (time off, timeclock): once approved, only H/R can change them.
     if obj and m.owner_scoped and not manager and m.owner_initial_status and getattr(obj, m.status_field) != m.owner_initial_status:

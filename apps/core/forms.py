@@ -38,6 +38,9 @@ def build_form_class(module: Module, user):
     if module.owner_scoped and not can(user, module.area, "manage") and module.status_field:
         exclude.add(module.status_field)
     fields = [f.name for f in model._meta.get_fields() if getattr(f, "editable", False) and not f.auto_created and f.concrete and f.name not in exclude]
+    if "tax_rate" in fields and "client" in fields:  # invoices / quotes: client first, tax rate after the dates
+        fields.remove("tax_rate")
+        fields.insert(min(len(fields), next((i + 1 for i, x in enumerate(fields) if x in ("due_date", "expires_on")), len(fields))), "tax_rate")
     widgets = {}
     for f in model._meta.get_fields():
         if f.name in fields and f.get_internal_type() == "DateField":
