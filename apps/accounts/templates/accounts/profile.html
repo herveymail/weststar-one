@@ -2,6 +2,9 @@
 {% block content %}
 <div class="page-head"><div class="titles"><div class="eyebrow">Your account</div><h1>Profile &amp; look</h1></div><span class="pill" title="The version running on this server">Version {{ app_version }}</span></div>
 <div class="stack" style="max-width:820px">
+  <form method="post" class="card pad" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">{% csrf_token %}
+    <div style="flex:1;min-width:220px"><span class="strong">Standard look</span><div class="small muted">Classic style, Indigo theme, full side menu, classic ticket page.</div></div>
+    <button class="btn" name="reset_look" value="1">Use the standard look</button></form>
   <section class="card pad stack">
     <h2>Style</h2><p class="desc" style="margin:0">Changes the shape, type and spacing of everything. Works with any theme colour below.</p>
     <form method="post" class="style-grid">{% csrf_token %}

@@ -251,6 +251,10 @@ def profile_view(request):
         User.objects.filter(pk=user.pk).update(tickets_ui=request.POST["tickets_ui"])
         messages.success(request, "Ticket screen changed.")
         return redirect("/profile/")
+    if request.method == "POST" and request.POST.get("reset_look"):
+        User.objects.filter(pk=user.pk).update(look="indigo", ui_style="classic", menu_style="list", tickets_ui="classic")
+        messages.success(request, "Back to the standard Weststar ONE look.")
+        return redirect("/profile/")
     if request.method == "POST" and request.POST.get("menu_style") in ("icons", "list"):
         User.objects.filter(pk=user.pk).update(menu_style=request.POST["menu_style"])
         return redirect("/profile/")
