@@ -79,13 +79,19 @@ def google_callback(request):
     try:
         email = google.finish(request.session, request.GET)
     except google.GoogleSignInError as e:
+        security.record_attempt(e.email or "(google)", request, False, e.code)
         return render(request, "accounts/login.html", {"error": str(e), "google": True, "password_login": True}, status=400)
-    user = User.objects.filter(email__iexact=email, is_active=True).first()
-    if user is None or (user.locked_until and user.locked_until > timezone.now()):
-        security.record_attempt(email, request, False, "google_no_account" if user is None else "locked")
-        return render(request, "accounts/login.html", {
-            "error": "There's no active Weststar ONE account for that Google login. Ask an admin to add you in Staff users.",
-            "google": True, "password_login": True}, status=403)
+    user = User.objects.filter(email__iexact=email).first()
+    problem = None
+    if user is None:
+        problem = ("google_no_account", f"There's no Weststar ONE staff account for {email}. Ask an admin to add you in Settings › Staff users (same email as your Google account).")
+    elif not user.is_active:
+        problem = ("google_inactive", f"The staff account for {email} is turned off. Ask an admin to turn it back on in Settings › Staff users.")
+    elif user.locked_until and user.locked_until > timezone.now():
+        problem = ("locked", f"The staff account for {email} is locked after too many failed sign-ins. It unlocks {timezone.localtime(user.locked_until):%-I:%M %p}, or an admin can unlock it in Staff users.")
+    if problem:
+        security.record_attempt(email, request, False, problem[0])
+        return render(request, "accounts/login.html", {"error": problem[1], "google": True, "password_login": True}, status=403)
     security.record_attempt(email, request, True, "google")
     passed = google.counts_as_2fa() or not user.mfa_enabled
     security.start_session(request, user, mfa_passed=passed)

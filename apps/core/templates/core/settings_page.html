@@ -152,6 +152,16 @@
   <p style="margin:0">In Google Cloud Console › APIs &amp; Services › Credentials, open your OAuth client (the same one the old Weststar One used) and add this <b>Authorized redirect URI</b>:</p>
   <p style="margin:0"><code style="user-select:all">{{ google_redirect }}</code></p>
   <p class="small muted" style="margin:0">Sign-in turns on when the client ID, client secret and allowed domains are all filled in. Staff marked “Must sign in with Google” (Staff users) can't use a password. Everyone needs a staff account here first — Google sign-in never creates accounts on its own, same as before.</p>
+  <h3 style="margin:6px 0 0">Check-up</h3>
+  <ul style="margin:0;padding-left:18px">{% for label, ok in sso.checks %}<li>{% if ok %}✓{% else %}<b style="color:var(--bad,#c0392b)">✗</b>{% endif %} {{ label }}</li>{% endfor %}
+    <li>{% if sso.outside %}<b style="color:var(--bad,#c0392b)">✗</b> {{ sso.outside|length }} of {{ sso.staff_n }} active staff have an email outside the allowed domains, so Google sign-in can't match them:
+      {% for u in sso.outside|slice:":12" %}{{ u.email }}{% if not forloop.last %}, {% endif %}{% endfor %}{% if sso.outside|length > 12 %} …{% endif %}. Add the domain above or change their email in Staff users.
+      {% else %}✓ All {{ sso.staff_n }} active staff are on an allowed domain{% endif %}</li></ul>
+  <h3 style="margin:6px 0 0">Recent Google sign-in failures</h3>
+  {% if sso.failures %}<div class="tbl"><table><thead><tr><th>When</th><th>Email</th><th>Reason</th></tr></thead><tbody>
+    {% for a in sso.failures %}<tr><td>{{ a.created_at|date:"M j, g:i A" }}</td><td>{{ a.email }}</td><td><code>{{ a.reason }}</code></td></tr>{% endfor %}</tbody></table></div>
+  <p class="small muted" style="margin:0"><code>google_redirect_uri_mismatch</code>/<code>google_redirect_uri</code> = add the URI above in Google Cloud · <code>google_invalid_client</code> = re-paste the client ID and secret · <code>google_domain</code> = add the domain · <code>google_no_account</code> = no staff account with that email · <code>google_inactive</code> = account turned off · <code>google_not_workspace</code> = they picked a personal Google account.</p>
+  {% else %}<p class="small muted" style="margin:0">None yet.</p>{% endif %}
 </section>
 {% endif %}
 {% if item.0 == "email_in" %}

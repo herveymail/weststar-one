@@ -31,7 +31,11 @@ ISSUERS = ("https://accounts.google.com", "accounts.google.com")
 
 
 class GoogleSignInError(Exception):
-    """Message is safe to show the person."""
+    """Message is safe to show the person. `code` is a short reason for the Security log; `email` if Google told us."""
+
+    def __init__(self, message, code="google_error", email=""):
+        super().__init__(message)
+        self.code, self.email = code, email
 
 
 def config() -> dict:
@@ -76,9 +80,19 @@ def _post(url: str, data: dict) -> dict:
         with urllib.request.urlopen(req, timeout=10) as r:  # noqa: S310 — fixed https URL
             return json.loads(r.read().decode())
     except urllib.error.HTTPError as e:
-        raise GoogleSignInError("Google didn't accept the sign-in. Try again.") from e
+        try:
+            err = json.loads(e.read().decode() or "{}").get("error", "")
+        except ValueError:
+            err = ""
+        hints = {
+            "invalid_client": "Google doesn't recognise the client ID / secret. An admin should re-paste both in Settings › Sign-in & 2FA.",
+            "unauthorized_client": "Google doesn't recognise the client ID / secret. An admin should re-paste both in Settings › Sign-in & 2FA.",
+            "redirect_uri_mismatch": f"Google's OAuth client is missing this app's redirect URI ({redirect_uri()}). An admin should add it in Google Cloud Console.",
+            "invalid_grant": "That Google sign-in expired or was already used. Start again.",
+        }
+        raise GoogleSignInError(hints.get(err, "Google didn't accept the sign-in. Try again."), code=f"google_{err or 'token_error'}"[:60]) from e
     except (urllib.error.URLError, TimeoutError, ValueError) as e:
-        raise GoogleSignInError("Couldn't reach Google. Try again in a minute.") from e
+        raise GoogleSignInError("This server couldn't reach Google. Try again in a minute.", code="google_unreachable") from e
 
 
 def _claims(id_token: str) -> dict:
@@ -93,9 +107,11 @@ def finish(session, params) -> str:
     """Check Google's reply and return the verified Workspace email address."""
     saved = session.pop("google_oidc", None)
     if params.get("error"):
-        raise GoogleSignInError("Google sign-in was cancelled.")
+        if params.get("error") == "redirect_uri_mismatch":
+            raise GoogleSignInError(f"Google's OAuth client is missing this app's redirect URI ({redirect_uri()}).", code="google_redirect_uri")
+        raise GoogleSignInError("Google sign-in was cancelled.", code="google_cancelled")
     if not saved or not secrets.compare_digest(str(params.get("state", "")), saved["state"]) or time.time() - saved["at"] > 600:
-        raise GoogleSignInError("That sign-in link expired. Start again.")
+        raise GoogleSignInError("That sign-in link expired (or was opened in a different browser). Start again.", code="google_state")
     c = config()
     tokens = _post(TOKEN_URL, {
         "code": params.get("code", ""), "client_id": c["client_id"], "client_secret": c["client_secret"],
@@ -104,13 +120,20 @@ def finish(session, params) -> str:
     claims = _claims(tokens.get("id_token", ""))
     now = time.time()
     if claims.get("iss") not in ISSUERS or claims.get("aud") != c["client_id"] or float(claims.get("exp", 0)) < now - 60:
-        raise GoogleSignInError("Google sent back something unexpected. Try again.")
+        raise GoogleSignInError("Google sent back something unexpected. Try again.", code="google_bad_token")
     if not secrets.compare_digest(str(claims.get("nonce", "")), saved["nonce"]):
-        raise GoogleSignInError("That sign-in link expired. Start again.")
+        raise GoogleSignInError("That sign-in link expired. Start again.", code="google_nonce")
     email = str(claims.get("email", "")).strip().lower()
     hd = str(claims.get("hd", "")).lower()
     if not claims.get("email_verified") or not email:
-        raise GoogleSignInError("Your Google account's email isn't verified.")
-    if hd not in c["domains"] or email.rsplit("@", 1)[-1] not in c["domains"]:
-        raise GoogleSignInError("Use your company Google Workspace account to sign in.")
+        raise GoogleSignInError("Your Google account's email isn't verified.", code="google_unverified", email=email)
+    domain = email.rsplit("@", 1)[-1]
+    if domain not in c["domains"]:
+        raise GoogleSignInError(f"{email} isn't on an allowed domain ({', '.join(c['domains'])}). An admin can add the domain in Settings › Sign-in & 2FA.",
+                                code="google_domain", email=email)
+    if not hd:
+        # A personal Google account that happens to use a work address — not managed by your Workspace.
+        raise GoogleSignInError(f"{email} signed in with a personal Google account, not your company Google Workspace account. "
+                                "Pick the Workspace account in Google's account chooser.", code="google_not_workspace", email=email)
+    # hd is the Workspace's own domain; for secondary domains it can be the primary one, so only the email's domain is matched.
     return email

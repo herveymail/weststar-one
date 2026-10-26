@@ -52,8 +52,26 @@ def test_unknown_person_cannot_sign_in(client, monkeypatch):
 def test_personal_gmail_and_other_domains_rejected(client, monkeypatch):
     make_user("amy@weststarmsp.com")
     assert _go(client, monkeypatch, email="amy@weststarmsp.com").status_code == 400            # no hd = not Workspace
-    assert _go(client, monkeypatch, email="amy@weststarmsp.com", hd="evil.com").status_code == 400
+    r = _go(client, monkeypatch, email="amy@gmail.com")
+    assert r.status_code == 400 and b"allowed domain" in r.content
     assert _go(client, monkeypatch, email="amy@weststarmsp.com", hd="weststarmsp.com", nonce_ok=False).status_code == 400
+    from apps.accounts.models import LoginAttempt
+    assert {"google_not_workspace", "google_domain", "google_nonce"} <= set(LoginAttempt.objects.values_list("reason", flat=True))
+
+
+def test_secondary_workspace_domain_and_migrated_users(client, monkeypatch):
+    """Migrated staff: secondary-domain Workspace (hd is the primary domain), flagged to change password, 2FA on."""
+    u = make_user("chervey@dsotv.com", role="admin", mfa=True)
+    u.must_change_password = True
+    u.save()
+    r = _go(client, monkeypatch, email="chervey@dsotv.com", hd="weststarmsp.com")
+    assert r.status_code == 302 and r["Location"] == "/"
+    assert client.get("/").status_code == 200  # not trapped on the change-password page
+
+
+def test_messages_name_the_problem(client, monkeypatch):
+    r = _go(client, monkeypatch, email="new.hire@weststarmsp.com", hd="weststarmsp.com")
+    assert b"new.hire@weststarmsp.com" in r.content and b"Staff users" in r.content
 
 
 def test_forged_state_rejected(client, monkeypatch):
@@ -89,3 +107,13 @@ def test_signin_settings_show_redirect_uri(client):
     Setting.put("security.require_mfa", "nobody")
     signed_in(client, make_user("boss@weststarmsp.com", role="admin"))
     assert b"/login/google/callback/" in client.get("/settings/signin/").content
+
+
+def test_signin_settings_show_checkup(client, monkeypatch):
+    from .helpers import signed_in
+    Setting.put("security.require_mfa", "nobody")
+    make_user("someone@gmail.com")
+    _go(client, monkeypatch, email="ghost@weststarmsp.com", hd="weststarmsp.com")
+    web = signed_in(client, make_user("boss@weststarmsp.com", role="admin"))
+    page = web.get("/settings/signin/").content.decode()
+    assert "/login/google/callback/" in page and "someone@gmail.com" in page and "google_no_account" in page

@@ -56,7 +56,8 @@ def record_attempt(email: str, request, success: bool, reason: str):
 
 def ip_blocked(request) -> bool:
     since = timezone.now() - timedelta(minutes=15)
-    return LoginAttempt.objects.filter(ip=client_ip(request), success=False, created_at__gte=since).count() >= settings.LOGIN_IP_MAX_FAILS
+    fails = LoginAttempt.objects.filter(ip=client_ip(request), success=False, created_at__gte=since)
+    return fails.exclude(reason__startswith="google").count() >= settings.LOGIN_IP_MAX_FAILS  # Google failures aren't password guesses
 
 
 def _fail(user_id: int, counter: str) -> None:

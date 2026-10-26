@@ -190,8 +190,23 @@ def settings_page(request, page):
         from django.conf import settings as dj
         ctx["webhook_url"] = f"{dj.APP_URL}/stripe/webhook/"
     if item[0] == "signin":
-        from apps.accounts.google import redirect_uri
-        ctx["google_redirect"] = redirect_uri()
+        from apps.accounts import google as g
+        from apps.accounts.models import LoginAttempt, User
+        domains = g.config()["domains"]
+        staff = list(User.objects.filter(is_active=True).order_by("name"))
+        ctx["google_redirect"] = g.redirect_uri()
+        ctx["sso"] = {
+            "checks": [
+                ("Client ID filled in", bool(Setting.get("google.client_id", "").strip())),
+                ("Client secret saved", bool(Setting.get("google.client_secret", ""))),
+                ("Allowed domains filled in", bool(domains)),
+                ("Google sign-in counts as two-factor", Setting.get("google.counts_as_2fa", "yes") != "no"),
+            ],
+            "outside": [u for u in staff if u.email.rsplit("@", 1)[-1].lower() not in domains],
+            "staff_n": len(staff),
+            "failures": LoginAttempt.objects.filter(success=False, reason__startswith="google").order_by("-created_at")[:15],
+
+        }
     if item[0] == "msp360":
         import json as _json
 

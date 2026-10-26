@@ -44,7 +44,7 @@ class SessionGuardMiddleware:
         request.mfa_passed = bool(request.session.get("mfa_passed"))
         if not request.mfa_passed:
             return self.get_response(request) if path.startswith(("/login/mfa/", "/logout/")) else redirect("/login/mfa/")
-        if user.must_change_password:
+        if user.must_change_password and not request.session.get("via_google"):  # Google sign-ins don't use the password
             return self.get_response(request) if path.startswith(("/account/password/", "/logout/")) else redirect("/account/password/")
         if not user.mfa_enabled and mfa_required(user) and not (request.session.get("via_google") and google_counts_as_2fa()):
             return self.get_response(request) if path.startswith(("/account/mfa-setup/", "/logout/")) else redirect("/account/mfa-setup/")
