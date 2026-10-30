@@ -13,6 +13,7 @@ import urllib.error
 import urllib.request
 from email.utils import formataddr
 
+from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.core.mail.backends.smtp import EmailBackend
 from django.template.loader import render_to_string
@@ -245,15 +246,11 @@ def new_message_id(ticket_pk: int | None = None) -> str:
     return f"<{tag}{secrets.token_hex(8)}@{domain}>"
 
 
-def send(to, subject: str, template: str, context: dict, cc=None, reply_to=None, message_id=None, references=None, attachments=None) -> bool:
-    """Renders templates/<template>.txt (and .html if present) and sends it. Returns True if sent."""
+def _build(to, subject, template, context, cc=None, reply_to=None, message_id=None, references=None, attachments=None):
     to = [a for a in ([to] if isinstance(to, str) else list(to or [])) if a and "@" in a]
     cc = [a for a in (cc or []) if a and "@" in a and a not in to]
     if not to:
-        return False
-    if not configured():
-        log.warning("Email not set up (Settings › Email); not sending %r to %s", subject, to)
-        return False
+        return None
     ctx = {"company": Setting.get("company.name") or "Weststar MSP", **context}
     text = render_to_string(f"{template}.txt", ctx)
     html = render_html(template, ctx, text, subject)
@@ -270,9 +267,129 @@ def send(to, subject: str, template: str, context: dict, cc=None, reply_to=None,
         msg.attach_alternative(html, "text/html")
     for name, data, mime in attachments or []:
         msg.attach(name, data, mime)
+    return msg
+
+
+def send(to, subject: str, template: str, context: dict, cc=None, reply_to=None, message_id=None, references=None, attachments=None,
+         background=False, after=None) -> bool:
+    """Renders templates/<template>.txt (and .html if present) and sends it. Returns True if sent.
+    background=True: queue it and send a moment later, so the person clicking doesn't wait on the mail server
+    (returns True if queued). `after` is recorded on the ticket once it has really gone (see _after_sent)."""
+    if not configured():
+        log.warning("Email not set up (Settings › Email); not sending %r to %s", subject, to)
+        return False
+    msg = _build(to, subject, template, context, cc, reply_to, message_id, references, attachments)
+    if msg is None:
+        return False
+    if background and getattr(settings, "MAIL_BACKGROUND", True):
+        _queue(msg, after)
+        return True
     try:
         _deliver(msg)
         return True
     except Exception as e:  # noqa: BLE001
-        log.error("Email to %s failed: %s", to, e)
+        log.error("Email to %s failed: %s", msg.to, e)
         return False
+
+
+# ── Outbox: emails sent in the background ──
+RETRY_MINUTES = [1, 5, 15, 60, 240]  # then it's marked failed and noted on the ticket
+
+
+def _queue(msg, after=None):
+    import base64
+
+    from django.db import transaction
+
+    from .models import OutboxEmail
+    html = next((c for c, mime in getattr(msg, "alternatives", []) if mime == "text/html"), None)
+    files = [[a[0], base64.b64encode(a[1] if isinstance(a[1], bytes) else a[1].encode()).decode(), a[2]] for a in msg.attachments if isinstance(a, tuple)]
+    row = OutboxEmail.objects.create(to=", ".join(msg.to), cc=", ".join(msg.cc or []), subject=msg.subject[:255], after=after, payload={
+        "body": msg.body, "html": html, "from": msg.from_email, "reply_to": msg.reply_to or [], "headers": dict(msg.extra_headers), "files": files})
+    transaction.on_commit(lambda: _kick(row.pk))
+    return row
+
+
+def _kick(pk):
+    """Send it on a short-lived thread right after the change is saved."""
+    import threading
+
+    def run():
+        from django.db import connection
+        try:
+            deliver_outbox([pk])
+        finally:
+            connection.close()
+    threading.Thread(target=run, name=f"outbox-{pk}", daemon=True).start()
+
+
+def _rebuild(row):
+    import base64
+    p = row.payload
+    msg = EmailMultiAlternatives(subject=row.subject, body=p.get("body", ""), from_email=p.get("from"), to=[a.strip() for a in row.to.split(",") if a.strip()],
+                                 cc=[a.strip() for a in row.cc.split(",") if a.strip()], reply_to=p.get("reply_to") or None)
+    msg.extra_headers.update(p.get("headers") or {})
+    if p.get("html"):
+        msg.attach_alternative(p["html"], "text/html")
+    for name, data, mime in p.get("files") or []:
+        msg.attach(name, base64.b64decode(data), mime)
+    return msg
+
+
+def deliver_outbox(ids=None) -> dict:
+    """Send waiting emails (all that are due, or just `ids`). Safe to run from several places at once."""
+    from datetime import timedelta
+
+    from django.db.models import Q
+    from django.utils import timezone
+
+    from .models import OutboxEmail
+    now = timezone.now()
+    # Anything stuck in "sending" for 10 minutes (the server restarted mid-send) goes back in the queue.
+    OutboxEmail.objects.filter(status="sending", next_try_at__lt=now - timedelta(minutes=10)).update(status="pending")
+    qs = OutboxEmail.objects.filter(status="pending")
+    qs = qs.filter(pk__in=ids) if ids else qs.filter(Q(next_try_at__isnull=True) | Q(next_try_at__lte=now))
+    sent = failed = 0
+    for pk in list(qs.order_by("created_at").values_list("pk", flat=True)[:200]):
+        if not OutboxEmail.objects.filter(pk=pk, status="pending").update(status="sending", next_try_at=timezone.now()):
+            continue  # someone else picked it up
+        row = OutboxEmail.objects.get(pk=pk)
+        try:
+            _deliver(_rebuild(row))
+        except Exception as e:  # noqa: BLE001
+            row.tries += 1
+            row.last_error = str(e)[:1000]
+            log.error("Email to %s failed (try %s): %s", row.to, row.tries, e)
+            if row.tries >= len(RETRY_MINUTES):
+                row.status = "failed"
+                _after_failed(row)
+            else:
+                row.status, row.next_try_at = "pending", timezone.now() + timedelta(minutes=RETRY_MINUTES[row.tries - 1])
+            row.save(update_fields=["tries", "last_error", "status", "next_try_at"])
+            failed += 1
+            continue
+        row.status, row.sent_at = "sent", timezone.now()
+        row.save(update_fields=["status", "sent_at"])
+        _after_sent(row)
+        sent += 1
+    return {"sent": sent, "failed": failed}
+
+
+def _after_sent(row):
+    a = row.after or {}
+    if not a.get("ticket"):
+        return
+    from apps.helpdesk.models import TicketMessage
+    if a.get("message"):
+        TicketMessage.objects.filter(pk=a["message"]).update(via="email", email_message_id=a.get("message_id", ""))
+    else:
+        TicketMessage.objects.create(ticket_id=a["ticket"], kind="event", via="system", email_message_id=a.get("message_id", ""),
+                                     body=f"Emailed {', '.join(x for x in [row.to, row.cc] if x)}")
+
+
+def _after_failed(row):
+    a = row.after or {}
+    if a.get("ticket"):
+        from apps.helpdesk.models import TicketMessage
+        TicketMessage.objects.create(ticket_id=a["ticket"], kind="event", via="system",
+                                     body=f"Email to {row.to} couldn't be sent after {row.tries} tries: {row.last_error[:300]}")

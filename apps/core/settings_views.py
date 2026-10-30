@@ -208,6 +208,8 @@ def settings_page(request, page):
         from . import gmail
         ctx.update(gmail_connected=gmail.connected(), gmail_address=gmail.address(), gmail_redirect=gmail.redirect_uri(),
                    diag=request.session.pop("mail_diag", None))
+        from .models import OutboxEmail
+        ctx["outbox"] = OutboxEmail.objects.only("status", "to", "subject", "tries", "last_error", "created_at", "sent_at")[:20]
     if item[0] == "payments":
         from django.conf import settings as dj
         ctx["webhook_url"] = f"{dj.APP_URL}/stripe/webhook/"

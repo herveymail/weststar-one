@@ -381,3 +381,21 @@ document.body.addEventListener('click', (e) => {
   const sel = e.target.closest('[data-new-ticket] select[name=client]');
   if (sel && sel.size > 1 && e.target.tagName === 'OPTION') { sel.size = 1; }
 });
+
+// A thin "working…" bar under the top bar whenever something is saving or loading, so a click never looks ignored.
+(() => {
+  let n = 0, timer = null;
+  const root = document.documentElement;
+  const quiet = (e) => e.detail.elt && e.detail.elt.id === 'grid-body' && !(e.detail.requestConfig && e.detail.requestConfig.triggeringEvent && e.detail.requestConfig.triggeringEvent.type === 'ticketsChanged');
+  document.body.addEventListener('htmx:beforeRequest', (e) => {
+    if (e.defaultPrevented || quiet(e)) return;
+    n++; e.detail.elt.dataset.wsBusy = '1';
+    clearTimeout(timer); timer = setTimeout(() => { if (n > 0) root.classList.add('ws-busy'); }, 120);
+  });
+  document.body.addEventListener('htmx:afterRequest', (e) => {
+    if (!e.detail.elt || e.detail.elt.dataset.wsBusy !== '1') return;
+    delete e.detail.elt.dataset.wsBusy;
+    n = Math.max(0, n - 1);
+    if (!n) { clearTimeout(timer); root.classList.remove('ws-busy'); }
+  });
+})();

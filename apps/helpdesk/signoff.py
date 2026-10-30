@@ -191,4 +191,4 @@ def _bill_signed_hours(ticket, hours: Decimal, user):
 
 def _email_copy(to, ticket, so):
     from apps.core import mail
-    mail.send(to, f"Your signed copy — {ticket.number}", "email/signoff_copy", {"t": ticket, "so": so})
+    mail.send(to, f"Your signed copy — {ticket.number}", "email/signoff_copy", {"t": ticket, "so": so}, background=True)

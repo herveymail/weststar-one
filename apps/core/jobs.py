@@ -78,7 +78,9 @@ def cleanup():
     s = Session.objects.filter(expire_date__lt=timezone.now()).delete()[0]
     us = UserSession.objects.filter(revoked_at__lt=timezone.now() - timedelta(days=7)).delete()[0]
     a = LoginAttempt.objects.filter(created_at__lt=timezone.now() - timedelta(days=90)).delete()[0]
-    return {"sessions": s + us, "attempts": a}
+    from .models import OutboxEmail
+    o = OutboxEmail.objects.filter(status="sent", sent_at__lt=timezone.now() - timedelta(days=30)).delete()[0]
+    return {"sessions": s + us, "attempts": a, "sent_emails": o}
 
 
 def wake_snoozed():
@@ -121,7 +123,13 @@ def late_fees():
     return run()
 
 
+def outbox():
+    from .mail import deliver_outbox
+    return deliver_outbox()
+
+
 JOBS = {
+    "outbox": {"label": "Send waiting emails (and retry any that failed)", "every_minutes": 1, "run": outbox},
     "ai-tickets": {"label": "AI: triage and first response for new tickets", "every_minutes": 1, "run": ai_new_tickets},
     "autopay": {"label": "AutoPay: charge cards on file", "every_minutes": 15, "run": autopay},
     "fetch-email": {"label": "Email to ticket (support mailbox)", "every_minutes": 1, "run": fetch_email},

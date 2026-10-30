@@ -87,7 +87,7 @@ def my_tickets(pu: PortalUser):
 def _notify_staff(what: str, detail: str, link: str):
     to = Setting.get("email.support_address")
     if to:
-        mail.send(to, what, "email/portal_staff_notice", {"what": what, "detail": detail, "link": f"{settings.APP_URL}{link}"})
+        mail.send(to, what, "email/portal_staff_notice", {"what": what, "detail": detail, "link": f"{settings.APP_URL}{link}"}, background=True)
 
 
 def _rate_ok(key: str, limit: int, seconds: int) -> bool:

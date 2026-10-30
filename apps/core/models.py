@@ -107,3 +107,24 @@ class JobRun(models.Model):
     last_run_at = models.DateTimeField(null=True)
     last_result = models.TextField(blank=True)
     last_ok = models.BooleanField(default=True)
+
+
+class OutboxEmail(models.Model):
+    """An email waiting to go out. Ticket emails are queued here so the screen updates straight away;
+    a background thread sends them a moment later and the jobs loop retries any that failed."""
+
+    STATUSES = [("pending", "Waiting"), ("sending", "Sending"), ("sent", "Sent"), ("failed", "Failed")]
+    status = models.CharField(max_length=10, choices=STATUSES, default="pending", db_index=True)
+    to = models.TextField()
+    cc = models.TextField(blank=True)
+    subject = models.CharField(max_length=255)
+    payload = models.JSONField()  # body, html, from, reply_to, headers, attachments (base64)
+    after = models.JSONField(null=True, blank=True)  # what to record on the ticket once it's sent
+    tries = models.PositiveSmallIntegerField(default=0)
+    last_error = models.TextField(blank=True)
+    next_try_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]

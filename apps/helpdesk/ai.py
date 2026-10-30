@@ -254,7 +254,7 @@ def first_response(t: Ticket) -> str:
     with transaction.atomic():
         m = TicketMessage.objects.create(ticket=t, kind="reply", body=text, author=None, author_name=name, via="ai")
         Ticket.objects.filter(pk=t.pk).update(ai_first_response="sent")
-    ok = services.send_ticket_email(t, "reply", "email/ticket_reply", {"m": m}, m)
+    ok = services.send_ticket_email(t, "reply", "email/ticket_reply", {"m": m}, m, background=False)
     TicketMessage.objects.create(ticket=t, kind="event", body=f"AI first response {'sent' if ok else 'saved (email not sent)'} to {t.contact_email}.", via="system")
     AiLog.objects.create(feature="firstresponse", outcome="sent" if ok else "not_emailed", ticket=t)
     return "sent"

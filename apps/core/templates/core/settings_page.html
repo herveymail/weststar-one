@@ -123,6 +123,14 @@
   <p class="small muted" style="margin:0"><b>Gmail / SMTP:</b> smtp.gmail.com, port 587, the full mailbox address as the username, and an <b>app password</b> (Google Account › Security › 2-Step Verification › App passwords).<br>
     <b>SMTP2GO (HTTPS):</b> for servers where the hosting company blocks email ports (DigitalOcean). Paste an API key from SMTP2GO › Sending › API Keys; the send-from address must be a verified sender there (support@weststarmsp.com was, in the old app).</p>
 </section>
+<section class="card pad stack set-extra">
+  <h2>Recent ticket emails</h2>
+  <p class="small muted" style="margin:0">Ticket emails (new, replies, closed) are sent in the background a moment after you click, so the screen doesn't wait on the mail server. If one can't be sent it's tried again after 1, 5, 15 and 60 minutes, then noted on the ticket.</p>
+  {% if outbox %}<div class="table-wrap"><table class="grid"><thead><tr><th>When</th><th>To</th><th>Subject</th><th>Status</th></tr></thead><tbody>
+    {% for o in outbox %}<tr><td class="small">{{ o.created_at|date:"M j, g:i A" }}</td><td class="small">{{ o.to }}</td><td class="small">{{ o.subject }}</td>
+      <td class="small">{% if o.status == "sent" %}<span class="pill good">Sent</span>{% elif o.status == "failed" %}<span class="pill bad" title="{{ o.last_error }}">Failed</span> {{ o.last_error|truncatechars:80 }}{% else %}<span class="pill warn">{% if o.tries %}Retrying ({{ o.tries }}){% else %}Sending{% endif %}</span>{% if o.last_error %} {{ o.last_error|truncatechars:80 }}{% endif %}{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<p class="small muted" style="margin:0">None yet.</p>{% endif %}
+</section>
 {% endif %}
 {% if item.0 == "msp360" %}
 <section class="card pad stack set-extra">

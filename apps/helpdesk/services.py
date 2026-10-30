@@ -92,7 +92,8 @@ def after_hours(now=None) -> bool:
     return now.strftime("%a") not in days or not (opens <= now.time() < closes)
 
 
-def send_ticket_email(t: Ticket, kind: str, template: str, ctx: dict, msg: TicketMessage | None = None) -> bool:
+def send_ticket_email(t: Ticket, kind: str, template: str, ctx: dict, msg: TicketMessage | None = None, background: bool = True) -> bool:
+    """Emails the client. background=True (the default for screens) queues it so nobody waits on the mail server."""
     from apps.core import mail
     if kind == "new" and Setting.get("tickets.afterhours_enabled", "") == "true" and after_hours():
         ctx = {**ctx, "after_hours": Setting.get("tickets.afterhours_message", "") or "Our office is closed right now. We'll pick this up when we open."}
@@ -100,9 +101,11 @@ def send_ticket_email(t: Ticket, kind: str, template: str, ctx: dict, msg: Ticke
     if not to:
         return False
     mid = mail.new_message_id(t.pk)
+    queued = background and getattr(settings, "MAIL_BACKGROUND", True)
     ok = mail.send(to, email_subject(kind, t), template, {"t": t, "link": portal_link(t), **ctx}, cc=cc_list,
-                   message_id=mid, references=thread_refs(t))
-    if ok:
+                   message_id=mid, references=thread_refs(t), background=queued,
+                   after={"ticket": t.pk, "message": msg.pk if msg else None, "message_id": mid} if queued else None)
+    if ok and not queued:
         if msg is not None:
             TicketMessage.objects.filter(pk=msg.pk).update(via="email", email_message_id=mid)
         else:
@@ -172,7 +175,7 @@ def add_message(ticket: Ticket, *, user, kind: str, body: str, minutes: int = 0,
             event(t, f"Not closed: break/fix ticket needs the customer's sign-off first ({user.name} tried)", user)
     audit(request, kind, "ticket", t.pk, f"{ {'reply': 'Replied on', 'note': 'Added note to', 'work': 'Logged work on'}.get(kind, 'Updated') } {t.number}", area="tickets")
     if kind == "reply":
-        send_ticket_email(t, "reply", "email/ticket_reply", {"m": msg}, msg)
+        send_ticket_email(t, "reply", "email/ticket_reply", {"m": msg}, msg)  # queued: goes out right after this is saved
     return msg
 
 

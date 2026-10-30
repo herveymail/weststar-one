@@ -75,7 +75,7 @@ def test_draft_and_summary(client, monkeypatch):
 
 def test_first_response_sends_and_skips(monkeypatch):
     sent = []
-    monkeypatch.setattr(services, "send_ticket_email", lambda t, kind, tpl, ctx, msg=None: sent.append((t.pk, ctx["m"].body if "m" in ctx else "")) or True)
+    monkeypatch.setattr(services, "send_ticket_email", lambda t, kind, tpl, ctx, msg=None, **kw: sent.append((t.pk, ctx["m"].body if "m" in ctx else "")) or True)
     monkeypatch.setattr(ai, "ask", fake("We got it. Try restarting Outlook."))
     Setting.put("ai.first_response", "true")
     Setting.put("ai.triage", "false")

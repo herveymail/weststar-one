@@ -341,3 +341,10 @@ details.secret[open] summary .link { display: none; }
 .nt-foot span { flex: 1; font-size: 12px; color: var(--muted); }
 .nt-foot .btn { min-height: 32px; font-size: 13px; }
 @media (max-width: 600px) { .nt-grid { grid-template-columns: 1fr; } .nt-foot { flex-wrap: wrap; } }
+
+/* Working bar while a change saves */
+html.ws-busy::after { content: ""; position: fixed; z-index: 90; top: 0; left: 0; height: 3px; width: 40%; background: var(--accent);
+  animation: ws-busy 1s ease-in-out infinite; box-shadow: 0 0 8px var(--accent); }
+html.ws-busy, html.ws-busy * { cursor: progress; }
+@keyframes ws-busy { 0% { left: -40%; } 100% { left: 100%; } }
+@media (prefers-reduced-motion: reduce) { html.ws-busy::after { animation: none; width: 100%; opacity: .6; } }
