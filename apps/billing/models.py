@@ -181,6 +181,9 @@ class Quote(LinedDocument):
     expires_on = models.DateField("Expires", null=True, blank=True)
     scope = models.TextField("Scope of work", blank=True)
     notes = models.TextField(blank=True)
+    public_token = models.CharField(max_length=48, blank=True, default="", editable=False, db_index=True,
+                                    help_text="Secret part of the review-and-approve link in quote emails (no sign-in needed).")
+    deposit_invoice = models.ForeignKey("Invoice", null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False)
 
     class Meta:
         ordering = ["-quote_date", "-id"]
@@ -223,6 +226,8 @@ class Contract(Record):
     overage_rate = money()
     scope = models.TextField(blank=True)
     terms = models.TextField(blank=True)
+    public_token = models.CharField(max_length=48, blank=True, default="", editable=False, db_index=True,
+                                    help_text="Secret part of the review-and-sign link in contract emails (no sign-in needed).")
 
     def __str__(self):
         return self.name
@@ -299,3 +304,31 @@ def invoice_link(inv: "Invoice") -> str:
         inv.public_token = secrets.token_urlsafe(24)
         Invoice.objects.filter(pk=inv.pk).update(public_token=inv.public_token)
     return f"{dj.APP_URL}/pay/{inv.public_token}/"
+
+
+def _token_for(obj) -> str:
+    import secrets
+    if not obj.public_token:
+        obj.public_token = secrets.token_urlsafe(24)
+        type(obj).objects.filter(pk=obj.pk).update(public_token=obj.public_token)
+    return obj.public_token
+
+
+def quote_link(q: "Quote") -> str:
+    """Review, approve or decline this quote without signing in (APP_URL/quote/…)."""
+    from django.conf import settings as dj
+
+    from apps.core.models import Setting
+    if Setting.get("billing.public_links", "true") == "false":
+        return f"{dj.PORTAL_BASE}/quotes/{q.pk}/"
+    return f"{dj.APP_URL}/quote/{_token_for(q)}/"
+
+
+def contract_link(c: "Contract") -> str:
+    """Read and sign this contract without signing in (APP_URL/sign/…)."""
+    from django.conf import settings as dj
+
+    from apps.core.models import Setting
+    if Setting.get("billing.public_links", "true") == "false":
+        return f"{dj.PORTAL_BASE}/contracts/{c.pk}/"
+    return f"{dj.APP_URL}/sign/{_token_for(c)}/"

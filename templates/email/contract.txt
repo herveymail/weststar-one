@@ -1,0 +1,7 @@
+{% autoescape off %}{{ message }}
+
+{{ c.name }}{% if c.number %} ({{ c.number }}){% endif %}
+{{ link }}
+
+— {{ sender }}
+{{ company }}{% endautoescape %}

@@ -8,7 +8,7 @@ from apps.files import views as fv
 from apps.hr import views as hr
 from apps.legacy import views as lv
 from apps.portal import staff_views as psv
-from apps.billing import pay_views
+from apps.billing import pay_views, sign_views
 
 from apps.accounts.agreements import agreements as agreements_view
 
@@ -78,6 +78,10 @@ urlpatterns = [
     path("pay/<str:token>/", pay_views.pay_page, name="pay_page"),
     path("legal/<slug:slug>/", legal_views.page, name="legal_page"),
     path("pay/<str:token>/pdf/", pay_views.pay_pdf, name="pay_pdf"),
+    path("quote/<str:token>/", sign_views.quote_page, name="quote_public"),
+    path("quote/<str:token>/pdf/", sign_views.quote_pdf, name="quote_public_pdf"),
+    path("sign/<str:token>/", sign_views.contract_page, name="contract_public"),
+    path("billing/contract/<int:pk>/send/", bv.contract_send, name="contract_send"),
     path("billing/<slug:kind>/<int:pk>/", bv.document, name="document"),
     path("billing/<slug:kind>/<int:pk>/pdf/", bv.document_pdf, name="document_pdf"),
     path("billing/<slug:kind>/<int:pk>/send/", bv.document_send, name="document_send"),

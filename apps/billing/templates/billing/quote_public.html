@@ -1,0 +1,55 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}Quote {{ q.number }}{% endblock %}
+{% block body %}
+{% include "billing/_public_head.html" %}
+<main class="wrap narrow">
+<div class="row"><span class="grow muted small">Quote from {{ company }}</span>
+  <a class="btn" href="{{ base }}pdf/"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Download PDF</a></div>
+{% if is_draft %}<div class="banner" role="status"><b>Preview — this quote is still a draft.</b> This is what the client will see. They can open it once you click <b>Send now</b>.</div>
+{% elif staff and q.status == "Sent" %}<div class="banner" role="status"><b>You're signed in as staff.</b> This is the client's page; the Accept and Decline buttons only work for them.</div>{% endif %}
+{% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+{% if done == "accepted" %}<div class="banner ok" role="status"><b>Thank you — the quote is accepted.</b> We've been notified and will be in touch to schedule the work.</div>
+{% elif done == "declined" %}<div class="banner ok" role="status">Thanks for letting us know. We've been notified{% if approval.comment %} and will read your note{% endif %}.</div>{% endif %}
+
+{% if deposit_link %}
+<section class="card pad pay-box">
+  <div class="grow"><div class="muted small">Deposit due to get started · invoice {{ deposit_inv.number }}</div><div style="font-size:28px;font-weight:700">{{ deposit_inv.total|dollars }}</div></div>
+  <a class="btn primary big" href="{{ deposit_link }}">Pay deposit</a>
+</section>{% endif %}
+
+<section class="card pad stack">
+  <div class="row"><h1 class="grow" style="font-size:22px">Quote {{ q.number }}</h1>
+    {% if q.status == "Accepted" or q.status == "Invoiced" %}<span class="pill done">Accepted</span>{% elif q.status == "Declined" %}<span class="pill bad">Declined</span>{% elif expired %}<span class="pill bad">Expired</span>{% else %}<span class="pill wait">Waiting for your approval</span>{% endif %}</div>
+  <div class="kv"><span>Date</span><span>{{ q.quote_date|date:"M j, Y" }}</span>{% if q.expires_on %}<span>Good until</span><span>{{ q.expires_on|date:"M j, Y" }}</span>{% endif %}<span>Prepared for</span><span>{{ client.name }}</span></div>
+  {% if q.scope %}<div class="doc" style="white-space:pre-wrap">{{ q.scope }}</div>{% endif %}
+  <div class="table-wrap"><table class="t">
+    <thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th style="text-align:right">Amount</th></tr></thead>
+    <tbody>{% for l in lines %}<tr><td>{{ l.description }}</td><td>{{ l.qty|floatformat:"-2" }}</td><td>{{ l.rate|dollars }}</td><td style="text-align:right">{{ l.line_total|dollars }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <div class="kv" style="max-width:340px;margin-left:auto"><span>Subtotal</span><span style="text-align:right">{{ q.subtotal|dollars }}</span><span>Tax</span><span style="text-align:right">{{ q.tax_amount|dollars }}</span>
+    <span><b>Total</b></span><span style="text-align:right"><b>{{ q.total|dollars }}</b></span>
+    {% if deposit %}<span>Deposit ({{ deposit_pct }}%)</span><span style="text-align:right">{{ deposit|dollars }}</span>{% endif %}</div>
+  {% if q.notes %}<p class="muted" style="margin:0;white-space:pre-wrap">{{ q.notes }}</p>{% endif %}
+</section>
+
+{% if approval %}<div class="banner{% if approval.decision == 'accepted' %} ok{% endif %}">{{ approval.get_decision_display }} by {{ approval.signed_name }} on {{ approval.created_at|date:"M j, Y g:i A" }}.</div>{% endif %}
+
+{% if q.status == "Sent" and expired %}
+<div class="banner" role="status">This quote expired on {{ q.expires_on|date:"M j, Y" }}. Prices may have changed — {% if lb_phone %}call us at <b>{{ lb_phone }}</b> or {% endif %}reply to the email and we'll send an updated one.</div>
+{% elif q.status == "Sent" %}
+<section class="card pad stack">
+  <h2 style="margin:0">Approve this quote</h2>
+  <form method="post" class="stack">{% csrf_token %}
+    <div class="field"><label for="nm">Type your full name</label><input id="nm" name="name" class="input" autocomplete="name" maxlength="200" required></div>
+    <label class="check"><input type="checkbox" name="agree" value="1"><span>I accept this quote for <b>{{ q.total|dollars }}</b> on behalf of {{ client.name }}, and agree to the Terms &amp; Conditions below. Typing my name is my signature.</span></label>
+    <div class="row" style="flex-wrap:wrap"><button class="btn primary" name="decision" value="accepted">Accept quote</button><span class="grow"></span>
+      <details><summary class="link-btn">Decline…</summary><div class="stack" style="margin-top:8px"><label for="cm" class="small">Tell us why (optional)</label><textarea id="cm" name="comment" class="textarea" style="min-height:70px"></textarea>
+        <button class="btn danger" name="decision" value="declined" formnovalidate>Decline quote</button></div></details></div>
+  </form>
+</section>
+{% endif %}
+{% if legal_html %}<details class="card pad legal-doc legal-fold"{% if q.status == "Sent" and not expired %} open{% endif %}><summary><b>Terms &amp; Conditions</b> <span class="muted small">— accepting this quote means you agree to these terms</span></summary>{{ legal_html }}</details>{% endif %}
+<p class="small muted" style="text-align:center">This is a private link to your quote — no account or sign-in needed.{% if lb_email %} Questions? <a href="mailto:{{ lb_email }}">{{ lb_email }}</a>{% endif %}</p>
+</main>
+{% include "core/_legal_footer.html" %}
+{% endblock %}

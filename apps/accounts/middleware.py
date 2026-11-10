@@ -6,7 +6,7 @@ from .models import UserSession
 from .google import counts_as_2fa as google_counts_as_2fa
 from .security import idle_minutes, mfa_required
 
-OPEN_PATHS = ("/login/", "/static/", "/health/", "/client-portal/", "/portal", "/stripe/webhook/", "/brand/", "/pay/", "/legal/")  # /pay/ = invoice view-and-pay links; the portal has its own sign-in (apps/portal/auth.py)
+OPEN_PATHS = ("/login/", "/static/", "/health/", "/client-portal/", "/portal", "/stripe/webhook/", "/brand/", "/pay/", "/quote/", "/sign/", "/legal/")  # /pay/ /quote/ /sign/ = invoice, quote and contract email links (token-checked); the portal has its own sign-in (apps/portal/auth.py)
 # Paths allowed while a sign-in is only half finished.
 STEP_PATHS = ("/login/mfa/", "/logout/", "/account/password/", "/account/mfa-setup/")
 

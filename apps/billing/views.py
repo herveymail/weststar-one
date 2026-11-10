@@ -12,7 +12,6 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from django.conf import settings
 
 from apps.core import mail
 from apps.core.audit import audit
@@ -107,7 +106,8 @@ def document(request, kind, pk):
     ctx = context(doc, kind)
     ctx.update(can_edit=can(request.user, "billing", "edit"), slug="invoices" if kind == "invoice" else "quotes",
                payments=doc.payments.filter(archived_at__isnull=True).order_by("-paid_on") if kind == "invoice" else [],
-               approvals=list(doc.approvals.order_by("-created_at")) if kind == "quote" else [])
+               approvals=list(doc.approvals.order_by("-created_at")) if kind == "quote" else [],
+               public_link=__import__("apps.billing.models", fromlist=["quote_link"]).quote_link(doc) if kind == "quote" else "")
     return render(request, "billing/document.html", ctx)
 
 
@@ -133,8 +133,8 @@ def document_send(request, kind, pk):
     if doc.status == "Void":
         messages.error(request, "This invoice is void.")
         return redirect(f"/billing/{kind}/{pk}/")
-    from .models import invoice_link
-    link = invoice_link(doc) if kind == "invoice" else f"{settings.PORTAL_BASE}/quotes/{doc.pk}/"
+    from .models import invoice_link, quote_link
+    link = invoice_link(doc) if kind == "invoice" else quote_link(doc)
     form = {"to": ", ".join(_billing_people(doc.client)), "cc": "", "subject": documents.default_subject(doc, kind),
             "message": documents.default_message(doc, kind), "attach": True}
     error = ""
@@ -170,3 +170,59 @@ def document_send(request, kind, pk):
     email_html = mark_safe(m.group(1) if m else email_html)  # our own template; every value in it is escaped
     return render(request, "billing/send.html", {"doc": doc, "kind": kind, "form": form, "error": error, "email_html": email_html,
                                                   "title": "Invoice" if kind == "invoice" else "Quote", "mail_ok": mail.configured()})
+
+
+@login_required
+def contract_send(request, pk):
+    """Email a contract for signature: the client reads and signs it from the link, no sign-in."""
+    from django.shortcuts import render
+    from django.template.loader import render_to_string
+    import re
+
+    from django.utils.safestring import mark_safe
+
+    from apps.billing.payments import _billing_people
+
+    from .models import Contract, contract_link
+    if not can(request.user, "billing", "edit"):
+        raise PermissionDenied
+    c = get_object_or_404(Contract.objects.select_related("client"), pk=pk, archived_at__isnull=True)
+    if c.status in ("Cancelled", "Expired"):
+        messages.error(request, f"This contract is {c.status.lower()}.")
+        return redirect(f"/m/contracts/?open_form=/m/contracts/{pk}/")
+    link = contract_link(c)
+    company = Setting.get("company.name") or "Weststar MSP"
+    people = c.client.contacts.filter(archived_at__isnull=True, is_primary=True).values_list("email", flat=True)
+    to_default = ", ".join([e for e in people if e] or _billing_people(c.client))
+    first = ""
+    pc = c.client.contacts.filter(archived_at__isnull=True, is_primary=True).first()
+    if pc and pc.name:
+        first = pc.name.split(" ")[0]
+    form = {"to": to_default, "cc": "", "subject": (Setting.get("billing.contract_email_subject", "") or "Please sign: {name} — {company}").replace("{name}", c.name).replace("{number}", c.number or "").replace("{company}", company),
+            "message": f"{'Hi ' + first + ',' if first else 'Hello,'}\n\nHere is our {c.type.lower()} agreement \"{c.name}\" for {c.client.name}. "
+                       "You can read it and sign it online with the button below — no account or sign-in needed.\n\nLet us know if you have any questions."}
+    error = ""
+    if request.method == "POST":
+        form = {"to": request.POST.get("to", ""), "cc": request.POST.get("cc", ""), "subject": request.POST.get("subject", "")[:200],
+                "message": request.POST.get("message", "")[:10000]}
+        to = [a.strip() for a in form["to"].replace(";", ",").split(",") if "@" in a]
+        cc = [a.strip() for a in form["cc"].replace(";", ",").split(",") if "@" in a]
+        if request.POST.get("preview"):
+            pass
+        elif not to:
+            error = "Add at least one email address."
+        else:
+            ctx = {"c": c, "message": form["message"], "link": link, "sender": request.user.name, "company": company, "meta": f"Agreement {c.number or c.name}"}
+            if mail.send(to, form["subject"], "email/contract", ctx, cc=cc):
+                if c.status == "Draft":
+                    Contract.objects.filter(pk=c.pk).update(status="Sent", updated_at=timezone.now())
+                audit(request, "send", "contracts", c.pk, f"Emailed contract {c} for signature to {', '.join(to + cc)}", area="billing")
+                messages.success(request, f"Sent {c.name} to {', '.join(to)} for signature.")
+                return redirect(f"/billing/contract/{pk}/send/")
+            error = "The email couldn't be sent. Check Settings › Email sending (Send test email)."
+    ctx = {"c": c, "message": form["message"], "link": link, "sender": request.user.name, "company": company, "meta": f"Agreement {c.number or c.name}"}
+    email_html = mail.render_html("email/contract", ctx, render_to_string("email/contract.txt", ctx), form["subject"])
+    m = re.search(r"<body[^>]*>(.*)</body>", email_html, re.S)
+    email_html = mark_safe(m.group(1) if m else email_html)  # our own template; every value in it is escaped
+    return render(request, "billing/contract_send.html", {"c": c, "form": form, "error": error, "email_html": email_html, "link": link,
+                                                          "signature": c.signatures.order_by("-created_at").first(), "mail_ok": mail.configured()})

@@ -1,0 +1,38 @@
+{% extends "portal/base.html" %}{% load ws %}
+{% block title %}{{ c.name }}{% endblock %}
+{% block body %}
+{% include "billing/_public_head.html" %}
+<main class="wrap narrow">
+<div class="row"><span class="grow muted small">Agreement from {{ company }}</span></div>
+{% if is_draft %}<div class="banner" role="status"><b>Preview — this agreement is still a draft.</b> This is what the client will see once you send it.</div>
+{% elif staff and c.status == "Sent" %}<div class="banner" role="status"><b>You're signed in as staff.</b> This is the client's page; only they can sign it.</div>{% endif %}
+{% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+{% if done %}<div class="banner ok" role="status"><b>Signed — thank you!</b> We've been notified. Keep this link: you can come back to it any time to see the agreement.</div>{% endif %}
+<section class="card pad stack">
+  <div class="row"><h1 class="grow" style="font-size:22px">{{ c.name }}</h1><span class="pill{% if c.status == 'Active' %} done{% elif c.status == 'Sent' %} wait{% endif %}">{% if c.status == "Sent" %}Waiting for your signature{% else %}{{ c.status }}{% endif %}</span></div>
+  <div class="kv">{% if c.number %}<span>Contract #</span><span>{{ c.number }}</span>{% endif %}<span>Between</span><span>{{ company }} and {{ client.name }}</span><span>Type</span><span>{{ c.type }}</span>
+    <span>Term</span><span>{{ c.start_date|date:"M j, Y"|default:"On signing" }} – {{ c.end_date|date:"M j, Y"|default:"ongoing" }}{% if c.auto_renew %} · renews automatically{% endif %}</span>
+    {% if c.monthly_rate %}<span>Monthly</span><span>{{ c.monthly_rate|dollars }}</span>{% endif %}
+    {% if c.included_hours %}<span>Included hours</span><span>{{ c.included_hours|floatformat:"-2" }} / month</span>{% endif %}
+    {% if c.overage_rate %}<span>Extra hours</span><span>{{ c.overage_rate|dollars }}/h</span>{% endif %}</div>
+  {% if c.scope %}<h3 style="margin:0">Scope</h3><div class="doc" style="white-space:pre-wrap">{{ c.scope }}</div>{% endif %}
+  {% if c.terms %}<h3 style="margin:0">Terms</h3><div class="doc" style="white-space:pre-wrap">{{ c.terms }}</div>{% endif %}
+  <p class="small muted" style="margin:0">{{ law }}</p>
+</section>
+{% if signature %}<div class="banner ok">Signed by {{ signature.signed_name }}{% if signature.signed_title %}, {{ signature.signed_title }}{% endif %} on {{ signature.created_at|date:"M j, Y g:i A" }}.</div>{% endif %}
+{% if c.status == "Sent" %}
+<section class="card pad stack">
+  <h2 style="margin:0">Sign this agreement</h2>
+  <form method="post" class="stack">{% csrf_token %}
+    <div class="row" style="align-items:flex-start;flex-wrap:wrap">
+      <div class="field" style="flex:1 1 240px"><label for="nm">Full name</label><input id="nm" name="name" class="input" autocomplete="name" maxlength="200" required></div>
+      <div class="field" style="flex:1 1 200px"><label for="ti">Title</label><input id="ti" name="title" class="input" autocomplete="organization-title" maxlength="200" placeholder="e.g. Office Manager"></div></div>
+    <label class="check"><input type="checkbox" name="agree" value="1"><span>I have read this agreement and I'm authorized to sign it for {{ client.name }}. Typing my name above is my electronic signature.</span></label>
+    <div><button class="btn primary">Sign agreement</button></div>
+  </form>
+</section>
+{% endif %}
+<p class="small muted" style="text-align:center">This is a private link to your agreement — no account or sign-in needed.{% if lb_email %} Questions? <a href="mailto:{{ lb_email }}">{{ lb_email }}</a>{% endif %}</p>
+</main>
+{% include "core/_legal_footer.html" %}
+{% endblock %}

@@ -32,7 +32,9 @@
     {% else %}
     <section class="card pad stack"><h2>Client decision</h2>
       {% for a in approvals %}<div class="small"><b>{{ a.get_decision_display }}</b> by {{ a.signed_name }} · {{ a.created_at|date:"M j, Y g:i A" }}{% if a.comment %}<br><span class="muted">{{ a.comment }}</span>{% endif %}</div>
-      {% empty %}<p class="muted small" style="margin:0">Waiting for the client. They can accept or decline it in the client portal.</p>{% endfor %}
+      {% empty %}<p class="muted small" style="margin:0">{% if doc.status == "Draft" %}Not sent yet.{% else %}Waiting for the client. They accept or decline it from the link in the quote email — no sign-in needed.{% endif %}</p>{% endfor %}
+      {% if doc.deposit_invoice %}<div class="small">Deposit invoice: <a href="/billing/invoice/{{ doc.deposit_invoice.pk }}/">{{ doc.deposit_invoice.number }}</a> · {{ doc.deposit_invoice.status }}</div>{% endif %}
+      {% if public_link %}<a class="small" href="{{ public_link }}" target="_blank" rel="noopener">See the client's approval page ↗</a>{% endif %}
     </section>
     {% endif %}
   </aside>
