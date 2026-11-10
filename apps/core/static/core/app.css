@@ -348,3 +348,33 @@ html.ws-busy::after { content: ""; position: fixed; z-index: 90; top: 0; left: 0
 html.ws-busy, html.ws-busy * { cursor: progress; }
 @keyframes ws-busy { 0% { left: -40%; } 100% { left: 100%; } }
 @media (prefers-reduced-motion: reduce) { html.ws-busy::after { animation: none; width: 100%; opacity: .6; } }
+
+/* Stripe setup guide (Settings › Payments) */
+.sg h2 { display: flex; align-items: center; gap: 8px; }
+.sg-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; counter-reset: none; }
+.sg-step { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-top: 1px solid var(--line); }
+.sg-step:first-child { border-top: 0; }
+.sg-step > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.sg-step p { margin: 0; color: var(--text); line-height: 1.5; }
+.sg-st { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 13px; background: var(--tab); color: var(--muted); }
+.sg-step.done .sg-st { background: rgba(22,163,74,.14); color: #15803d; }
+[data-mode="dark"] .sg-step.done .sg-st { color: #4ade80; }
+.sg-step form { margin: 0; }
+.sg-auto { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.sg-auto .small { flex: 1 1 260px; }
+.sg-manual summary { cursor: pointer; font-weight: 600; font-size: 13px; color: var(--link); }
+.sg-manual ol { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; line-height: 1.5; }
+.sg-events { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.sg-events code, .sg-url { font-size: 12px; padding: 2px 6px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--line); word-break: break-all; }
+.sg-warn { color: #b42318 !important; font-size: 13px; }
+.sg-ok { color: #15803d !important; font-size: 13px; }
+[data-mode="dark"] .sg-warn { color: #f97066 !important; } [data-mode="dark"] .sg-ok { color: #4ade80 !important; }
+.sg-check { padding: 10px 12px; border-radius: 10px; font-size: 13px; line-height: 1.5; border: 1px solid; }
+.sg-check.ok { background: rgba(22,163,74,.08); border-color: rgba(22,163,74,.3); }
+.sg-check.bad { background: rgba(217,119,6,.08); border-color: rgba(217,119,6,.35); }
+.sg-auto .btn { flex: none; }
+.sg-jump { display: flex; align-items: center; gap: 10px; padding: 10px 14px; margin-bottom: 14px; border-radius: 12px; border: 1px solid rgba(0,112,210,.3); background: rgba(0,112,210,.06); color: var(--text); text-decoration: none; font-size: 13.5px; }
+.sg-jump span { flex: 1; }
+.sg-jump .bi { color: var(--accent); }
+.sg-jump:hover { border-color: var(--accent); }
+#stripe-guide { scroll-margin-top: 80px; }

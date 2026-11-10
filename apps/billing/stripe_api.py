@@ -27,6 +27,12 @@ class StripeError(Exception):
         return self.status == 402 or self.payload.get("type") == "card_error"
 
 
+# The events Weststar ONE listens for (the webhook guide and "Set up webhook for me" use this list).
+WEBHOOK_EVENTS = ["checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.async_payment_failed",
+                  "payment_intent.succeeded", "payment_intent.processing", "payment_intent.payment_failed",
+                  "charge.refunded", "payment_method.detached"]
+
+
 def configured() -> bool:
     return Setting.get("stripe.secret_key", "").startswith(("sk_", "rk_"))
 
@@ -82,3 +88,47 @@ def verify_webhook(payload: bytes, sig_header: str, tolerance=300) -> dict:
     if not any(hmac.compare_digest(expected, s) for s in sigs):
         raise StripeError("Webhook signature doesn't match.")
     return json.loads(payload)
+
+
+def key_mode(key: str) -> str:
+    """'live', 'test' or '' for a pk_/sk_/rk_ key."""
+    k = (key or "").strip()
+    return "live" if "_live_" in k else "test" if "_test_" in k else ""
+
+
+def check() -> dict:
+    """Settings › Payments › Check connection: who the keys belong to and whether the account can take payments."""
+    from django.utils import timezone
+    pk, sk = Setting.get("stripe.publishable_key", ""), Setting.get("stripe.secret_key", "")
+    out = {"ok": False, "problems": [], "mode": key_mode(sk), "checked_at": timezone.now().isoformat()}
+    if not sk:
+        out["problems"].append("No secret key saved yet.")
+        return out
+    if not pk.startswith("pk_"):
+        out["problems"].append("The publishable key should start with pk_live_ or pk_test_.")
+    elif key_mode(pk) != key_mode(sk):
+        out["problems"].append(f"The publishable key is a {key_mode(pk)} key but the secret key is a {key_mode(sk)} key. Use both from the same mode.")
+    try:
+        acct = call("GET", "account")
+    except StripeError as e:
+        out["problems"].append(f"Stripe didn't accept the secret key: {e}")
+        return out
+    bp = acct.get("business_profile") or {}
+    out.update(ok=True, account=acct.get("id", ""), name=bp.get("name") or (acct.get("settings") or {}).get("dashboard", {}).get("display_name") or acct.get("email") or "",
+               charges=bool(acct.get("charges_enabled")), payouts=bool(acct.get("payouts_enabled")))
+    if not out["charges"]:
+        out["problems"].append("Stripe hasn't turned on payments for this account yet. Finish activating it in Stripe (business details and bank account).")
+    elif not out["payouts"]:
+        out["problems"].append("Payouts to your bank aren't on yet. Add or verify the bank account in Stripe › Settings › Payouts.")
+    return out
+
+
+def setup_webhook(url: str) -> str:
+    """Create (or replace) this app's webhook endpoint in Stripe and return its signing secret."""
+    existing = call("GET", "webhook_endpoints", {"limit": 100}).get("data", [])
+    for ep in existing:
+        if ep.get("url", "").rstrip("/") == url.rstrip("/"):
+            call("DELETE", f"webhook_endpoints/{ep['id']}")  # its secret can't be read back, so start fresh
+    ep = call("POST", "webhook_endpoints", {"url": url, "enabled_events": WEBHOOK_EVENTS, "api_version": VERSION,
+                                            "description": "Weststar ONE (invoices, payments, AutoPay)"})
+    return ep.get("secret", "")

@@ -211,8 +211,7 @@ def settings_page(request, page):
         from .models import OutboxEmail
         ctx["outbox"] = OutboxEmail.objects.only("status", "to", "subject", "tries", "last_error", "created_at", "sent_at")[:20]
     if item[0] == "payments":
-        from django.conf import settings as dj
-        ctx["webhook_url"] = f"{dj.APP_URL}/stripe/webhook/"
+        ctx.update(_stripe_guide(request))
     if item[0] == "signin":
         from apps.accounts import google as g
         from apps.accounts.models import LoginAttempt, User
@@ -241,6 +240,60 @@ def settings_page(request, page):
         ctx["inbound"] = InboundEmail.objects.select_related("ticket")[:25]
         ctx["last_fetch"] = Setting.get("email.last_fetch", "")
     return render(request, "core/settings_page.html", ctx)
+
+
+def _stripe_guide(request) -> dict:
+    """Everything the Stripe setup guide on Settings › Payments shows, with a tick or cross per step."""
+    from django.conf import settings as dj
+    from django.utils.dateparse import parse_datetime
+
+    from apps.billing import stripe_api
+    from apps.billing.models import Payment, StripeEvent
+    pk, sk, wh = Setting.get("stripe.publishable_key", ""), Setting.get("stripe.secret_key", ""), Setting.get("stripe.webhook_secret", "")
+    last_event = StripeEvent.objects.order_by("-created_at").first()
+    err = Setting.get("stripe.last_webhook_error", "")
+    err_at, _, err_text = err.partition("|")
+    keys_ok = pk.startswith("pk_") and sk.startswith(("sk_", "rk_")) and stripe_api.key_mode(pk) == stripe_api.key_mode(sk)
+    return {
+        "webhook_url": f"{dj.APP_URL}/stripe/webhook/",
+        "stripe": {
+            "mode": stripe_api.key_mode(sk), "keys_ok": keys_ok, "has_pk": bool(pk), "has_sk": bool(sk), "has_wh": wh.startswith("whsec_"),
+            "events": stripe_api.WEBHOOK_EVENTS, "last_event": last_event,
+            "webhook_error": err_text if err else "", "webhook_error_at": parse_datetime(err_at) if err else None,
+            "paid_online": Payment.objects.exclude(stripe_payment_intent="").exclude(stripe_payment_intent__isnull=True).exists(),
+            "autopay_on": Setting.get("autopay.enabled", "") == "true",
+            "check": request.session.pop("stripe_check", None),
+            "https": dj.APP_URL.startswith("https://"),
+        },
+    }
+
+
+@login_required
+def stripe_tools(request):
+    """Settings › Payments buttons: check the Stripe keys, or create the webhook in Stripe and save its secret."""
+    if request.method != "POST" or not can(request.user, "admin", "manage"):
+        raise PermissionDenied
+    from django.conf import settings as dj
+
+    from apps.billing import stripe_api
+    if request.POST.get("what") == "webhook":
+        try:
+            secret = stripe_api.setup_webhook(f"{dj.APP_URL}/stripe/webhook/")
+        except stripe_api.StripeError as e:
+            messages.error(request, f"Couldn't set up the webhook in Stripe: {e}. Follow step 4 by hand instead.")
+            return redirect("/settings/payments/#stripe-guide")
+        if not secret:
+            messages.error(request, "Stripe made the webhook but didn't send back its signing secret. Copy it from Stripe (step 4).")
+            return redirect("/settings/payments/#stripe-guide")
+        Setting.put("stripe.webhook_secret", secret, secret=True, user=request.user)
+        Setting.put("stripe.last_webhook_error", "")
+        audit(request, "settings", "settings", "payments", f"Created the Stripe webhook ({stripe_api.key_mode(Setting.get('stripe.secret_key', ''))} mode) and saved its signing secret", area="admin")
+        messages.success(request, "Webhook created in Stripe with the right events, and its signing secret is saved.")
+        return redirect("/settings/payments/#stripe-guide")
+    res = stripe_api.check()
+    res.pop("checked_at", None)
+    request.session["stripe_check"] = res
+    return redirect("/settings/payments/#stripe-guide")
 
 
 @login_required

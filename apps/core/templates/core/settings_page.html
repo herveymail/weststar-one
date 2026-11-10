@@ -5,6 +5,7 @@
   <div><div class="eyebrow">{{ group }}</div><h1>{{ item.1 }}</h1><p class="desc">{{ item.2 }}</p></div>
   {% if can_manage %}<button class="btn primary" form="settings-form">Save changes</button>{% endif %}
 </div>
+{% if item.0 == "payments" %}<a class="sg-jump" href="#stripe-guide"><i class="bi bi-signpost-2" aria-hidden="true"></i><span><b>Setting up Stripe?</b> Follow the step-by-step guide{% if stripe.keys_ok and stripe.has_wh %} (keys and webhook look done){% endif %}</span><i class="bi bi-arrow-down" aria-hidden="true"></i></a>{% endif %}
 <form method="post" id="settings-form" enctype="multipart/form-data" class="set-form">{% csrf_token %}
   <fieldset class="set-fieldset"{% if not can_manage %} disabled{% endif %}>
   {% for sec in sections %}
@@ -147,11 +148,67 @@
 </section>
 {% endif %}
 {% if item.0 == "payments" %}
-<section class="card pad stack set-extra">
-  <h2>Stripe webhook</h2>
-  <p style="margin:0">In Stripe › Developers › Webhooks, add an endpoint with this URL, then paste its signing secret above:</p>
-  <p style="margin:0"><code style="user-select:all">{{ webhook_url }}</code></p>
-  <p class="small muted" style="margin:0">Events: checkout.session.completed, checkout.session.async_payment_succeeded, checkout.session.async_payment_failed, payment_intent.succeeded, payment_intent.processing, payment_intent.payment_failed, charge.refunded, payment_method.detached. Payments still record without it, but bank (ACH) payments and refunds only update through the webhook.</p>
+<section class="card pad stack set-extra sg" id="stripe-guide">
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 style="flex:1"><i class="bi bi-credit-card" aria-hidden="true"></i> Stripe setup guide</h2>
+    {% if stripe.has_sk %}<span class="pill {% if stripe.mode == 'live' %}good{% else %}warn{% endif %}">{% if stripe.mode == 'live' %}Live mode{% else %}Test mode{% endif %}</span>{% else %}<span class="pill">Not connected</span>{% endif %}</div>
+  <p style="margin:0">Stripe takes the card and bank (ACH) payments for invoices and AutoPay. Clients type their card or bank details on Stripe's own page, so they never touch this server. About 15 minutes, start to finish.</p>
+
+  {% if stripe.check %}
+  <div class="sg-check {% if stripe.check.ok and not stripe.check.problems %}ok{% else %}bad{% endif %}" role="status">
+    {% if stripe.check.ok %}<b>Connected to {{ stripe.check.name|default:stripe.check.account }}</b> ({{ stripe.check.mode }} mode) · Payments {% if stripe.check.charges %}on ✓{% else %}not on yet ✗{% endif %} · Payouts {% if stripe.check.payouts %}on ✓{% else %}not on yet ✗{% endif %}{% endif %}
+    {% for p in stripe.check.problems %}<div>✗ {{ p }}</div>{% endfor %}
+  </div>
+  {% endif %}
+
+  <ol class="sg-steps">
+    <li class="sg-step"><span class="sg-st">1</span><div>
+      <b>Open a Stripe account</b>
+      <p>Sign up or sign in at <a href="https://dashboard.stripe.com/register" target="_blank" rel="noopener">dashboard.stripe.com</a>. To take real payments, finish <b>Activate payments</b>: business details, EIN, the owner's details, and the bank account payouts go to. Stripe starts you in a <b>test sandbox</b>, which is fine for trying things first.</p></div></li>
+
+    <li class="sg-step"><span class="sg-st">2</span><div>
+      <b>Choose how clients can pay</b>
+      <p>In Stripe go to <b>Settings › Payments › Payment methods</b>. Leave <b>Cards</b> on. Turn on <b>ACH Direct Debit</b> if clients should be able to pay from a bank account (lower fees; it takes 3–5 business days to clear, and the invoice shows “Processing” until then). The payment page only offers what's switched on here.</p></div></li>
+
+    <li class="sg-step{% if stripe.keys_ok %} done{% endif %}"><span class="sg-st">{% if stripe.keys_ok %}✓{% else %}3{% endif %}</span><div>
+      <b>Copy the API keys into the boxes above</b>
+      <p>In Stripe go to <b>Developers › API keys</b> (<a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener">dashboard.stripe.com/apikeys</a>). Copy the <b>Publishable key</b> (starts <code>pk_</code>) and click <b>Reveal</b> on the <b>Secret key</b> (starts <code>sk_</code>), paste both above and click <b>Save changes</b>. Both keys must come from the same mode: <code>pk_test_</code> with <code>sk_test_</code>, or <code>pk_live_</code> with <code>sk_live_</code>.</p>
+      {% if stripe.has_sk and not stripe.keys_ok %}<p class="sg-warn">✗ The two keys don't match (one is test, one is live) or the publishable key is missing.</p>{% endif %}
+      {% if can_manage and stripe.has_sk %}<form method="post" action="/settings/payments/stripe/">{% csrf_token %}<input type="hidden" name="what" value="check"><button class="btn small">Check connection</button></form>{% endif %}
+    </div></li>
+
+    <li class="sg-step{% if stripe.has_wh and stripe.last_event and not stripe.webhook_error %} done{% endif %}"><span class="sg-st">{% if stripe.has_wh and stripe.last_event and not stripe.webhook_error %}✓{% else %}4{% endif %}</span><div>
+      <b>Connect the webhook</b>
+      <p>The webhook is how Stripe tells Weststar ONE that a bank payment cleared, a payment bounced, or a refund went through. Without it, card payments still record, but ACH payments stay “Processing” and refunds don't show.</p>
+      {% if can_manage and stripe.has_sk %}<form method="post" action="/settings/payments/stripe/" class="sg-auto">{% csrf_token %}<input type="hidden" name="what" value="webhook">
+        <button class="btn primary small">Set up the webhook for me</button>
+        <span class="small muted">Creates it in Stripe with the right address and events and saves the signing secret here. Run it again after switching from test to live keys.</span></form>{% endif %}
+      <details class="sg-manual"><summary>Or do it by hand in Stripe</summary>
+        <ol>
+          <li>Open <b>Developers › Webhooks</b> (<a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener">dashboard.stripe.com/webhooks</a>) and click <b>Create an event destination</b> (older dashboards: <b>Add endpoint</b>).</li>
+          <li>Pick <b>Your account</b>, and for the payload choose <b>Snapshot</b> — not Thin. Leave the API version as it is.</li>
+          <li>Select these {{ stripe.events|length }} events:<div class="sg-events">{% for e in stripe.events %}<code>{{ e }}</code>{% endfor %}</div></li>
+          <li>Click <b>Continue</b>, choose <b>Webhook endpoint</b>, and paste this as the <b>Endpoint URL</b>:<br><code class="sg-url" style="user-select:all">{{ webhook_url }}</code></li>
+          <li>Save it, then on the webhook's page click <b>Reveal</b> next to <b>Signing secret</b> (starts <code>whsec_</code>), paste it into “Stripe webhook signing secret” above and click <b>Save changes</b>.</li>
+        </ol></details>
+      {% if not stripe.https %}<p class="sg-warn">✗ Stripe only sends webhooks to https:// addresses. This app's address is {{ webhook_url }}; set the domain with HTTPS in the installer first.</p>{% endif %}
+      {% if stripe.webhook_error %}<p class="sg-warn">✗ Stripe reached this server {{ stripe.webhook_error_at|timesince }} ago, but the message was turned away: {{ stripe.webhook_error }}. This usually means the signing secret above is from a different webhook or from the other mode (test vs live). Click <b>Set up the webhook for me</b>, or paste the secret again.</p>
+      {% elif stripe.last_event %}<p class="sg-ok">✓ Last message from Stripe: <code>{{ stripe.last_event.type }}</code>, {{ stripe.last_event.created_at|timesince }} ago.</p>
+      {% elif stripe.has_wh %}<p class="small muted" style="margin:0">Signing secret saved. Nothing has come in from Stripe yet; the first message arrives with the first test payment (step 5).</p>{% endif %}
+    </div></li>
+
+    <li class="sg-step{% if stripe.paid_online %} done{% endif %}"><span class="sg-st">{% if stripe.paid_online %}✓{% else %}5{% endif %}</span><div>
+      <b>Try a test payment</b>
+      <p>With <b>test</b> keys saved, sign in to the client portal as a contact who can see billing (for example a test client with your own email), open an unpaid invoice and click <b>Pay … now</b>. On Stripe's page use the test card <code>4242 4242 4242 4242</code>, any future expiry date, any CVC and ZIP. You land back on the invoice, it shows <b>Paid</b>, and step 4 shows a message from Stripe. Test payments never move real money; delete the test payment from the invoice afterwards.</p></div></li>
+
+    <li class="sg-step{% if stripe.mode == 'live' and stripe.has_wh %} done{% endif %}"><span class="sg-st">{% if stripe.mode == 'live' and stripe.has_wh %}✓{% else %}6{% endif %}</span><div>
+      <b>Go live</b>
+      <p>In Stripe, switch off the sandbox / test mode, copy the <b>live</b> keys (<code>pk_live_</code>, <code>sk_live_</code>) into the boxes above and save, then click <b>Set up the webhook for me</b> again. Live mode has its own webhook and signing secret, so the test one won't work. Then click <b>Check connection</b>: Payments and Payouts should both say on.</p></div></li>
+
+    <li class="sg-step{% if stripe.autopay_on %} done{% endif %}"><span class="sg-st">{% if stripe.autopay_on %}✓{% else %}7{% endif %}</span><div>
+      <b>Turn on AutoPay (optional)</b>
+      <p>Tick <b>AutoPay is on</b> above and choose when to charge. Clients join AutoPay by ticking “Save this card or bank account for AutoPay” when they pay, from the client portal (Invoices › Set up AutoPay), or from a setup link you email from the client's Invoices tab. If a charge fails it's tried again after the number of days set above, and the client is emailed.</p></div></li>
+  </ol>
+  <p class="small muted" style="margin:0">Stripe's fees come out of each payment before it reaches your bank. The secret key and webhook secret are stored encrypted here and never shown again; to change them, paste new ones.</p>
 </section>
 {% endif %}
 {% if item.0 == "signin" %}

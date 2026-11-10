@@ -33,9 +33,16 @@ def stripe_webhook(request):
         event = stripe_api.verify_webhook(request.body, request.headers.get("Stripe-Signature", ""))
     except (stripe_api.StripeError, ValueError, json.JSONDecodeError) as e:
         log.warning("Stripe webhook rejected: %s", e)
+        from django.utils import timezone
+
+        from apps.core.models import Setting
+        Setting.put("stripe.last_webhook_error", f"{timezone.now().isoformat()}|{str(e)[:200]}")
         return HttpResponse(status=400)
     try:
         payments.handle_event(event)
+        from apps.core.models import Setting
+        if Setting.get("stripe.last_webhook_error", ""):
+            Setting.put("stripe.last_webhook_error", "")
     except stripe_api.StripeError as e:
         log.error("Stripe webhook %s failed: %s", event.get("type"), e)
         return HttpResponse(status=500)  # Stripe retries

@@ -59,6 +59,7 @@ urlpatterns = [
     path("settings/import/run/<int:pk>/import/", lv.import_again, name="import_again"),
     path("settings/import/run/<int:pk>/discard/", lv.import_discard, name="import_discard"),
     path("settings/email/test/", sv.email_test, name="email_test"),
+    path("settings/payments/stripe/", sv.stripe_tools, name="stripe_tools"),
     path("settings/email/google/", sv.gmail_connect, name="gmail_connect"),
     path("settings/email/preview/<slug:name>/", sv.email_preview, name="email_preview"),
     path("settings/email/google/callback/", sv.gmail_connect, name="gmail_callback"),
