@@ -15,7 +15,7 @@ header.top nav { max-width: 1320px; margin: 0 auto; padding: 8px 20px; min-heigh
 .nav-a .bi { font-size: 16px; }
 .nav-a:hover { background: #dbeafe; color: var(--p); } .nav-a.on { background: var(--p); color: #fff; }
 .nav-a.on .badge { background: #fff; color: var(--p); }
-.portal-user { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13.6px; background: #fff; color: var(--text); }
+.portal-user { text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13.6px; background: #fff; color: var(--text); }
 .portal-user:hover { border-color: var(--p); background: #dbeafe; }
 .portal-footer { text-align: center; padding: 24px; color: var(--muted); font-size: 12.8px; border-top: 1px solid var(--line); }
 .portal-footer a { text-decoration: none; }

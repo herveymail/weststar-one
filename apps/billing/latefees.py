@@ -8,14 +8,13 @@ import re
 from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
-from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
 from apps.core import mail
 from apps.core.models import Setting
 
-from .models import Invoice, InvoiceLine
+from .models import Invoice, InvoiceLine, invoice_link
 
 OPEN = ["Sent", "Viewed", "Partial", "Overdue"]
 LINE = re.compile(r"^\s*late fee", re.I)
@@ -78,6 +77,11 @@ def due(inv: Invoice, r: dict, today: date) -> bool:
     return True
 
 
+def _pdf(inv):
+    from .documents import filename, pdf
+    return (filename(inv, "invoice"), pdf(inv, "invoice"), "application/pdf")
+
+
 def run(today: date | None = None) -> dict:
     r = rules()
     out = {"charged": 0, "emailed": 0, "checked": 0}
@@ -117,7 +121,7 @@ def run(today: date | None = None) -> dict:
             from .payments import _billing_people
             sent = mail.send(_billing_people(inv.client), f"Late fee added to invoice {inv.number}", "email/late_fee", {
                 "inv": inv, "fee": amount, "days_late": days_late, "balance": inv.balance, "over_30": days_late >= 30,
-                "link": f"{settings.PORTAL_BASE}/invoices/{inv.pk}/"})
+                "link": invoice_link(inv)}, attachments=[_pdf(inv)])
             out["emailed"] += int(bool(sent))
             ClientNote.objects.create(client=inv.client, title=f"Late fee ${amount} added to {inv.number}",
                                       body=f"{days_late} days past due. " + ("Client emailed." if sent else "No email sent (no billing email on file, or email isn't set up)."))

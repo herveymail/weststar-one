@@ -55,3 +55,44 @@ def test_quote_document_and_portal_pdf(client, inv):
     other = Client.objects.create(name="Other")
     oi = Invoice.objects.create(client=other, number="INV-X", status="Sent", invoice_date=date.today(), due_date=date.today())
     assert client.get(f"/client-portal/invoice/{oi.pk}/pdf/").status_code == 404
+
+
+def test_emailed_link_works_without_signing_in(client, inv, monkeypatch):
+    from apps.billing import payments, stripe_api
+    from apps.billing.models import invoice_link
+    Setting.put("security.require_mfa", "nobody")
+    web = signed_in(client, make_user(role="admin"))
+    sent = {}
+    monkeypatch.setattr(mail, "send", lambda to, subject, tpl, ctx, **kw: sent.update(link=ctx["link"], **kw) or True)
+    web.post(f"/billing/invoice/{inv.pk}/send/", {"to": "pat@acme.test", "subject": "Invoice INV-9", "message": "Hi", "attach": "1"})
+    inv.refresh_from_db()
+    assert "/client-portal/i/" in sent["link"] and inv.public_token and sent["link"] == invoice_link(inv)
+    assert sent["attachments"][0][1][:5] == b"%PDF-"
+    web.post("/logout/")
+    from django.test import Client as Browser
+    anon = Browser()
+    path = sent["link"].split("/client-portal", 1)[1]
+    page = anon.get("/client-portal" + path)
+    assert page.status_code == 200 and b"INV-9" in page.content and b"Download PDF" in page.content and page["X-Robots-Tag"].startswith("noindex")
+    inv.refresh_from_db()
+    assert inv.status == "Viewed"
+    pdf = anon.get("/client-portal" + path + "pdf/")
+    assert pdf.status_code == 200 and pdf.content[:5] == b"%PDF-"
+    # Pay goes straight to Stripe's checkout page
+    monkeypatch.setattr(stripe_api, "configured", lambda: True)
+    monkeypatch.setattr(payments, "checkout_pay", lambda inv, ok, cancel, **kw: "https://checkout.stripe.com/c/pay/test")
+    r = anon.post("/client-portal" + path)
+    assert r.status_code == 302 and r["Location"].startswith("https://checkout.stripe.com/")
+    # Wrong, short or switched-off links don't work
+    assert anon.get("/client-portal/i/not-the-right-token-at-all/").status_code == 404
+    Setting.put("billing.public_links", "false")
+    assert anon.get("/client-portal" + path).status_code == 404
+    assert "/client-portal/invoices/" in invoice_link(inv)
+
+
+def test_draft_and_void_invoices(client, inv):
+    from apps.billing.models import invoice_link
+    link = invoice_link(inv).split("/client-portal", 1)[1]
+    assert client.get("/client-portal" + link).status_code == 404  # still a draft
+    Invoice.objects.filter(pk=inv.pk).update(status="Void")
+    assert b"cancelled" in client.get("/client-portal" + link).content

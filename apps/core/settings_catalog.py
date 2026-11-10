@@ -51,6 +51,7 @@ SETTINGS = [
     ("billing", "Billing & documents", "Invoices, quotes, contracts and getting paid", [
         ("invoice_defaults", "Invoice defaults", "Terms, notes, payment instructions, email subjects", [("billing.invoice_terms", "Terms & conditions (printed on every invoice)", TA, "{late_fee} and {grace_days} are filled in from Late fees."), ("billing.invoice_footer", "Invoice footer", TA), ("billing.invoice_note", "Default invoice note", TA),
             ("billing.payment_instructions", "Payment instructions", TA), ("billing.paid_message", "Paid message", T), ("billing.tax_label", "Tax label", T), ("billing.currency_symbol", "Currency symbol", T),
+            ("billing.public_links", "Clients can view, download and pay invoices from the email link without signing in", B),
             ("billing.invoice_email_subject", "Invoice email subject", T), ("billing.invoice_reminder_subject", "Reminder email subject", T), ("billing.reminder_days", "Send reminder after (days)", I),
             ("billing.afterhours_rate", "After-hours hourly rate", T), ("billing.afterhours_minimum", "After-hours minimum charge", T)]),
         ("late_fees", "Late fees", "Late fee amount, grace period and notice", [("billing.late_fee_enabled", "Charge late fees automatically", B, "Checked every few hours. The fee is added to the invoice as a line, the client is emailed and a note goes on their account."), ("billing.late_fee_type", "Late fee type", SEL, ["flat", "percent"]), ("billing.late_fee_flat", "Flat fee", T), ("billing.late_fee_pct", "Percent per month", T),
@@ -97,6 +98,7 @@ SETTINGS = [
 
 # Shown (and used) when a setting has never been saved.
 DEFAULTS = {
+    "billing.public_links": "true",
     "portal.enabled": "true", "portal.magic_links": "true", "portal.reopen_hours": "48", "portal.show_billing": "true", "portal.show_contracts": "true",
     "portal.show_policies": "true", "portal.show_assets": "true", "portal.show_kb": "true", "portal.show_messages": "true",
     "tickets.email_ack": "true", "tickets.email_on_close": "true", "tickets.auto_add_contacts": "true", "tickets.email_priority": "Medium",

@@ -133,7 +133,8 @@ def document_send(request, kind, pk):
     if doc.status == "Void":
         messages.error(request, "This invoice is void.")
         return redirect(f"/billing/{kind}/{pk}/")
-    link = f"{settings.PORTAL_BASE}/{'invoices' if kind == 'invoice' else 'quotes'}/{doc.pk}/"
+    from .models import invoice_link
+    link = invoice_link(doc) if kind == "invoice" else f"{settings.PORTAL_BASE}/quotes/{doc.pk}/"
     form = {"to": ", ".join(_billing_people(doc.client)), "cc": "", "subject": documents.default_subject(doc, kind),
             "message": documents.default_message(doc, kind), "attach": True}
     error = ""

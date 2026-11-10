@@ -73,6 +73,8 @@ class Invoice(LinedDocument):
     scope = models.TextField("Description of work", blank=True)
     notes = models.TextField("Notes to client", blank=True)
     autopay_attempts = models.PositiveIntegerField(default=0, editable=False)
+    public_token = models.CharField(max_length=48, blank=True, default="", editable=False, db_index=True,
+                                    help_text="Secret part of the view-and-pay link in invoice emails (no sign-in needed).")
     autopay_next_at = models.DateTimeField(null=True, blank=True, editable=False)
     autopay_error = models.CharField(max_length=255, blank=True, editable=False)
     # Paid in the old app with no matching payment record (kept so the paid total never drops on import).
@@ -280,3 +282,19 @@ class Expense(Record):
 
     def __str__(self):
         return self.description or f"Expense {self.pk}"
+
+
+def invoice_link(inv: "Invoice") -> str:
+    """The link clients get by email: view, download and pay this invoice without signing in to the portal.
+    Falls back to the portal page when links without sign-in are turned off (Settings › Invoice defaults)."""
+    import secrets
+
+    from django.conf import settings as dj
+
+    from apps.core.models import Setting
+    if Setting.get("billing.public_links", "true") == "false":
+        return f"{dj.PORTAL_BASE}/invoices/{inv.pk}/"
+    if not inv.public_token:
+        inv.public_token = secrets.token_urlsafe(24)
+        Invoice.objects.filter(pk=inv.pk).update(public_token=inv.public_token)
+    return f"{dj.PORTAL_BASE}/i/{inv.public_token}/"

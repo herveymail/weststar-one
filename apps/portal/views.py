@@ -666,6 +666,66 @@ def profile(request):
 _ = pysecrets
 
 
+def _public_invoice(request, token):
+    if Setting.get("billing.public_links", "true") == "false" or len(token) < 20:
+        raise Http404
+    inv = Invoice.objects.select_related("client").filter(public_token=token, archived_at__isnull=True).exclude(status="Draft").first()
+    if inv is None:
+        raise Http404
+    return inv
+
+
+def public_invoice(request, token):
+    """The invoice email link: view, download and pay without signing in (the long random link is the key)."""
+    from apps.billing import payments, stripe_api
+    from apps.core.branding import login_brand, logo_url
+    from apps.core.net import client_ip
+    inv = _public_invoice(request, token)
+    base = f"{settings.PORTAL_BASE}/i/{token}/"
+    if inv.status == "Sent" and not request.user.is_authenticated:  # staff checking the link don't count as the client viewing it
+        Invoice.objects.filter(pk=inv.pk, status="Sent").update(status="Viewed")
+        inv.status = "Viewed"
+    msg, error = "", ""
+    if request.GET.get("session"):
+        try:
+            msg = payments.finish_checkout(request.GET["session"][:200], expect_client=inv.client)
+        except stripe_api.StripeError as e:
+            error = f"We couldn't confirm the payment yet ({e}). If you were charged, it will show here shortly."
+        inv.refresh_from_db()
+    elif request.GET.get("cancelled"):
+        error = "Payment cancelled — nothing was charged."
+    if request.method == "POST" and inv.status != "Void" and inv.balance > 0:
+        if not stripe_api.configured():
+            error = "Online payment isn't available right now. Please call us."
+        elif not _rate_ok(f"ipay:{client_ip(request)}", 20, 3600):
+            error = "Too many tries — please wait a bit."
+        else:
+            try:
+                return redirect(payments.checkout_pay(inv, base, base + "?cancelled=1"))
+            except stripe_api.StripeError as e:
+                error = str(e)
+    pays = inv.payments.filter(archived_at__isnull=True).exclude(status="Failed").order_by("-paid_on", "-id")
+    resp = render(request, "portal/public_invoice.html", {
+        **login_brand(), "company": Setting.get("company.name", "") or "Weststar MSP", "logo_url": logo_url(),
+        "inv": inv, "lines": inv.lines.all(), "balance": inv.balance, "pays": pays, "client": inv.client, "base": base,
+        "msg": msg, "error": error, "can_pay": stripe_api.configured(), "instructions": Setting.get("billing.payment_instructions", "")})
+    resp["X-Robots-Tag"] = "noindex, nofollow"
+    resp["Cache-Control"] = "private, no-store"
+    return resp
+
+
+def public_invoice_pdf(request, token):
+    from django.http import HttpResponse
+
+    from apps.billing.documents import filename, pdf
+    inv = _public_invoice(request, token)
+    r = HttpResponse(pdf(inv, "invoice"), content_type="application/pdf")
+    r["Content-Disposition"] = f'attachment; filename="{filename(inv, "invoice")}"'
+    r["X-Robots-Tag"] = "noindex, nofollow"
+    r["Cache-Control"] = "private, no-store"
+    return r
+
+
 @portal_login_required("billing", "billing")
 def document_pdf(request, kind, pk):
     from apps.billing.documents import filename, pdf

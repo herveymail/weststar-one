@@ -3,12 +3,11 @@ import base64
 import os
 from decimal import Decimal
 
-from django.conf import settings
 from django.template.loader import render_to_string
 
 from apps.core.models import Setting
 
-from .models import Invoice, Quote
+from .models import Invoice, Quote, invoice_link
 
 KINDS = {"invoice": Invoice, "quote": Quote}
 
@@ -63,7 +62,7 @@ def context(doc, kind: str, for_pdf=False) -> dict:
         "lines": list(doc.lines.all()), "balance": balance, "stamp": stamp, "bill_to_contact": contact.name if contact else "",
         "tax_label": Setting.get("billing.tax_label", "") or "Tax",
         "deposit_pct": pct, "deposit": (doc.total * pct / 100).quantize(Decimal("0.01")) if pct and doc.total else 0,
-        "pay_url": f"{settings.PORTAL_BASE}/invoices/{doc.pk}/" if is_inv else "",
+        "pay_url": invoice_link(doc) if is_inv and doc.status not in ("Draft", "Void") else "",
         "instructions": Setting.get("billing.payment_instructions", "") if is_inv else "",
         "terms": terms, "terms_label": terms_label, "law": law,
         "late_notice": fill(Setting.get("billing.late_notice", "")) if overdue else "",
@@ -127,5 +126,5 @@ def default_message(doc, kind) -> str:
     hi = f"Hi {first}," if first else "Hello,"
     if kind == "invoice":
         due = f" It's due {doc.due_date:%B %d, %Y}." if doc.due_date else ""
-        return f"{hi}\n\nAttached is invoice {doc.number} for ${doc.total:,.2f}.{due}\n\nYou can view and pay it online with the button below. Thank you for your business!"
+        return f"{hi}\n\nAttached is invoice {doc.number} for ${doc.total:,.2f}.{due}\n\nYou can view, download and pay it online with the button below — no sign-in needed. Thank you for your business!"
     return f"{hi}\n\nHere is quote {doc.number} for ${doc.total:,.2f}. You can review and approve it online with the button below.\n\nLet us know if you have any questions."

@@ -17,7 +17,7 @@ from apps.core.models import Setting
 from apps.crm.models import Client
 
 from . import stripe_api
-from .models import AutoPayLink, Invoice, Payment, StripeEvent
+from .models import AutoPayLink, Invoice, Payment, StripeEvent, invoice_link
 
 log = logging.getLogger("weststar.payments")
 OPEN = ["Sent", "Viewed", "Partial", "Overdue"]
@@ -274,7 +274,7 @@ def _billing_people(client: Client) -> list[str]:
 
 def send_receipt(p: Payment):
     mail.send(_billing_people(p.client), f"Payment received — {p.invoice.number}", "email/payment_receipt",
-              {"p": p, "inv": p.invoice, "link": f"{settings.PORTAL_BASE}/invoices/{p.invoice_id}/",
+              {"p": p, "inv": p.invoice, "link": invoice_link(p.invoice),
                "message": Setting.get("billing.paid_message", "") or "Thank you for your payment!"})
 
 
