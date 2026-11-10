@@ -60,6 +60,7 @@ APP_ENCRYPTION_KEYS_OLD = [k.strip() for k in env("APP_ENCRYPTION_KEYS_OLD").spl
 
 # The address people type in their browser, e.g. https://one.weststarmsp.com
 APP_VERSION = env("APP_VERSION", "dev")
+SLOW_REQUEST_MS = int(env("SLOW_REQUEST_MS", "1000"))  # pages slower than this are listed on Settings › Speed & server health
 APP_URL = env("APP_URL", "http://localhost:8000").rstrip("/")
 _app = urlparse(APP_URL)
 HTTPS = _app.scheme == "https"
@@ -104,6 +105,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "apps.core.middleware.TimingMiddleware",
     "apps.core.middleware.SecurityHeadersMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",

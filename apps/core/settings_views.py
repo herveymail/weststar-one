@@ -108,6 +108,9 @@ def settings_page(request, page):
         return audit_view(request)
     if target == "jobs":
         return render(request, "core/jobs.html", {"jobs": _jobs()})
+    if target == "health":
+        from .health import health_page
+        return health_page(request)
     if target == "email_designs":
         return render(request, "core/email_designs.html", {"samples": [(k, v[0]) for k, v in _samples().items()], "pick": request.GET.get("e", "ticket_reply")})
     if target == "queues":

@@ -1,0 +1,66 @@
+{% extends "core/settings_frame.html" %}{% load ws %}
+{% block title %}Speed & server health · Settings{% endblock %}
+{% block settings %}
+<div class="page-head"><div class="titles"><h1>Speed &amp; server health</h1><p class="desc">Measured on this server just now. Reload the page to measure again — best done while things feel slow.</p></div>
+  <a class="btn" href="/settings/health/">Measure again</a></div>
+
+<section class="card pad stack">
+  <h2>What stands out</h2>
+  {% for tone, text in findings %}<div class="hl-find {{ tone }}">{% if tone == "good" %}✓{% elif tone == "bad" %}✗{% else %}!{% endif %} {{ text }}</div>{% endfor %}
+</section>
+
+<section class="card pad stack">
+  <h2>Speed test</h2>
+  <div class="table-wrap"><table class="grid"><thead><tr><th>Test</th><th>This server</th><th>Normal</th><th></th></tr></thead><tbody>
+    <tr><td>Processor (a fixed bit of work)</td><td>{{ speed.cpu_ms|floatformat:0 }} ms</td><td>{{ ref.cpu_ms }} ms</td><td>{% include "core/_hl_x.html" with x=speed.slower.cpu_ms %}</td></tr>
+    <tr><td>One database question</td><td>{{ speed.db_ping_ms|floatformat:2 }} ms</td><td>{{ ref.db_ping_ms }} ms</td><td>{% include "core/_hl_x.html" with x=speed.slower.db_ping_ms %}</td></tr>
+    <tr><td>Load 50 tickets (ticket list)</td><td>{{ speed.tickets_ms|floatformat:0 }} ms</td><td>{{ ref.tickets_ms }} ms</td><td>{% include "core/_hl_x.html" with x=speed.slower.tickets_ms %}</td></tr>
+    <tr><td>Load 50 invoices</td><td>{{ speed.invoices_ms|floatformat:0 }} ms</td><td>{{ ref.invoices_ms }} ms</td><td>{% include "core/_hl_x.html" with x=speed.slower.invoices_ms %}</td></tr>
+  </tbody></table></div>
+</section>
+
+<div class="hl-grid">
+<section class="card pad stack">
+  <h2>Server</h2>
+  <dl class="hl-dl">
+    <dt>Processors</dt><dd>{{ server.cpus }}</dd>
+    <dt>Load (1 / 5 / 15 min)</dt><dd>{{ server.load.0|floatformat:2 }} / {{ server.load.1|floatformat:2 }} / {{ server.load.2|floatformat:2 }} <span class="muted small">(above {{ server.cpus }} means busy)</span></dd>
+    <dt>Memory free</dt><dd>{{ server.mem_free }} of {{ server.mem_total }}</dd>
+    <dt>Swap in use</dt><dd>{{ server.swap_used }}</dd>
+    {% if server.container %}<dt>This app's memory</dt><dd>{{ server.container }}</dd>{% endif %}
+    <dt>Disk free</dt><dd>{{ server.disk_free }} of {{ server.disk_total }}</dd>
+    <dt>Web workers</dt><dd>{{ server.workers }} × 4 threads</dd>
+    <dt>Version</dt><dd>{{ server.version }}</dd>
+  </dl>
+</section>
+<section class="card pad stack">
+  <h2>Database</h2>
+  {% if db.error %}<div class="banner">{{ db.error }}</div>{% else %}
+  <dl class="hl-dl">
+    <dt>PostgreSQL</dt><dd>{{ db.version }}</dd>
+    <dt>Size</dt><dd>{{ db.size }}</dd>
+    <dt>Connections</dt><dd>{{ db.connections }}</dd>
+    <dt>Queries running &gt; 5 s</dt><dd>{{ db.long_queries }}</dd>
+    <dt>Waiting on a lock</dt><dd>{{ db.waiting_locks }}</dd>
+    <dt>Emails waiting</dt><dd>{{ pending }}</dd>
+    {% if failed_jobs %}<dt>Jobs that failed last run</dt><dd>{{ failed_jobs|join:", " }} · <a href="/settings/jobs/">Scheduled jobs</a></dd>{% endif %}
+  </dl>{% endif %}
+</section>
+</div>
+
+<section class="card pad stack">
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 style="flex:1">Slow pages and saves</h2>
+    {% if can_manage and slow %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="clear"><button class="btn small">Clear list</button></form>{% endif %}</div>
+  <p class="small muted" style="margin:0">Anything that took longer than {{ slow_ms }} ms. “Database” is how much of that time went to the database; the rest is the server working it out (or waiting on something outside, like email or Stripe).</p>
+  {% if top %}<h3 style="margin:6px 0 0">Last 24 hours, most often slow</h3>
+  <div class="table-wrap"><table class="grid"><thead><tr><th>Page</th><th>Times</th><th>Average</th><th>Worst</th><th>Database</th></tr></thead><tbody>
+    {% for t in top %}<tr><td class="small"><code>{{ t.method }} {{ t.path|truncatechars:70 }}</code></td><td>{{ t.n }}</td><td>{{ t.avg|floatformat:0 }} ms</td><td>{{ t.worst }} ms</td><td>{{ t.db|floatformat:0 }} ms</td></tr>{% endfor %}
+  </tbody></table></div>{% endif %}
+  {% if slow %}<h3 style="margin:6px 0 0">Latest</h3>
+  <div class="table-wrap"><table class="grid"><thead><tr><th>When</th><th>Page</th><th>Total</th><th>Database</th><th>Queries</th><th>Who</th></tr></thead><tbody>
+    {% for s in slow %}<tr><td class="small">{{ s.created_at|date:"M j, g:i:s A" }}</td><td class="small"><code>{{ s.method }} {{ s.path|truncatechars:60 }}</code>{% if s.status >= 400 %} <span class="pill bad">{{ s.status }}</span>{% endif %}</td>
+      <td>{{ s.total_ms }} ms</td><td>{{ s.db_ms }} ms</td><td>{{ s.queries }}</td><td class="small">{{ s.user }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<p class="muted" style="margin:0">Nothing slow recorded yet.</p>{% endif %}
+</section>
+{% endblock %}

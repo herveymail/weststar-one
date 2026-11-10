@@ -88,6 +88,7 @@ SETTINGS = [
         ("my_security", "My sign-in & 2FA", "Your password, two-factor and active sessions", "my_security"),
         ("audit", "Audit log", "Who changed what", "audit"),
         ("security_log", "Security log", "Sign-in attempts and lockouts", "security_log"),
+        ("health", "Speed & server health", "Why things are slow: server load, memory, database speed and slow pages", "health"),
         ("import", "Import from old Weststar One", "How to bring tickets and data across", "import"),
         ("old_settings", "Old system settings", "Every setting from the old Weststar One and where it went", "old_settings"),
     ]),
@@ -152,6 +153,6 @@ TILE_LOOK = {
     "users": ("bi-people", "#16a34a"), "portal_groups": ("bi-people-fill", "#0d9488"), "signin": ("bi-key", "#7c3aed"),
     "integrations": ("bi-plug", "#9333ea"), "msp360": ("bi-cloud-check", "#0e7490"), "rmm": ("bi-pc-display-horizontal", "#2563eb"),
     "ai": ("bi-stars", "#9333ea"), "jobs": ("bi-clock-history", "#0d9488"), "offsite": ("bi-cloud-download", "#059669"),
-    "my_security": ("bi-shield-lock", "#dc2626"), "audit": ("bi-journal-text", "#6b7280"), "security_log": ("bi-shield-exclamation", "#b91c1c"),
+    "my_security": ("bi-shield-lock", "#dc2626"), "audit": ("bi-journal-text", "#6b7280"), "security_log": ("bi-shield-exclamation", "#b91c1c"), "health": ("bi-speedometer2", "#0891b2"),
     "import": ("bi-truck", "#0f766e"), "old_settings": ("bi-archive", "#64748b"),
 }

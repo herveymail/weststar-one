@@ -1,0 +1,1 @@
+{% if x >= 3 %}<span class="pill bad">{{ x|floatformat:0 }}× slower</span>{% elif x >= 1.6 %}<span class="pill warn">{{ x|floatformat:1 }}× slower</span>{% else %}<span class="pill good">OK</span>{% endif %}

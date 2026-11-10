@@ -128,3 +128,18 @@ class OutboxEmail(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class SlowRequest(models.Model):
+    """Pages or saves that took longer than a second — shown on Settings › Speed & server health."""
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    method = models.CharField(max_length=8)
+    path = models.CharField(max_length=300)
+    status = models.PositiveSmallIntegerField(default=0)
+    total_ms = models.PositiveIntegerField()
+    db_ms = models.PositiveIntegerField(default=0)
+    queries = models.PositiveIntegerField(default=0)
+    user = models.CharField(max_length=150, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
