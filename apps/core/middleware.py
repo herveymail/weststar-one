@@ -1,10 +1,12 @@
 class SecurityHeadersMiddleware:
-    """Strict Content-Security-Policy: scripts and styles only from this site (htmx is served locally)."""
+    """Strict Content-Security-Policy: scripts and styles only from this site (htmx is served locally).
+    form-action also allows Stripe Checkout and Google sign-in: "Pay now", "Set up AutoPay" and "Connect Google
+    mailbox" are forms whose answer is a redirect there, and browsers block that redirect unless it's listed."""
 
     CSP = (
         "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; "
-        "frame-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'"
+        "frame-src 'self'; frame-ancestors 'none'; form-action 'self' https://checkout.stripe.com https://accounts.google.com; base-uri 'self'; object-src 'none'"
     )
 
     def __init__(self, get_response):

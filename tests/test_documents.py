@@ -96,3 +96,10 @@ def test_draft_and_void_invoices(client, inv):
     assert client.get("/client-portal" + link).status_code == 404  # still a draft
     Invoice.objects.filter(pk=inv.pk).update(status="Void")
     assert b"cancelled" in client.get("/client-portal" + link).content
+
+
+def test_pay_buttons_may_hand_over_to_stripe(client):
+    # "Pay now" is a form whose answer is a redirect to Stripe Checkout; the browser only follows it if the CSP allows it.
+    csp = client.get("/client-portal/login/")["Content-Security-Policy"]
+    form_action = next(d for d in csp.split(";") if d.strip().startswith("form-action"))
+    assert "https://checkout.stripe.com" in form_action and "https://accounts.google.com" in form_action
