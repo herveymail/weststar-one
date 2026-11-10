@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Agreements · H/R Admin{% endblock %}
+{% block content %}
+<div class="page-head"><div class="titles"><div class="eyebrow">H/R</div><h1>H/R Admin</h1><p class="desc">Who has signed the current staff agreements. Change the texts in Settings › Legal &amp; terms.</p></div></div>
+<div class="tabs" role="tablist">{% for k, label in page_tabs %}<a href="/hr/?tab={{ k }}" role="tab" aria-selected="{% if page_tab == k %}true{% else %}false{% endif %}" class="tab{% if page_tab == k %} on{% endif %}">{{ label }}</a>{% endfor %}</div>
+<section class="card" style="overflow:hidden"><div class="table-wrap"><table class="grid">
+  <thead><tr><th>Staff member</th>{% for t in titles %}<th>{{ t }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for r in rows %}<tr><td class="strong">{{ r.u.name }}<div class="small muted">{{ r.u.email }}</div></td>
+    {% for a, current in r.cells %}<td class="small">{% if a and current %}<span class="pill good">Signed</span> {{ a.accepted_at|date:"M j, Y" }}{% if a.signed_name %} · “{{ a.signed_name }}”{% endif %}
+      {% elif a %}<span class="pill warn">Needs to re-sign</span> last {{ a.accepted_at|date:"M j, Y" }}{% else %}<span class="pill">Not signed</span>{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody>
+</table></div></section>
+{% endblock %}

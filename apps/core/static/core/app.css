@@ -387,3 +387,12 @@ html.ws-busy, html.ws-busy * { cursor: progress; }
 .hl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
 .hl-dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; font-size: 13.5px; }
 .hl-dl dt { color: var(--muted); } .hl-dl dd { margin: 0; font-weight: 600; }
+
+/* Legal texts inside the app (agreements, My HR) */
+.legal-box { max-height: 360px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; background: var(--surface); line-height: 1.6; font-size: 14px; }
+.legal-box h3, .legal-doc h3 { font-size: 14.5px; margin: 16px 0 6px; } .legal-box h3:first-child, .legal-doc h3:first-child { font-size: 19px; margin-top: 0; }
+.legal-box p, .legal-doc p { margin: 0 0 9px; } .legal-box ul, .legal-doc ul { margin: 0 0 9px; padding-left: 20px; }
+.notice-grid { display: grid; gap: 10px; }
+.notice { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.notice b { display: block; } .notice .small { color: var(--muted); }
+.notice.na { opacity: .55; }

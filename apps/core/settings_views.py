@@ -166,7 +166,13 @@ def settings_page(request, page):
                 errors.append(f"{f['label']}: pick one of the options.")
                 continue
             if Setting.get(f["key"], None) != raw:
+                legal_doc = f["key"][6:] if f["key"].startswith("legal.") else ""
+                from . import legal as legal_mod
+                before = legal_mod.text(legal_doc) if legal_doc in legal_mod.DOCS else None
                 Setting.put(f["key"], raw[:20000], secret=f["type"] == "secret", user=request.user)
+                if before is not None and legal_mod.text(legal_doc) != before:
+                    from django.utils import timezone as tz
+                    Setting.put(f"legal.{legal_doc}.updated", tz.localdate().isoformat())  # shown as "Last updated"
                 changed.append(f["key"])
         if errors:
             for e in errors:

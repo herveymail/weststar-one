@@ -13,6 +13,22 @@ SETTINGS = [
         ("company", "Company profile", "Name, address, phone, emails, hours", [H("Company"), ("company.name", "Company name", T), ("company.tagline", "Tagline", T), ("company.phone", "Phone", T), ("company.after_hours_phone", "After-hours phone", T), ("company.email", "Email", T),
             ("company.billing_email", "Billing email", T), ("company.noc_email", "NOC email", T), ("company.dispatch_email", "Dispatch email", T), H("Address & web"), ("company.address", "Address", TA), ("company.website", "Website", T),
             H("More"), ("company.hours", "Operating hours (shown to clients)", T), ("company.service_area", "Service area", T), ("company.license_number", "License number", T), ("app.timezone", "Time zone", T, "e.g. America/Denver"), ("email.signature", "Email signature", TA)]),
+        ("legal", "Legal & terms", "Terms on invoices and quotes, portal terms and privacy, staff agreements and workplace notices", [
+            H("Which state's law applies", "Clients in Texas get Texas law and courts; everyone else (including clients with no address) gets Arizona."),
+            ("legal.az_county", "Arizona county for disputes", T), ("legal.tx_county", "Texas county for disputes", T),
+            ("legal.dispute_days", "Days a client has to question a bill", I), ("legal.suspend_days", "Pause non-emergency service when this many days past due", I),
+            H("Invoices & quotes", "Printed as a Terms & Conditions page on every invoice and quote. {late_policy}, {state}, {county} and the other words in braces fill in automatically."),
+            ("legal.invoice_terms", "Invoice terms & conditions", TA), ("legal.quote_terms", "Quote terms & conditions", TA),
+            H("Client portal", "Clients tick “I agree” to the terms on their first sign-in, and again whenever you change them."),
+            ("legal.portal_gate", "Ask clients to agree on their first portal sign-in", B),
+            ("legal.portal_terms", "Client portal terms of use", TA), ("legal.privacy", "Privacy policy", TA),
+            H("Staff", "Staff agree at sign-in. Changing a text (or the handbook link) asks everyone to agree again."),
+            ("legal.staff_gate", "Ask staff to agree at sign-in", B), ("legal.staff_ack_months", "Repeat the confidentiality agreement every (months, 0 = only when changed)", I),
+            ("legal.staff_confidentiality", "Confidentiality & acceptable use", TA),
+            ("legal.handbook_url", "Employee handbook link (Google Drive, etc.)", T), ("legal.handbook_ack", "Handbook acknowledgment", TA),
+            H("Workplace notices", "Used to show the right federal and state notices in My HR › Notices."),
+            ("legal.employee_count", "Number of employees", I), ("legal.tx_workers_comp", "Texas: do you carry workers' compensation insurance?", SEL, ["yes", "no"]),
+        ]),
         ("numbers", "Numbers & rates", "Ticket prefix, tax, hourly & mileage rates", [("numbers.ticket_prefix", "Ticket prefix (default T-)", T), ("numbers.ticket_padding", "Ticket number digits (0 = no padding)", I),
             ("numbers.invoice_prefix", "Invoice prefix (default INV-)", T), ("numbers.invoice_padding", "Invoice number digits", I),
             ("numbers.quote_prefix", "Quote prefix (default QT-)", T), ("numbers.quote_padding", "Quote number digits", I),
@@ -98,6 +114,8 @@ SETTINGS = [
 
 # Shown (and used) when a setting has never been saved.
 DEFAULTS = {
+    "legal.az_county": "Maricopa", "legal.tx_county": "El Paso", "legal.dispute_days": "10", "legal.suspend_days": "30",
+    "legal.staff_gate": "true", "legal.portal_gate": "true", "legal.staff_ack_months": "12", "legal.tx_workers_comp": "yes",
     "billing.public_links": "true",
     "portal.enabled": "true", "portal.magic_links": "true", "portal.reopen_hours": "48", "portal.show_billing": "true", "portal.show_invoices": "false", "portal.show_contracts": "true",
     "portal.show_policies": "true", "portal.show_assets": "true", "portal.show_kb": "true", "portal.show_messages": "true",
@@ -143,7 +161,7 @@ ALL_FIELDS = {f["key"]: f for _g, _t, item in all_pages() if isinstance(item[3],
 GROUP_ICONS = {"general": "bi-sliders", "helpdesk": "bi-headset", "comms": "bi-envelope-paper", "billing": "bi-receipt",
                "people": "bi-people", "integrations": "bi-plug", "system": "bi-shield-lock"}
 TILE_LOOK = {
-    "company": ("bi-building", "#d97706"), "numbers": ("bi-123", "#059669"), "hours": ("bi-clock", "#2563eb"),
+    "company": ("bi-building", "#d97706"), "legal": ("bi-bank2", "#475569"), "numbers": ("bi-123", "#059669"), "hours": ("bi-clock", "#2563eb"),
     "appearance": ("bi-palette", "#c25f76"), "branding": ("bi-brush", "#db2777"), "company_extras": ("bi-megaphone", "#ea580c"),
     "tickets": ("bi-ticket-detailed", "#6366f1"), "sla": ("bi-stopwatch", "#dc2626"), "email_in": ("bi-inbox", "#0891b2"),
     "ticket_emails": ("bi-envelope-check", "#2563eb"), "afterhours": ("bi-moon-stars", "#4f46e5"), "queues": ("bi-diagram-3", "#2c5cc5"),
@@ -158,3 +176,12 @@ TILE_LOOK = {
     "my_security": ("bi-shield-lock", "#dc2626"), "audit": ("bi-journal-text", "#6b7280"), "security_log": ("bi-shield-exclamation", "#b91c1c"), "health": ("bi-speedometer2", "#0891b2"),
     "import": ("bi-truck", "#0f766e"), "old_settings": ("bi-archive", "#64748b"),
 }
+
+
+def _legal_defaults():
+    from .legal_texts import DOCS
+    for k, (_t, text, _w) in DOCS.items():
+        DEFAULTS.setdefault(f"legal.{k}", text)
+
+
+_legal_defaults()

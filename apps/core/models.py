@@ -143,3 +143,17 @@ class SlowRequest(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class LegalAcceptance(models.Model):
+    """Someone agreed to a legal text (Settings › Legal & terms): which one, which version, when, from where."""
+    doc = models.CharField(max_length=40, db_index=True)
+    version = models.CharField(max_length=20)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE, related_name="legal_acceptances")
+    portal_user = models.ForeignKey("portal.PortalUser", null=True, blank=True, on_delete=models.CASCADE, related_name="legal_acceptances")
+    signed_name = models.CharField(max_length=200, blank=True)
+    ip = models.CharField(max_length=45, blank=True)
+    accepted_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-accepted_at"]

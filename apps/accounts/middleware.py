@@ -6,7 +6,7 @@ from .models import UserSession
 from .google import counts_as_2fa as google_counts_as_2fa
 from .security import idle_minutes, mfa_required
 
-OPEN_PATHS = ("/login/", "/static/", "/health/", "/client-portal/", "/portal", "/stripe/webhook/", "/brand/", "/pay/")  # /pay/ = invoice view-and-pay links; the portal has its own sign-in (apps/portal/auth.py)
+OPEN_PATHS = ("/login/", "/static/", "/health/", "/client-portal/", "/portal", "/stripe/webhook/", "/brand/", "/pay/", "/legal/")  # /pay/ = invoice view-and-pay links; the portal has its own sign-in (apps/portal/auth.py)
 # Paths allowed while a sign-in is only half finished.
 STEP_PATHS = ("/login/mfa/", "/logout/", "/account/password/", "/account/mfa-setup/")
 
@@ -48,4 +48,17 @@ class SessionGuardMiddleware:
             return self.get_response(request) if path.startswith(("/account/password/", "/logout/")) else redirect("/account/password/")
         if not user.mfa_enabled and mfa_required(user) and not (request.session.get("via_google") and google_counts_as_2fa()):
             return self.get_response(request) if path.startswith(("/account/mfa-setup/", "/logout/")) else redirect("/account/mfa-setup/")
+        # Staff agreements (Settings › Legal & terms): confidentiality yearly, handbook when it changes. Checked every 5 minutes.
+        if not path.startswith(("/account/agreements/", "/logout/", "/static/")):
+            checked = request.session.get("legal_checked", 0)
+            if now.timestamp() - checked > 300:
+                from apps.core import legal
+                if legal.staff_due(user):
+                    if request.headers.get("HX-Request"):
+                        from django.http import HttpResponse
+                        r = HttpResponse(status=204)
+                        r["HX-Redirect"] = "/account/agreements/"
+                        return r
+                    return redirect("/account/agreements/?next=" + __import__("urllib.parse", fromlist=["quote"]).quote(request.get_full_path()))
+                request.session["legal_checked"] = now.timestamp()
         return self.get_response(request)

@@ -104,3 +104,10 @@ table.t { width: 100%; border-collapse: collapse; } .t th { text-align: left; co
 .help-list { display: flex; flex-direction: column; gap: 8px; font-size: 14.5px; }
 .help-list a { text-decoration: none; }
 .help-list .bi { color: var(--p); margin-right: 8px; }
+
+/* Legal texts (terms, privacy) */
+.legal-doc { line-height: 1.6; font-size: 14.5px; }
+.legal-doc h3 { font-size: 15px; margin: 18px 0 6px; } .legal-doc h3:first-child { font-size: 22px; margin-top: 0; }
+.legal-doc p { margin: 0 0 10px; } .legal-doc ul { margin: 0 0 10px; padding-left: 20px; }
+.legal-fold summary { cursor: pointer; } .legal-fold[open] summary { margin-bottom: 12px; }
+.legal-box { max-height: 340px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: #fff; }

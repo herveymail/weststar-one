@@ -26,8 +26,9 @@
 </section>
 {% elif inv.status == "Paid" %}<div class="banner ok" role="status">Paid in full — thank you!</div>{% endif %}
 {% include "billing/_pay_body.html" %}
+{% if legal_html %}<details class="card pad legal-doc legal-fold"><summary><b>Terms &amp; Conditions</b> <span class="muted small">— this invoice is subject to these terms</span></summary>{{ legal_html }}</details>{% endif %}
 {% if instructions %}<section class="card pad"><h3 style="margin:0 0 6px">Other ways to pay</h3><p class="small" style="margin:0;white-space:pre-wrap">{{ instructions }}</p></section>{% endif %}
 <p class="small muted" style="text-align:center">This is a private link to your invoice — no account or sign-in needed.{% if lb_email %} Questions? <a href="mailto:{{ lb_email }}">{{ lb_email }}</a>{% endif %}</p>
 </main>
-<footer class="portal-footer">&copy; {% now "Y" %} {{ company }}. All rights reserved.</footer>
+{% include "core/_legal_footer.html" %}
 {% endblock %}

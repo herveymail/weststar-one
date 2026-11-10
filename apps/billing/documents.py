@@ -51,7 +51,8 @@ def context(doc, kind: str, for_pdf=False) -> dict:
     days = (due_ - date_).days if (date_ and due_) else None
     terms_label = ("Due on receipt" if days is not None and days <= 0 else f"Net {days}") if is_inv and days is not None else ""
     overdue = is_inv and balance > 0 and doc.status not in ("Draft", "Void", "Paid") and (doc.status == "Overdue" or (due_ and due_ < timezone.localdate()))
-    state, county = Setting.get("billing.contract_state", ""), Setting.get("billing.contract_county", "")
+    from apps.core import legal
+    state, county = legal.jurisdiction(doc.client)  # Texas clients: Texas law; everyone else Arizona (Settings › Legal & terms)
     law = ""
     if state:
         law = f"This {'invoice' if is_inv else 'quote'} is governed by the laws of the State of {state}" + (f", and any dispute will be heard in {county} County, {state}." if county else ".")
@@ -66,7 +67,8 @@ def context(doc, kind: str, for_pdf=False) -> dict:
         "instructions": Setting.get("billing.payment_instructions", "") if is_inv else "",
         "terms": terms, "terms_label": terms_label, "law": law,
         "late_notice": fill(Setting.get("billing.late_notice", "")) if overdue else "",
-        "late_policy": late_policy() if is_inv else "", "footer": Setting.get("billing.invoice_footer" if is_inv else "billing.quote_footer", ""),
+        "late_policy": late_policy() if is_inv else "",
+        "legal_html": legal.html("invoice_terms" if is_inv else "quote_terms", doc.client), "footer": Setting.get("billing.invoice_footer" if is_inv else "billing.quote_footer", ""),
     }
 
 

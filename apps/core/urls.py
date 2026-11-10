@@ -9,6 +9,10 @@ from apps.hr import views as hr
 from apps.legacy import views as lv
 from apps.portal import staff_views as psv
 from apps.billing import pay_views
+
+from apps.accounts.agreements import agreements as agreements_view
+
+from . import legal_views
 from apps.billing import views as bv
 from apps.integrations import views as iv
 
@@ -27,6 +31,7 @@ urlpatterns = [
     path("logout/", acc.logout_view, name="logout"),
     path("account/password/", acc.password_view, name="password"),
     path("account/mfa-setup/", acc.mfa_setup_view, name="mfa_setup"),
+    path("account/agreements/", agreements_view, name="agreements"),
     path("profile/", acc.profile_view, name="profile"),
     path("search/", views.jump, name="jump"),
     path("tickets/", hd.tickets, name="tickets"),
@@ -71,6 +76,7 @@ urlpatterns = [
     path("clients/<int:pk>/autopay/", bv.client_autopay, name="client_autopay"),
     path("stripe/webhook/", bv.stripe_webhook, name="stripe_webhook"),
     path("pay/<str:token>/", pay_views.pay_page, name="pay_page"),
+    path("legal/<slug:slug>/", legal_views.page, name="legal_page"),
     path("pay/<str:token>/pdf/", pay_views.pay_pdf, name="pay_pdf"),
     path("billing/<slug:kind>/<int:pk>/", bv.document, name="document"),
     path("billing/<slug:kind>/<int:pk>/pdf/", bv.document_pdf, name="document_pdf"),

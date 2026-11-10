@@ -40,7 +40,7 @@
       {% block terms %}{% if lb_terms %}<div class="wl-terms">{{ lb_terms|linebreaksbr }}</div>{% endif %}{% endblock %}
       <div class="wl-secure"><i class="bi bi-shield-lock" aria-hidden="true"></i>{% block secure %}Secure, encrypted sign-in{% endblock %}</div>
     </div></div>
-    <footer class="wl-foot"><span>&copy; {{ lb_year }} {{ lb_name }}</span><span>{% block foot %}Powered by Weststar One{% endblock %}</span></footer>
+    <footer class="wl-foot"><span>&copy; {{ lb_year }} {{ lb_name }} · <a href="/legal/terms/">Terms of use</a> · <a href="/legal/privacy/">Privacy</a></span><span>{% block foot %}Powered by Weststar One{% endblock %}</span></footer>
   </main>
 </div>
 </body>

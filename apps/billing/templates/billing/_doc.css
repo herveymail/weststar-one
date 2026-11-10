@@ -31,3 +31,13 @@
 .wsdoc-stamp.paid, .wsdoc-stamp.accepted { color: #067647; }
 .wsdoc-stamp.void, .wsdoc-stamp.declined { color: #B42318; }
 .wsdoc-stamp.overdue { color: #B54708; }
+
+/* Terms & Conditions page (Settings › Legal & terms) */
+.wsdoc-legal { margin-top: 34px; padding-top: 18px; border-top: 2px solid var(--acc); font-size: 10.5px; line-height: 1.45; color: #344054; columns: 2; column-gap: 26px; }
+.wsdoc-legal-head { column-span: all; display: flex; justify-content: space-between; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: #667085; margin-bottom: 8px; }
+.wsdoc-legal h3 { font-size: 11px; margin: 10px 0 3px; color: #101828; break-after: avoid; }
+.wsdoc-legal h3:first-of-type { column-span: all; font-size: 15px; color: var(--acc); margin-top: 0; }
+.wsdoc-legal p { margin: 0 0 5px; } .wsdoc-legal ul { margin: 0 0 5px; padding-left: 16px; }
+.wsdoc-sign { column-span: all; display: flex; gap: 22px; margin-top: 22px; }
+.wsdoc-sign div { flex: 1; font-size: 10px; color: #667085; } .wsdoc-sign span { display: block; border-bottom: 1px solid #98A2B3; height: 30px; margin-bottom: 4px; }
+@media print { .wsdoc-legal { break-before: page; border-top: 0; margin-top: 0; } }

@@ -1,0 +1,17 @@
+{% extends "portal/base.html" %}
+{% block title %}Terms of use{% endblock %}
+{% block main_extra %} narrow{% endblock %}
+{% block content %}
+<section class="card pad stack">
+  <h1 style="font-size:22px;margin:0">{% if changed %}Our terms have changed{% else %}Before you start{% endif %}</h1>
+  <p class="muted" style="margin:0">{% if changed %}We updated the portal terms of use on {{ updated }}. Please read and agree to continue.{% else %}Please read and agree to the portal terms of use. You only need to do this once.{% endif %}</p>
+  {% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+  <div class="legal-box legal-doc" tabindex="0" aria-label="Terms of use">{{ terms }}</div>
+  <form method="post" class="stack" style="gap:12px">{% csrf_token %}
+    <label class="check"><input type="checkbox" name="agree" value="1" required><span>I have read and agree to the <a href="/legal/terms/" target="_blank" rel="noopener">Terms of Use</a> and the <a href="/legal/privacy/" target="_blank" rel="noopener">Privacy Policy</a>, for myself and for {{ pu.client.name }}.</span></label>
+    <div class="row"><button class="btn primary">Agree and continue</button><span class="grow"></span>
+      <button class="btn" form="agree-out">Sign out</button></div>
+  </form>
+  <form method="post" action="/client-portal/logout/" id="agree-out">{% csrf_token %}</form>
+</section>
+{% endblock %}

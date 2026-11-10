@@ -27,4 +27,5 @@
   </form>
 </section>
 {% endif %}
+{% if legal_html %}<details class="card pad legal-doc legal-fold"><summary><b>Terms &amp; Conditions</b> <span class="muted small">— approving this quote means you agree to these terms</span></summary>{{ legal_html }}</details>{% endif %}
 {% endblock %}

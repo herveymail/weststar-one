@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Agreements · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="titles"><div class="eyebrow">Before you continue</div><h1>Please read and sign</h1>
+  <p class="desc">Your signature is saved in your HR file with today's date. You can read these again any time in My HR.</p></div></div>
+{% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+<form method="post" class="stack" style="max-width:860px">{% csrf_token %}
+  {% for d in docs %}
+  <section class="card pad stack">
+    <div class="legal-box agree-doc" tabindex="0" aria-label="{{ d.title }}">{{ d.html }}</div>
+    {% if d.key == "handbook_ack" and handbook_url %}<p style="margin:0"><a class="btn small" href="{{ handbook_url }}" target="_blank" rel="noopener">Open the employee handbook ↗</a></p>{% endif %}
+    <label class="check"><input type="checkbox" name="agree_{{ d.key }}" value="1" required><span>I have read and agree to the <b>{{ d.title }}</b>.</span></label>
+  </section>
+  {% endfor %}
+  <section class="card pad stack">
+    <div class="field" style="max-width:420px"><label for="sig">Type your full name to sign</label><input id="sig" name="signed_name" class="input" value="{{ user.name }}" required autocomplete="name"></div>
+    <div><button class="btn primary">Sign and continue</button></div>
+  </section>
+</form>
+{% endblock %}

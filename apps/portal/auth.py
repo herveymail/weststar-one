@@ -110,6 +110,10 @@ def portal_login_required(perm: str | None = None, setting: str | None = None):
                 return redirect("/client-portal/login/" + ("?expired=1" if getattr(request, "portal_expired", False) else ""))
             if (perm and not request.portal_user.can(perm)) or (setting and not enabled(f"show_{setting}")):
                 raise PermissionDenied
+            from apps.core import legal
+            if legal.portal_gate_on() and legal.needs(request.portal_user, "portal_terms"):
+                from urllib.parse import quote
+                return redirect("/client-portal/agree/?next=" + quote(request.get_full_path()))
             return view(request, *a, **kw)
         return wrapper
     return deco

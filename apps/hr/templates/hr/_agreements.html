@@ -1,0 +1,13 @@
+<section class="card pad stack">
+  <div><h2 style="margin:0">My agreements</h2><p class="small muted" style="margin:4px 0 0">What you've signed, and the current text. A copy of each signature is in your HR file.</p></div>
+  {% for d in docs %}
+  <details class="card pad"><summary style="cursor:pointer"><b>{{ d.title }}</b> —
+    {% if d.last and d.last.version == d.current %}<span class="pill good">Signed {{ d.last.accepted_at|date:"M j, Y" }}</span>
+    {% elif d.last %}<span class="pill warn">Updated since you signed ({{ d.last.accepted_at|date:"M j, Y" }})</span>{% else %}<span class="pill">Not signed yet</span>{% endif %}</summary>
+    <div class="legal-box" style="margin-top:10px">{{ d.html }}</div>
+    {% if d.key == "handbook_ack" and handbook_url %}<p style="margin:8px 0 0"><a href="{{ handbook_url }}" target="_blank" rel="noopener">Open the employee handbook ↗</a></p>{% endif %}
+  </details>
+  {% endfor %}
+  {% if mine %}<div class="table-wrap"><table class="grid"><thead><tr><th>Signed</th><th>Document</th><th>Name typed</th></tr></thead><tbody>
+    {% for a in mine %}<tr><td class="small">{{ a.accepted_at|date:"M j, Y g:i A" }}</td><td class="small">{{ a.doc|cut:"_"|title }}</td><td class="small">{{ a.signed_name }}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
+</section>

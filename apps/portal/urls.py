@@ -7,6 +7,7 @@ urlpatterns = [
     path("login/", v.login_view, name="portal_login"),
     path("login/code/", v.login_code, name="portal_login_code"),
     path("logout/", v.logout_view, name="portal_logout"),
+    path("agree/", v.agree, name="portal_agree"),
     path("forgot/", v.forgot, name="portal_forgot"),
     path("link/<str:token>/", v.link_view, name="portal_link"),
     path("tickets/", v.tickets, name="portal_tickets"),

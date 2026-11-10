@@ -1,0 +1,8 @@
+{% extends "portal/base.html" %}
+{% block title %}{{ doc_title }}{% endblock %}
+{% block body %}
+<header class="top"><nav aria-label="{{ company }}"><span class="brand">{% if logo_url %}<img src="{{ logo_url }}" alt="{{ company }}" style="max-height:36px;max-width:180px">{% else %}{{ company }}{% endif %}</span>
+  <span class="grow"></span>{% if slug == "privacy" %}<a class="nav-a" href="/legal/terms/">Portal terms of use</a>{% else %}<a class="nav-a" href="/legal/privacy/">Privacy policy</a>{% endif %}</nav></header>
+<main class="wrap narrow"><article class="card pad legal-doc">{{ body }}</article></main>
+{% include "core/_legal_footer.html" %}
+{% endblock %}

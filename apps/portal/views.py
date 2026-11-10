@@ -447,7 +447,9 @@ def quote(request, pk):
             audit(None, f"quote_{decision}", "quotes", q.pk, f"{pu.name} {decision} {q} in the portal", area="billing")
             _notify_staff(f"Quote {q} {decision} by {pu.name}", request.POST.get("comment", ""), f"/m/quotes/{q.pk}/")
             return redirect(f"/client-portal/quotes/{q.pk}/")
-    return render(request, "portal/quote.html", _ctx(request, q=q, lines=q.lines.all(), error=error, approval=q.approvals.order_by("-created_at").first()))
+    from apps.core import legal
+    return render(request, "portal/quote.html", _ctx(request, q=q, lines=q.lines.all(), error=error, approval=q.approvals.order_by("-created_at").first(),
+                                                    legal_html=legal.html("quote_terms", q.client)))
 
 
 # ── contracts & policies ──
@@ -688,3 +690,24 @@ def document_pdf(request, kind, pk):
     r = HttpResponse(pdf(doc, kind), content_type="application/pdf")
     r["Content-Disposition"] = f'attachment; filename="{filename(doc, kind)}"'
     return r
+
+
+def agree(request):
+    """First sign-in (and after the terms change): read and agree to the portal terms of use and privacy policy."""
+    from apps.core import legal
+    pu = request.portal_user
+    if not pu:
+        return redirect("/client-portal/login/")
+    nxt = request.GET.get("next", "/client-portal/")
+    if not nxt.startswith("/client-portal/") or nxt.startswith("//"):
+        nxt = "/client-portal/"
+    error = ""
+    if request.method == "POST":
+        if request.POST.get("agree") == "1":
+            legal.accept(pu, "portal_terms", request, signed_name=pu.name)
+            legal.accept(pu, "privacy", request, signed_name=pu.name)
+            return redirect(nxt)
+        error = "Tick the box to agree, or sign out if you don't."
+    changed = pu.legal_acceptances.filter(doc="portal_terms").exists()
+    return render(request, "portal/agree.html", _ctx(request, terms=legal.html("portal_terms", pu.client), changed=changed, error=error,
+                                                     updated=legal.values(pu.client, "portal_terms")["updated"]))

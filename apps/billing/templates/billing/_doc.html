@@ -39,9 +39,15 @@
   {% if doc.notes %}<div class="wsdoc-block"><div class="wsdoc-lbl">Notes</div><div class="wsdoc-pre">{{ doc.notes }}</div></div>{% endif %}
   {% if instructions %}<div class="wsdoc-block"><div class="wsdoc-lbl">How to pay</div><div class="wsdoc-pre">{{ instructions }}</div></div>{% endif %}
   {% if late_notice %}<div class="wsdoc-late"><b>Past due.</b> {{ late_notice }}</div>{% endif %}
-  {% if terms or late_policy or law %}<div class="wsdoc-block"><div class="wsdoc-lbl">Terms &amp; conditions</div>
+  {% if terms or late_policy or law %}<div class="wsdoc-block"><div class="wsdoc-lbl">Payment terms</div>
     {% if late_policy %}<div class="wsdoc-pre wsdoc-fine"><b>{{ late_policy }}</b></div>{% endif %}
     {% if terms %}<div class="wsdoc-pre wsdoc-fine">{{ terms }}</div>{% endif %}
     {% if law %}<div class="wsdoc-pre wsdoc-fine">{{ law }}</div>{% endif %}</div>{% endif %}
+  {% if legal_html %}<p class="wsdoc-fine" style="margin-top:10px">This {{ title|lower }} is subject to the Terms &amp; Conditions on the following page.</p>{% endif %}
   {% if footer %}<div class="wsdoc-foot">{{ footer }}</div>{% endif %}
+  {% if legal_html %}<section class="wsdoc-legal">
+    <div class="wsdoc-legal-head"><span>{{ co.name }}</span><span>{{ title }} {{ doc.number }} · Terms &amp; Conditions</span></div>
+    {{ legal_html }}
+    {% if kind == "quote" %}<div class="wsdoc-sign"><div><span></span>Accepted by (signature)</div><div><span></span>Printed name &amp; title</div><div><span></span>Date</div></div>{% endif %}
+  </section>{% endif %}
 </div>

@@ -85,6 +85,7 @@ def pay_page(request, token):
     return _private(render(request, "billing/pay.html", {
         **login_brand(), "company": Setting.get("company.name", "") or "Weststar MSP", "logo_url": logo_url(),
         "inv": inv, "lines": inv.lines.all(), "balance": inv.balance, "pays": pays, "client": inv.client, "base": base,
+        "legal_html": __import__("apps.core.legal", fromlist=["html"]).html("invoice_terms", inv.client),
         "msg": msg, "error": error, "can_pay": stripe_api.configured() and inv.status != "Draft", "is_draft": inv.status == "Draft", "instructions": Setting.get("billing.payment_instructions", "")}))
 
 

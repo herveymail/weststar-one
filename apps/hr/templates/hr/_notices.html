@@ -1,0 +1,13 @@
+<section class="card pad stack">
+  <div><h2 style="margin:0">Workplace notices</h2>
+  <p class="small muted" style="margin:4px 0 0">Federal and state notices every employee has a right to see. Each link opens the official, current version from the government agency. The printed posters are also up in each office{% if office %}; you're listed with the <b>{{ office }}</b> office{% endif %}.</p></div>
+  {% for group, items in groups %}
+  <h3 style="margin:8px 0 0">{{ group }}{% if group == "Arizona" %} <span class="small muted">· Phoenix office</span>{% elif group == "Texas" %} <span class="small muted">· El Paso office</span>{% endif %}</h3>
+  <div class="notice-grid">
+    {% for n in items %}<div class="notice{% if not n.applies %} na{% endif %}"><i class="bi bi-file-earmark-text" style="font-size:20px;color:var(--accent)" aria-hidden="true"></i>
+      <div style="flex:1"><b>{{ n.title }}</b><span class="small">{{ n.agency }} · {{ n.who }}{% if not n.applies %} · doesn't apply at our current size{% endif %}</span></div>
+      <a class="btn small" href="{{ n.link }}" target="_blank" rel="noopener noreferrer">Open ↗</a></div>{% endfor %}
+  </div>
+  {% endfor %}
+  <p class="small muted" style="margin:0">Questions about your rights at work? Ask H/R, or contact the agency listed on each notice directly.</p>
+</section>
