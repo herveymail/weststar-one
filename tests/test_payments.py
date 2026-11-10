@@ -88,6 +88,7 @@ def test_staff_payment_updates_invoice(inv):
 
 
 def test_portal_pay_now_and_return(client, fake, inv):
+    Setting.put("portal.show_invoices", "true")  # off by default now (invoices are paid from the email link)
     portal(client, inv.client)
     r = client.post(f"/client-portal/invoices/{inv.pk}/", {"autopay": "1"})
     assert r.status_code == 302 and r["Location"].startswith("https://checkout.stripe.com/")
@@ -115,6 +116,7 @@ def test_other_clients_session_is_ignored(client, fake, inv):
 
 
 def test_autopay_setup_in_portal_and_turn_off(client, fake, inv):
+    Setting.put("portal.show_invoices", "true")
     portal(client, inv.client)
     r = client.post("/client-portal/autopay/", {"action": "setup"})
     assert r["Location"].startswith("https://checkout.stripe.com/") and fake.calls[-1][2]["mode"] == "setup"

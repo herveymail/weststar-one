@@ -308,3 +308,12 @@
 .tkg-edit label{display:grid;gap:3px;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);font-weight:700}
 .tkg-edit .tkg-in{width:100%}
 .tkg .files-in{display:none}
+
+/* Close blocked by break/fix sign-off: say so loudly, with the two ways forward */
+.tkg-blocked { margin: 10px 0 0; padding: 12px 14px; border-radius: 10px; border: 1.5px solid #f59e0b; background: #fffbeb; color: #78350f; font-size: 13px; line-height: 1.5;
+  animation: tkg-blocked-in .35s ease-out; }
+.tkg-blocked-row { margin: 8px 0; }
+.tkg-blocked-ov { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin: 0; padding-top: 8px; border-top: 1px dashed #fcd34d; }
+.tkg-blocked-ov label { flex: 1 1 260px; display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+@keyframes tkg-blocked-in { 0% { transform: translateX(-6px); } 25% { transform: translateX(6px); } 50% { transform: translateX(-4px); } 100% { transform: none; } }
+[data-mode="dark"] .tkg-blocked { background: rgba(245,158,11,.12); color: #fde68a; }

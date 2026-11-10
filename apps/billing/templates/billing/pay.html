@@ -5,11 +5,11 @@
   <nav aria-label="{{ company }}">
     <span class="brand">{% if logo_url %}<img src="{{ logo_url }}" alt="{{ company }}" style="max-height:36px;max-width:180px">{% else %}{{ company }}{% endif %}</span>
     <span class="grow"></span>
-    <a class="portal-user" href="/client-portal/login/"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Client portal</a>
+    {% if lb_phone %}<a class="portal-user" href="tel:{{ lb_tel }}"><i class="bi bi-telephone" aria-hidden="true"></i> {{ lb_phone }}</a>{% endif %}
   </nav>
 </header>
 <main class="wrap narrow">
-<div class="row"><span class="grow muted small">Invoice from {{ company }}{% if lb_phone %} · Questions? Call <a href="tel:{{ lb_tel }}">{{ lb_phone }}</a>{% endif %}</span>
+<div class="row"><span class="grow muted small">Invoice from {{ company }}</span>
   <a class="btn" href="{{ base }}pdf/"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Download PDF</a></div>
 {% if msg %}<div class="banner ok" role="status">{{ msg }}</div>{% endif %}
 {% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
@@ -24,9 +24,9 @@
   {% else %}<div class="small muted" style="max-width:280px">To pay{% if lb_phone %}, call us at <b>{{ lb_phone }}</b> or{% endif %} reply to the invoice email.</div>{% endif %}
 </section>
 {% elif inv.status == "Paid" %}<div class="banner ok" role="status">Paid in full — thank you!</div>{% endif %}
-{% include "portal/_invoice_body.html" %}
+{% include "billing/_pay_body.html" %}
 {% if instructions %}<section class="card pad"><h3 style="margin:0 0 6px">Other ways to pay</h3><p class="small" style="margin:0;white-space:pre-wrap">{{ instructions }}</p></section>{% endif %}
-<p class="small muted" style="text-align:center">Anyone with this link can see this invoice. Have a portal account? <a href="/client-portal/login/">Sign in</a> to see all your invoices.</p>
+<p class="small muted" style="text-align:center">This is a private link to your invoice — no account or sign-in needed.{% if lb_email %} Questions? <a href="mailto:{{ lb_email }}">{{ lb_email }}</a>{% endif %}</p>
 </main>
 <footer class="portal-footer">&copy; {% now "Y" %} {{ company }}. All rights reserved.</footer>
 {% endblock %}

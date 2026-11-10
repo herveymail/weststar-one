@@ -383,19 +383,20 @@ document.body.addEventListener('click', (e) => {
 });
 
 // A thin "working…" bar under the top bar whenever something is saving or loading, so a click never looks ignored.
+// Tracked on the request itself (not the clicked button), because the button is often replaced by the answer
+// and its "finished" event never reaches the page — that used to leave the bar running forever.
 (() => {
   let n = 0, timer = null;
   const root = document.documentElement;
+  const done = () => { n = Math.max(0, n - 1); if (!n) { clearTimeout(timer); root.classList.remove('ws-busy'); } };
   const quiet = (e) => e.detail.elt && e.detail.elt.id === 'grid-body' && !(e.detail.requestConfig && e.detail.requestConfig.triggeringEvent && e.detail.requestConfig.triggeringEvent.type === 'ticketsChanged');
-  document.body.addEventListener('htmx:beforeRequest', (e) => {
-    if (e.defaultPrevented || quiet(e)) return;
-    n++; e.detail.elt.dataset.wsBusy = '1';
+  document.body.addEventListener('htmx:beforeSend', (e) => {
+    if (quiet(e) || !e.detail.xhr) return;
+    n++;
     clearTimeout(timer); timer = setTimeout(() => { if (n > 0) root.classList.add('ws-busy'); }, 120);
-  });
-  document.body.addEventListener('htmx:afterRequest', (e) => {
-    if (!e.detail.elt || e.detail.elt.dataset.wsBusy !== '1') return;
-    delete e.detail.elt.dataset.wsBusy;
-    n = Math.max(0, n - 1);
-    if (!n) { clearTimeout(timer); root.classList.remove('ws-busy'); }
+    let finished = false;
+    const end = () => { if (!finished) { finished = true; done(); } };
+    e.detail.xhr.addEventListener('loadend', end);
+    setTimeout(end, 30000);  // never let it spin forever
   });
 })();

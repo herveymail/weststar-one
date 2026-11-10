@@ -221,7 +221,8 @@ def _after_change(request, t, signoff_needed=False):
     if signoff_needed:
         messages.error(request, f"{t.number} is a break/fix ticket: get the customer's sign-off (or override it) before closing.")
     if request.POST.get("ctx") == "panel" or request.GET.get("ctx") == "panel":
-        resp = render(request, "helpdesk/_panel.html", {**_detail_ctx(request, t, panel=True), "signoff_needed": signoff_needed})
+        resp = render(request, "helpdesk/_panel.html", {**_detail_ctx(request, t, panel=True), "signoff_needed": signoff_needed,
+                                                        "close_blocked": request.POST.get("status") if signoff_needed else ""})
         resp["HX-Trigger"] = "ticketsChanged"
         return resp
     if request.headers.get("HX-Request"):
@@ -523,12 +524,12 @@ def ticket_signoff(request, pk):
         if rec:
             close = kind == "completion" and request.POST.get("close") == "1"
             if close and t.status not in ("Resolved", "Closed"):
-                services.update_ticket(t, user=request.user, request=request, status="Resolved",
+                services.update_ticket(t, user=request.user, request=request, status="Closed" if request.POST.get("close_status") == "Closed" else "Resolved",
                                        resolution=t.resolution or (data["summary"] or "Completed and signed off by the customer"))
             what = "Drop-off" if kind == "dropoff" else "Completion"
             messages.success(request, f"{what} sign-off overridden and noted on the ticket." if rec.overridden else
                              f"{what} signed by the customer." + (" A copy was emailed to them." if (rec.signer_email or t.contact_email) else ""))
-            return redirect(f"/tickets/{t.pk}/?classic=1")
+            return redirect(f"/tickets/?open={t.pk}" if request.POST.get("back") == "grid" else f"/tickets/{t.pk}/?classic=1")
     ch = so.charges(t)
     summary = t.resolution or (t.messages.filter(kind__in=["work", "reply"], author__isnull=False).order_by("-created_at").values_list("body", flat=True).first() or "")[:1000]
     return render(request, "helpdesk/signoff.html", {

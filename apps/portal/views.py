@@ -54,8 +54,10 @@ def _ctx(request, **extra) -> dict:
         from .models import PERMS
         ctx["can"] = {p: pu.can(p) for p, _l in PERMS}
         nav = [("home", "Home", "/client-portal/"), ("tickets", "Tickets", "/client-portal/tickets/")]
+        if pu.can("billing") and enabled("show_invoices"):  # off by default: invoices are paid from the emailed link, no sign-in
+            nav.append(("invoices", "Invoices", "/client-portal/invoices/"))
         if pu.can("billing") and enabled("show_billing"):
-            nav += [("invoices", "Invoices", "/client-portal/invoices/"), ("quotes", "Quotes", "/client-portal/quotes/")]
+            nav.append(("quotes", "Quotes", "/client-portal/quotes/"))
         if pu.can("contracts") and enabled("show_contracts"):
             nav.append(("contracts", "Contracts", "/client-portal/contracts/"))
         if pu.can("policies") and enabled("show_policies"):
@@ -196,11 +198,12 @@ def home(request):
     pu = request.portal_user
     ctx = _ctx(request, recent=my_tickets(pu).order_by("-updated_at")[:5], welcome=Setting.get("portal.welcome", ""),
                company_hours=Setting.get("company.hours", ""), after_hours_phone=Setting.get("company.after_hours_phone", ""))
-    if pu.can("billing") and enabled("show_billing"):
+    if pu.can("billing") and enabled("show_invoices"):
         unpaid = Invoice.objects.filter(client=pu.client, status__in=UNPAID, archived_at__isnull=True)
         agg = unpaid.aggregate(t=Sum("total"), p=Sum("amount_paid"))
-        ctx.update(unpaid=unpaid.order_by("due_date")[:5], unpaid_count=unpaid.count(), balance=(agg["t"] or 0) - (agg["p"] or 0),
-                   quotes_waiting=Quote.objects.filter(client=pu.client, status="Sent", archived_at__isnull=True)[:5])
+        ctx.update(unpaid=unpaid.order_by("due_date")[:5], unpaid_count=unpaid.count(), balance=(agg["t"] or 0) - (agg["p"] or 0))
+    if pu.can("billing") and enabled("show_billing"):
+        ctx["quotes_waiting"] = Quote.objects.filter(client=pu.client, status="Sent", archived_at__isnull=True)[:5]
     if pu.can("contracts") and enabled("show_contracts"):
         ctx["active_contracts"] = Contract.objects.filter(client=pu.client, status="Active", archived_at__isnull=True).count()
         ctx["to_sign"] = Contract.objects.filter(client=pu.client, status="Sent", archived_at__isnull=True)[:5]
@@ -308,7 +311,7 @@ def file_download(request, pk):
 
 
 # ── billing ──
-@portal_login_required("billing", "billing")
+@portal_login_required("billing", "invoices")
 def invoices(request):
     pu = request.portal_user
     qs = Invoice.objects.filter(client=pu.client, archived_at__isnull=True).exclude(status__in=["Draft", "Void"])
@@ -322,7 +325,7 @@ def invoices(request):
                                                         autopay_available=Setting.get("autopay.enabled", "true") != "false"))
 
 
-@portal_login_required("billing", "billing")
+@portal_login_required("billing", "invoices")
 def invoice(request, pk):
     from apps.billing import payments, stripe_api
     pu = request.portal_user
@@ -358,7 +361,7 @@ def invoice(request, pk):
                                                       can_pay=stripe_api.configured(), client=client))
 
 
-@portal_login_required("billing", "billing")
+@portal_login_required("billing", "invoices")
 def autopay(request):
     """Billing › AutoPay: put a card or bank account on file, change it, or turn AutoPay off."""
     from apps.billing import payments, stripe_api
@@ -666,64 +669,9 @@ def profile(request):
 _ = pysecrets
 
 
-def _public_invoice(request, token):
-    if Setting.get("billing.public_links", "true") == "false" or len(token) < 20:
-        raise Http404
-    inv = Invoice.objects.select_related("client").filter(public_token=token, archived_at__isnull=True).exclude(status="Draft").first()
-    if inv is None:
-        raise Http404
-    return inv
-
-
-def public_invoice(request, token):
-    """The invoice email link: view, download and pay without signing in (the long random link is the key)."""
-    from apps.billing import payments, stripe_api
-    from apps.core.branding import login_brand, logo_url
-    from apps.core.net import client_ip
-    inv = _public_invoice(request, token)
-    base = f"{settings.PORTAL_BASE}/i/{token}/"
-    if inv.status == "Sent" and not request.user.is_authenticated:  # staff checking the link don't count as the client viewing it
-        Invoice.objects.filter(pk=inv.pk, status="Sent").update(status="Viewed")
-        inv.status = "Viewed"
-    msg, error = "", ""
-    if request.GET.get("session"):
-        try:
-            msg = payments.finish_checkout(request.GET["session"][:200], expect_client=inv.client)
-        except stripe_api.StripeError as e:
-            error = f"We couldn't confirm the payment yet ({e}). If you were charged, it will show here shortly."
-        inv.refresh_from_db()
-    elif request.GET.get("cancelled"):
-        error = "Payment cancelled — nothing was charged."
-    if request.method == "POST" and inv.status != "Void" and inv.balance > 0:
-        if not stripe_api.configured():
-            error = "Online payment isn't available right now. Please call us."
-        elif not _rate_ok(f"ipay:{client_ip(request)}", 20, 3600):
-            error = "Too many tries — please wait a bit."
-        else:
-            try:
-                return redirect(payments.checkout_pay(inv, base, base + "?cancelled=1"))
-            except stripe_api.StripeError as e:
-                error = str(e)
-    pays = inv.payments.filter(archived_at__isnull=True).exclude(status="Failed").order_by("-paid_on", "-id")
-    resp = render(request, "portal/public_invoice.html", {
-        **login_brand(), "company": Setting.get("company.name", "") or "Weststar MSP", "logo_url": logo_url(),
-        "inv": inv, "lines": inv.lines.all(), "balance": inv.balance, "pays": pays, "client": inv.client, "base": base,
-        "msg": msg, "error": error, "can_pay": stripe_api.configured(), "instructions": Setting.get("billing.payment_instructions", "")})
-    resp["X-Robots-Tag"] = "noindex, nofollow"
-    resp["Cache-Control"] = "private, no-store"
-    return resp
-
-
-def public_invoice_pdf(request, token):
-    from django.http import HttpResponse
-
-    from apps.billing.documents import filename, pdf
-    inv = _public_invoice(request, token)
-    r = HttpResponse(pdf(inv, "invoice"), content_type="application/pdf")
-    r["Content-Disposition"] = f'attachment; filename="{filename(inv, "invoice")}"'
-    r["X-Robots-Tag"] = "noindex, nofollow"
-    r["Cache-Control"] = "private, no-store"
-    return r
+def old_public_invoice(request, token, rest=""):
+    """Invoice links sent before they moved to /pay/ keep working."""
+    return redirect(f"/pay/{token}/{rest}")
 
 
 @portal_login_required("billing", "billing")

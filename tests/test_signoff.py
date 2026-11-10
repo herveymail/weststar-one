@@ -104,3 +104,13 @@ def test_only_admins_delete(client):
     tech = signed_in(client, make_user(role="tech"))
     t = services.create_ticket(subject="x")
     assert tech.post(f"/tickets/{t.pk}/delete/", {"confirm": t.number}).status_code == 403
+
+
+def test_blocked_close_in_panel_explains_and_offers_override(setup):
+    web, admin, t = setup
+    page = web.post(f"/tickets/{t.pk}/update/", {"status": "Closed", "ctx": "panel"}).content.decode()
+    assert "Not closed yet" in page and "Close without signature" in page and 'name="close_status" value="Closed"' in page
+    r = web.post(f"/tickets/{t.pk}/signoff/?type=completion", {"type": "completion", "override": "1", "override_reason": "Remote job, nobody on site",
+                                                              "close": "1", "close_status": "Closed", "back": "grid"})
+    t.refresh_from_db()
+    assert r["Location"] == f"/tickets/?open={t.pk}" and t.status == "Closed"

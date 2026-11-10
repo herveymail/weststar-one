@@ -285,8 +285,9 @@ class Expense(Record):
 
 
 def invoice_link(inv: "Invoice") -> str:
-    """The link clients get by email: view, download and pay this invoice without signing in to the portal.
-    Falls back to the portal page when links without sign-in are turned off (Settings › Invoice defaults)."""
+    """The link clients get by email: view, download and pay this invoice without signing in.
+    It lives on the main address (APP_URL/pay/…), not the client portal, so it works even when the portal is
+    off or not set up. Falls back to the portal page only when links without sign-in are turned off."""
     import secrets
 
     from django.conf import settings as dj
@@ -297,4 +298,4 @@ def invoice_link(inv: "Invoice") -> str:
     if not inv.public_token:
         inv.public_token = secrets.token_urlsafe(24)
         Invoice.objects.filter(pk=inv.pk).update(public_token=inv.public_token)
-    return f"{dj.PORTAL_BASE}/i/{inv.public_token}/"
+    return f"{dj.APP_URL}/pay/{inv.public_token}/"

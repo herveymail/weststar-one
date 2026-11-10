@@ -66,36 +66,39 @@ def test_emailed_link_works_without_signing_in(client, inv, monkeypatch):
     monkeypatch.setattr(mail, "send", lambda to, subject, tpl, ctx, **kw: sent.update(link=ctx["link"], **kw) or True)
     web.post(f"/billing/invoice/{inv.pk}/send/", {"to": "pat@acme.test", "subject": "Invoice INV-9", "message": "Hi", "attach": "1"})
     inv.refresh_from_db()
-    assert "/client-portal/i/" in sent["link"] and inv.public_token and sent["link"] == invoice_link(inv)
+    assert "/pay/" in sent["link"] and "client-portal" not in sent["link"] and inv.public_token and sent["link"] == invoice_link(inv)
     assert sent["attachments"][0][1][:5] == b"%PDF-"
     web.post("/logout/")
     from django.test import Client as Browser
     anon = Browser()
-    path = sent["link"].split("/client-portal", 1)[1]
-    page = anon.get("/client-portal" + path)
+    path = "/pay/" + inv.public_token + "/"
+    Setting.put("portal.enabled", "false")  # works even with the client portal switched off
+    page = anon.get(path)
     assert page.status_code == 200 and b"INV-9" in page.content and b"Download PDF" in page.content and page["X-Robots-Tag"].startswith("noindex")
     inv.refresh_from_db()
     assert inv.status == "Viewed"
-    pdf = anon.get("/client-portal" + path + "pdf/")
+    assert anon.get(f"/client-portal/i/{inv.public_token}/")["Location"] == path  # links sent before the move still work
+    pdf = anon.get(path + "pdf/")
     assert pdf.status_code == 200 and pdf.content[:5] == b"%PDF-"
     # Pay goes straight to Stripe's checkout page
     monkeypatch.setattr(stripe_api, "configured", lambda: True)
     monkeypatch.setattr(payments, "checkout_pay", lambda inv, ok, cancel, **kw: "https://checkout.stripe.com/c/pay/test")
-    r = anon.post("/client-portal" + path)
+    r = anon.post(path)
     assert r.status_code == 302 and r["Location"].startswith("https://checkout.stripe.com/")
     # Wrong, short or switched-off links don't work
-    assert anon.get("/client-portal/i/not-the-right-token-at-all/").status_code == 404
+    assert anon.get("/pay/not-the-right-token-at-all/").status_code == 404
     Setting.put("billing.public_links", "false")
-    assert anon.get("/client-portal" + path).status_code == 404
+    assert anon.get(path).status_code == 404
     assert "/client-portal/invoices/" in invoice_link(inv)
 
 
 def test_draft_and_void_invoices(client, inv):
     from apps.billing.models import invoice_link
-    link = invoice_link(inv).split("/client-portal", 1)[1]
-    assert client.get("/client-portal" + link).status_code == 404  # still a draft
+    invoice_link(inv)
+    link = f"/pay/{Invoice.objects.get(pk=inv.pk).public_token}/"
+    assert client.get(link).status_code == 404  # still a draft
     Invoice.objects.filter(pk=inv.pk).update(status="Void")
-    assert b"cancelled" in client.get("/client-portal" + link).content
+    assert b"cancelled" in client.get(link).content
 
 
 def test_pay_buttons_may_hand_over_to_stripe(client):

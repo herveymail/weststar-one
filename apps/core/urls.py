@@ -8,6 +8,7 @@ from apps.files import views as fv
 from apps.hr import views as hr
 from apps.legacy import views as lv
 from apps.portal import staff_views as psv
+from apps.billing import pay_views
 from apps.billing import views as bv
 from apps.integrations import views as iv
 
@@ -69,6 +70,8 @@ urlpatterns = [
     path("clients/<int:pk>/portal/", psv.client_portal, name="client_portal"),
     path("clients/<int:pk>/autopay/", bv.client_autopay, name="client_autopay"),
     path("stripe/webhook/", bv.stripe_webhook, name="stripe_webhook"),
+    path("pay/<str:token>/", pay_views.pay_page, name="pay_page"),
+    path("pay/<str:token>/pdf/", pay_views.pay_pdf, name="pay_pdf"),
     path("billing/<slug:kind>/<int:pk>/", bv.document, name="document"),
     path("billing/<slug:kind>/<int:pk>/pdf/", bv.document_pdf, name="document_pdf"),
     path("billing/<slug:kind>/<int:pk>/send/", bv.document_send, name="document_send"),

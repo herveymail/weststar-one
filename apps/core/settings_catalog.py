@@ -37,7 +37,7 @@ SETTINGS = [
         ("queues", "Helpdesk queues", "Level 1, Level 2, Billing, Dev, Bug Reports", "queues"),
         ("saved_replies", "Saved replies", "Reply templates", [("tickets.saved_replies", "Saved replies (separate with a line of ---)", TA)]),
         ("portal", "Customer portal", "What clients can see and do in the portal", [H("Access"), ("portal.enabled", "Portal is on", B), ("portal.welcome", "Welcome message on the portal home page", TA), ("portal.magic_links", "Allow \"Email me a sign-in link\"", B), ("portal.reopen_hours", "Clients can reopen a closed ticket for (hours)", I),
-            H("What clients can see"), ("portal.show_billing", "Show invoices & quotes", B), ("portal.show_contracts", "Show contracts", B), ("portal.show_policies", "Show policies", B), ("portal.show_assets", "Show assets", B), ("portal.show_kb", "Show help articles", B), ("portal.show_messages", "Show secure messages", B)]),
+            H("What clients can see"), ("portal.show_invoices", "Show invoices & AutoPay (normally off: clients pay from the invoice email link, no sign-in)", B), ("portal.show_billing", "Show quotes", B), ("portal.show_contracts", "Show contracts", B), ("portal.show_policies", "Show policies", B), ("portal.show_assets", "Show assets", B), ("portal.show_kb", "Show help articles", B), ("portal.show_messages", "Show secure messages", B)]),
     ]),
     ("comms", "Email & messaging", "Email, chat and phone connections", [
         ("email", "Email sending", "How Weststar One sends email to clients and staff", [H("Provider"), ("email.provider", "Provider", SEL, ["Google Workspace (Gmail API)", "Gmail / SMTP", "SMTP2GO (HTTPS)"]),
@@ -99,7 +99,7 @@ SETTINGS = [
 # Shown (and used) when a setting has never been saved.
 DEFAULTS = {
     "billing.public_links": "true",
-    "portal.enabled": "true", "portal.magic_links": "true", "portal.reopen_hours": "48", "portal.show_billing": "true", "portal.show_contracts": "true",
+    "portal.enabled": "true", "portal.magic_links": "true", "portal.reopen_hours": "48", "portal.show_billing": "true", "portal.show_invoices": "false", "portal.show_contracts": "true",
     "portal.show_policies": "true", "portal.show_assets": "true", "portal.show_kb": "true", "portal.show_messages": "true",
     "tickets.email_ack": "true", "tickets.email_on_close": "true", "tickets.auto_add_contacts": "true", "tickets.email_priority": "Medium",
     "chat.notify_new_ticket": "true", "chat.notify_client_replies": "true", "email.imap_host": "imap.gmail.com", "email.imap_port": "993",

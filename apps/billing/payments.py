@@ -282,7 +282,7 @@ def send_failed(inv: Invoice, message: str, give_up: bool):
     c = inv.client
     mail.send(_billing_people(c), f"We couldn't charge your {c.autopay_label or 'payment method'} — {inv.number}", "email/autopay_failed",
               {"inv": inv, "c": c, "message": message, "give_up": give_up, "retry_days": _int("autopay.retry_days", 3),
-               "link": f"{settings.PORTAL_BASE}/autopay/"})
+               "link": invoice_link(inv)})
     staff = Setting.get("company.billing_email", "") or Setting.get("email.support_address", "")
     if staff:
         mail.send(staff, f"AutoPay failed: {c.name} {inv.number}", "email/portal_staff_notice",

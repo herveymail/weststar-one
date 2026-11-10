@@ -152,6 +152,7 @@ def test_group_controls_access(client, acme):
 
 
 def test_billing_pages_and_quote_accept(client, acme):
+    Setting.put("portal.show_invoices", "true")
     make_pu(acme, can_billing=True)
     inv = Invoice.objects.create(client=acme, number="INV-1", status="Sent", invoice_date=date.today(), due_date=date.today())
     InvoiceLine.objects.create(invoice=inv, description="Support", qty=2, rate=Decimal("50"))
@@ -238,3 +239,12 @@ def test_client_admin_invite(client, acme):
     client.post("/client-portal/profile/", {"action": "invite", "name": "Sam", "email": "sam@acme.test"})
     sam = PortalUser.objects.get(email="sam@acme.test")
     assert sam.client == acme and not sam.has_password and sam.tokens.filter(kind="invite").exists()
+
+
+def test_invoices_hidden_from_portal_by_default(client, acme):
+    """The portal is for tickets and contracts; invoices are paid from the emailed link."""
+    pu = make_pu(acme, can_billing=True)
+    signed = client.post("/client-portal/login/", {"email": pu.email, "password": PW, "action": "password"})
+    assert signed.status_code in (200, 302)
+    home = client.get("/client-portal/").content.decode()
+    assert "/client-portal/invoices/" not in home

@@ -59,7 +59,18 @@
     {% else %}<button type="button" class="tkg-btn" hx-post="/tickets/{{ t.pk }}/update/" hx-vals='{"status":"Open","ctx":"panel"}' hx-target="#panel" hx-swap="outerHTML">↺ Reopen</button>{% endif %}
     {% endif %}
   </div>
-  {% if signoff_needed %}<div class="warn"><b>Break/fix:</b> the customer signs off before this ticket can be closed. <a href="/tickets/{{ t.pk }}/signoff/?type=completion"><b>Get signature</b></a></div>{% endif %}
+  {% if close_blocked %}
+  <div class="tkg-blocked" role="alert">
+    <b>⚠ Not {{ close_blocked|lower }} yet.</b> {{ t.client.name }} is a break/fix client, so the customer signs off on the work first.
+    <div class="tkg-blocked-row"><a class="tkg-btn p" href="/tickets/{{ t.pk }}/signoff/?type=completion">✍ Get customer signature</a></div>
+    <form method="post" action="/tickets/{{ t.pk }}/signoff/?type=completion" class="tkg-blocked-ov">{% csrf_token %}
+      <input type="hidden" name="type" value="completion"><input type="hidden" name="override" value="1"><input type="hidden" name="close" value="1">
+      <input type="hidden" name="close_status" value="{{ close_blocked }}"><input type="hidden" name="back" value="grid">
+      <label>Or close without a signature — reason (customer not on site, remote job…)
+        <input name="override_reason" class="tkg-in" required minlength="8" maxlength="1000" placeholder="e.g. Remote job, customer not available to sign"></label>
+      <button class="tkg-btn">Close without signature</button></form>
+  </div>
+  {% elif signoff_needed %}<div class="warn"><b>Break/fix:</b> the customer signs off before this ticket can be closed. <a href="/tickets/{{ t.pk }}/signoff/?type=completion"><b>Get signature</b></a></div>{% endif %}
   {% if t.merged_into %}<div class="warn">⇢ This ticket was merged into <a href="/tickets/{{ t.merged_into_id }}/">{{ t.merged_into.number }}</a>.</div>{% endif %}
   {% if t.is_snoozed %}<div class="warn">⏰ Snoozed until {{ t.snoozed_until|when }}.</div>{% endif %}
   {% if t.client %}
