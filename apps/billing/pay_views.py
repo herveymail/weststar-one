@@ -6,7 +6,7 @@ The token is long and random (unguessable); only invoices that were sent (not dr
 """
 from django.conf import settings
 from django.core.cache import cache
-from django.http import Http404, HttpResponse
+from django.http import HttpResponse
 from django.shortcuts import redirect, render
 
 from apps.core.models import Setting
@@ -14,13 +14,24 @@ from apps.core.models import Setting
 from .models import Invoice
 
 
-def _invoice(token):
+class Unavailable(Exception):
+    pass
+
+
+def _invoice(request, token):
+    """The invoice for this link. Drafts open only for signed-in staff (the preview on the Send page)."""
     if Setting.get("billing.public_links", "true") == "false" or len(token) < 20:
-        raise Http404
-    inv = Invoice.objects.select_related("client").filter(public_token=token, archived_at__isnull=True).exclude(status="Draft").first()
-    if inv is None:
-        raise Http404
+        raise Unavailable
+    inv = Invoice.objects.select_related("client").filter(public_token=token, archived_at__isnull=True).first()
+    if inv is None or (inv.status == "Draft" and not request.user.is_authenticated):
+        raise Unavailable
     return inv
+
+
+def _unavailable(request):
+    from apps.core.branding import login_brand, logo_url
+    return _private(render(request, "billing/pay_unavailable.html", {
+        **login_brand(), "company": Setting.get("company.name", "") or "Weststar MSP", "logo_url": logo_url()}, status=404))
 
 
 def _rate_ok(key, limit, seconds):
@@ -43,7 +54,10 @@ def pay_page(request, token):
     from apps.core.net import client_ip
 
     from . import payments, stripe_api
-    inv = _invoice(token)
+    try:
+        inv = _invoice(request, token)
+    except Unavailable:
+        return _unavailable(request)
     base = f"{settings.APP_URL}/pay/{token}/"
     if inv.status == "Sent" and not request.user.is_authenticated:  # staff opening the link don't count as the client viewing it
         Invoice.objects.filter(pk=inv.pk, status="Sent").update(status="Viewed")
@@ -57,7 +71,7 @@ def pay_page(request, token):
         inv.refresh_from_db()
     elif request.GET.get("cancelled"):
         error = "Payment cancelled — nothing was charged."
-    if request.method == "POST" and inv.status != "Void" and inv.balance > 0:
+    if request.method == "POST" and inv.status not in ("Void", "Draft") and inv.balance > 0:
         if not stripe_api.configured():
             error = "Online payment isn't available right now. Please call us."
         elif not _rate_ok(f"pay:{client_ip(request)}", 20, 3600):
@@ -71,12 +85,15 @@ def pay_page(request, token):
     return _private(render(request, "billing/pay.html", {
         **login_brand(), "company": Setting.get("company.name", "") or "Weststar MSP", "logo_url": logo_url(),
         "inv": inv, "lines": inv.lines.all(), "balance": inv.balance, "pays": pays, "client": inv.client, "base": base,
-        "msg": msg, "error": error, "can_pay": stripe_api.configured(), "instructions": Setting.get("billing.payment_instructions", "")}))
+        "msg": msg, "error": error, "can_pay": stripe_api.configured() and inv.status != "Draft", "is_draft": inv.status == "Draft", "instructions": Setting.get("billing.payment_instructions", "")}))
 
 
 def pay_pdf(request, token):
     from .documents import filename, pdf
-    inv = _invoice(token)
+    try:
+        inv = _invoice(request, token)
+    except Unavailable:
+        return _unavailable(request)
     r = HttpResponse(pdf(inv, "invoice"), content_type="application/pdf")
     r["Content-Disposition"] = f'attachment; filename="{filename(inv, "invoice")}"'
     return _private(r)

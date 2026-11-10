@@ -96,7 +96,12 @@ def test_draft_and_void_invoices(client, inv):
     from apps.billing.models import invoice_link
     invoice_link(inv)
     link = f"/pay/{Invoice.objects.get(pk=inv.pk).public_token}/"
-    assert client.get(link).status_code == 404  # still a draft
+    r = client.get(link)
+    assert r.status_code == 404 and b"isn't available" in r.content  # still a draft: clients can't open it yet
+    Setting.put("security.require_mfa", "nobody")
+    staff = signed_in(client, make_user(role="admin"))
+    assert b"still a draft" in staff.get(link).content  # the preview on the Send page works for staff
+    staff.post("/logout/")
     Invoice.objects.filter(pk=inv.pk).update(status="Void")
     assert b"cancelled" in client.get(link).content
 

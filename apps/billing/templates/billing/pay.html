@@ -11,6 +11,7 @@
 <main class="wrap narrow">
 <div class="row"><span class="grow muted small">Invoice from {{ company }}</span>
   <a class="btn" href="{{ base }}pdf/"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Download PDF</a></div>
+{% if is_draft %}<div class="banner" role="status"><b>Preview — this invoice is still a draft.</b> This is what the client will see. They can only open it (and pay) once you click <b>Send now</b>.</div>{% endif %}
 {% if msg %}<div class="banner ok" role="status">{{ msg }}</div>{% endif %}
 {% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
 {% if inv.status == "Void" %}<div class="banner" role="status">This invoice has been cancelled. Nothing is owed on it.</div>
