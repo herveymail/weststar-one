@@ -529,14 +529,16 @@ def ticket_signoff(request, pk):
             what = "Drop-off" if kind == "dropoff" else "Completion"
             messages.success(request, f"{what} sign-off overridden and noted on the ticket." if rec.overridden else
                              f"{what} signed by the customer." + (" A copy was emailed to them." if (rec.signer_email or t.contact_email) else ""))
-            return redirect(f"/tickets/?open={t.pk}" if request.POST.get("back") == "grid" else f"/tickets/{t.pk}/?classic=1")
+            back = request.POST.get("back")
+            return redirect(f"/tech/t/{t.pk}/" if back == "tech" else f"/tickets/?open={t.pk}" if back == "grid" else f"/tickets/{t.pk}/?classic=1")
     ch = so.charges(t)
     summary = t.resolution or (t.messages.filter(kind__in=["work", "reply"], author__isnull=False).order_by("-created_at").values_list("body", flat=True).first() or "")[:1000]
     return render(request, "helpdesk/signoff.html", {
         "t": t, "kind": kind, "ch": ch, "breakfix": so.is_breakfix(t.client), "error": error, "post": request.POST,
         "summary": summary, "signer_name": t.contact.name if t.contact else t.contact_name, "signer_email": t.contact.email if t.contact else t.contact_email,
         "signer_title": t.contact.title if t.contact else "", "history": t.signoffs.select_related("user"),
-        "company": Setting.get("company.name", "") or "Weststar MSP"}, status=422 if error else 200)
+        "company": Setting.get("company.name", "") or "Weststar MSP",
+        "back": request.GET.get("back", request.POST.get("back", "")) if request.GET.get("back", request.POST.get("back", "")) in ("tech", "grid") else ""}, status=422 if error else 200)
 
 
 @login_required

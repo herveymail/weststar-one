@@ -1,0 +1,57 @@
+{% extends "tech/base.html" %}{% block title %}{{ t.number }}{% endblock %}
+{% block body %}
+<header class="bar"><a class="back" href="/tech/tickets/"><i class="bi bi-chevron-left"></i> Tickets</a>
+  <div class="row" style="margin-top:6px"><span class="muted">{{ t.number }}</span><span class="pri pri-{{ t.priority|lower }}">{{ t.priority }}</span></div>
+  <h1 class="t-subj">{{ t.subject }}</h1>
+  <p class="muted" style="margin:2px 0 0">{{ t.client.name|default:"No client" }}{% if t.contact_name or t.contact %} · {{ t.contact.name|default:t.contact_name }}{% endif %}{% if t.device %} · <i class="bi bi-pc-display"></i> {{ t.device }}{% endif %}</p>
+</header>
+<main class="page">
+<div class="quick">
+  {% if tel %}<a class="q" href="tel:{{ tel }}"><i class="bi bi-telephone-fill"></i>Call</a>{% else %}<span class="q off"><i class="bi bi-telephone"></i>No phone</span>{% endif %}
+  {% if maps %}<a class="q" href="{{ maps }}"><i class="bi bi-geo-alt-fill"></i>Directions</a>{% else %}<span class="q off"><i class="bi bi-geo-alt"></i>No address</span>{% endif %}
+  {% if t.contact_email or t.contact.email %}<a class="q" href="mailto:{{ t.contact.email|default:t.contact_email }}"><i class="bi bi-envelope-fill"></i>Email</a>{% endif %}
+  {% if edit %}<a class="q" href="/tickets/{{ t.pk }}/signoff/?type=completion&back=tech"><i class="bi bi-pen-fill"></i>Signature</a>{% endif %}
+</div>
+
+{% if edit %}
+<section class="card">
+  {% if not t.assigned_to %}<form method="post">{% csrf_token %}<button class="btn wide" name="action" value="take"><i class="bi bi-person-check"></i> Assign to me</button></form>{% endif %}
+  <form method="post" class="timer-box">{% csrf_token %}<input type="hidden" name="action" value="timer">
+    {% if timer_here %}<div><small class="muted">Timer running</small><div class="clock-run big" data-since="{{ timer_here.started_at|date:'c' }}">…</div></div>
+      <button class="btn danger"><i class="bi bi-stop-fill"></i> Stop &amp; log</button>
+    {% else %}<div><small class="muted">Time on this ticket</small><div class="big">{{ logged|default:"0" }} h</div></div>
+      <button class="btn go"><i class="bi bi-play-fill"></i> Start timer</button>{% endif %}
+  </form>
+  <form method="post" class="row status-form">{% csrf_token %}<input type="hidden" name="action" value="status">
+    <label for="st" class="muted">Status</label><select id="st" name="status" class="input grow" data-autosubmit>{% for s in statuses %}<option{% if s == t.status %} selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+    <noscript><button class="btn">Save</button></noscript></form>
+  {% if breakfix %}<p class="small {% if signed %}ok-text{% else %}warn-text{% endif %}" style="margin:8px 0 0"><i class="bi bi-{% if signed %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+    {% if signed %}Customer signed {{ signed.created_at|date:"M j g:i A" }}{% else %}Break/fix client — get the customer's signature before closing{% endif %}</p>{% endif %}
+</section>
+
+<section class="card">
+  <form method="post" enctype="multipart/form-data" class="stack">{% csrf_token %}<input type="hidden" name="action" value="note">
+    <div class="seg" role="radiogroup" aria-label="Type">
+      <label><input type="radio" name="kind" value="note" checked><span>Private note</span></label>
+      <label><input type="radio" name="kind" value="work"><span>Work log</span></label>
+      <label><input type="radio" name="kind" value="reply"><span>Reply to client</span></label></div>
+    <textarea name="body" class="input" rows="3" placeholder="What did you do / find?" aria-label="Note"></textarea>
+    <div class="row">
+      <label class="photo-btn"><i class="bi bi-camera-fill"></i> Photo<input type="file" name="files" accept="image/*" capture="environment" multiple hidden data-count></label>
+      <select name="hours" class="input" aria-label="Time spent"><option value="">No time</option>{% for h in hours %}<option value="{{ h }}">{{ h }} h</option>{% endfor %}</select>
+      <select name="work_type" class="input" aria-label="Work type">{% for v in work_types %}<option{% if v == "On-site" %} selected{% endif %}>{{ v }}</option>{% endfor %}</select>
+    </div>
+    <span class="small muted" data-count-label></span>
+    <button class="btn primary wide">Save</button>
+  </form>
+</section>
+{% endif %}
+
+{% if photos %}<h2 class="sec">Photos</h2><div class="photos">{% for p in photos %}<a href="/files/{{ p.pk }}/"><img src="/files/{{ p.pk }}/?view=1" alt="{{ p.original_name }}" loading="lazy"></a>{% endfor %}</div>{% endif %}
+
+{% if t.details %}<h2 class="sec">Details</h2><div class="card pre">{{ t.details|truncatechars:3000 }}</div>{% endif %}
+<h2 class="sec">Activity</h2>
+<div class="feed">{% for m in msgs %}<div class="msg k-{{ m.kind }}"><div class="row"><b>{{ m.who }}</b><small class="muted">{{ m.get_kind_display }} · {{ m.created_at|date:"M j g:i A" }}</small></div><div class="pre">{{ m.body|truncatechars:1500 }}</div></div>{% empty %}<p class="empty">No activity yet.</p>{% endfor %}</div>
+<a class="more" href="/tickets/{{ t.pk }}/?classic=1">Open the full ticket ›</a>
+</main>
+{% endblock %}

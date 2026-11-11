@@ -3,14 +3,14 @@
 <title>{% if kind == "dropoff" %}Equipment drop-off{% else %}Customer sign-off{% endif %} · {{ t.number }}</title>
 <link rel="stylesheet" href="{% static 'helpdesk/signoff.css' %}"><script src="{% static 'helpdesk/signoff.js' %}" defer></script></head>
 <body><div class="wrap" id="so-page" data-type="{{ kind }}" data-rate="{{ ch.rate }}" data-tax="{{ ch.tax_rate }}" data-company="{{ company }}">
-<div class="top"><a href="/tickets/{{ t.pk }}/?classic=1">‹ Back to ticket</a><span class="muted">{{ company }}</span></div>
+<div class="top"><a href="{% if back == 'tech' %}/tech/t/{{ t.pk }}/{% else %}/tickets/{{ t.pk }}/?classic=1{% endif %}">‹ Back to ticket</a><span class="muted">{{ company }}</span></div>
 {% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
 <div class="card">
   <h1>{% if kind == "dropoff" %}Equipment drop-off{% else %}Service completion sign-off{% endif %}</h1>
   <div class="muted">{{ t.number }} · {{ t.client.name|default:"No client" }} {% if breakfix %}<span class="badge">Break/fix</span>{% endif %}<br>{{ t.subject }}</div>
-  <div class="tabs"><a class="{% if kind == 'completion' %}on{% endif %}" href="?type=completion">Work completed</a><a class="{% if kind == 'dropoff' %}on{% endif %}" href="?type=dropoff">Drop-off</a></div>
+  <div class="tabs"><a class="{% if kind == 'completion' %}on{% endif %}" href="?type=completion{% if back %}&back={{ back }}{% endif %}">Work completed</a><a class="{% if kind == 'dropoff' %}on{% endif %}" href="?type=dropoff{% if back %}&back={{ back }}{% endif %}">Drop-off</a></div>
 </div>
-<form method="post" id="so-form">{% csrf_token %}
+<form method="post" id="so-form">{% csrf_token %}{% if back %}<input type="hidden" name="back" value="{{ back }}">{% endif %}
 <input type="hidden" name="type" value="{{ kind }}"><input type="hidden" name="signature" id="sig-data"><input type="hidden" name="override" id="ov-flag" value="0">
 <div class="card">
 {% if kind == "completion" %}

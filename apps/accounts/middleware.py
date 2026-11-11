@@ -6,7 +6,7 @@ from .models import UserSession
 from .google import counts_as_2fa as google_counts_as_2fa
 from .security import idle_minutes, mfa_required
 
-OPEN_PATHS = ("/login/", "/static/", "/health/", "/client-portal/", "/portal", "/stripe/webhook/", "/brand/", "/pay/", "/quote/", "/sign/", "/legal/")  # /pay/ /quote/ /sign/ = invoice, quote and contract email links (token-checked); the portal has its own sign-in (apps/portal/auth.py)
+OPEN_PATHS = ("/login/", "/static/", "/health/", "/client-portal/", "/portal", "/stripe/webhook/", "/brand/", "/pay/", "/quote/", "/sign/", "/legal/", "/tech/manifest.webmanifest", "/tech/sw.js", "/tech/offline/")  # /pay/ /quote/ /sign/ = invoice, quote and contract email links (token-checked); the portal has its own sign-in (apps/portal/auth.py)
 # Paths allowed while a sign-in is only half finished.
 STEP_PATHS = ("/login/mfa/", "/logout/", "/account/password/", "/account/mfa-setup/")
 
@@ -32,7 +32,12 @@ class SessionGuardMiddleware:
         now = timezone.now()
         us = UserSession.objects.filter(session_key=key, revoked_at__isnull=True).only("id", "last_seen_at").first()
         last = request.session.get("last_seen", 0)
-        if us is None or now.timestamp() - last > idle_minutes() * 60:
+        limit = idle_minutes() * 60
+        if request.session.get("tech_app"):
+            # Signed in from the phone app (Settings › Security › Tech app): stays signed in for that many days.
+            from apps.helpdesk.tech_views import stay_days
+            limit = max(limit, stay_days() * 86400)
+        if us is None or now.timestamp() - last > limit:
             logout(request)
             if us:
                 UserSession.objects.filter(pk=us.pk).update(revoked_at=now)

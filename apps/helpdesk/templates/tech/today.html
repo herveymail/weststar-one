@@ -1,0 +1,22 @@
+{% extends "tech/base.html" %}{% block title %}Today{% endblock %}{% block bodyclass %}has-hero{% endblock %}
+{% block body %}
+<header class="hero">
+  <h1>{{ now|date:"l, M j" }}</h1>
+  <div class="hero-row"><p>{% if clock %}Clocked in {{ clock.clock_in|time:"g:i A" }} · {{ on_for }} today{% else %}Hi {{ first }} — you're not clocked in{% endif %}</p>
+    <form method="post" action="/tech/time/">{% csrf_token %}<input type="hidden" name="action" value="clock"><input type="hidden" name="next" value="/tech/">
+      <button class="clk {% if clock %}out{% endif %}">{% if clock %}<i class="bi bi-stop-fill"></i> Clock out{% else %}<i class="bi bi-play-fill"></i> Clock in{% endif %}</button></form></div>
+</header>
+<main class="page">
+<div class="tiles">{% for x in tiles %}<a class="tile" href="{{ x.href }}"><b style="color:{{ x.color }}">{{ x.n }}</b><span>{{ x.label }}</span></a>{% endfor %}</div>
+
+{% if timer %}<a class="card active-job" href="/tech/t/{{ timer.ticket_id }}/"><small>Working on · {{ timer.ticket.number }}</small><b>{{ timer.ticket.subject }}</b>
+  <div class="row"><span class="muted">{{ timer.ticket.client.name|default:"" }}</span><span class="clock-run" data-since="{{ timer.started_at|date:'c' }}">…</span></div></a>{% endif %}
+
+{% if events %}<h2 class="sec">Schedule today</h2><div class="list">
+{% for e in events %}<div class="r"><b class="when">{{ e.starts_at|time:"g:i A" }}</b><div class="grow"><b>{{ e.title }}</b><small>{{ e.client.name|default:"" }}{% if e.location %} · {{ e.location }}{% endif %}</small></div></div>{% endfor %}</div>{% endif %}
+
+<h2 class="sec">My open tickets</h2>
+<div class="list">{% for r in mine %}{% include "tech/_row.html" %}{% empty %}<p class="empty">Nothing assigned to you. <a href="/tech/tickets/?f=unassigned">See unassigned tickets</a></p>{% endfor %}</div>
+{% if mine|length >= 15 %}<a class="more" href="/tech/tickets/">All my tickets ›</a>{% endif %}
+</main>
+{% endblock %}

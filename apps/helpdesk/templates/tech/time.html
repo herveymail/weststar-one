@@ -1,0 +1,28 @@
+{% extends "tech/base.html" %}{% block title %}Time{% endblock %}
+{% block body %}
+<header class="bar"><h1>Time</h1></header>
+<main class="page">
+<section class="card clock-card">
+  <div><small class="muted">{% if clock %}On the clock since {{ clock.clock_in|time:"g:i A" }}{% else %}Not clocked in{% endif %}</small>
+    {% if clock %}<div class="clock-run big" data-since="{{ clock.clock_in|date:'c' }}">…</div>{% endif %}</div>
+  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="clock"><button class="btn {% if clock %}danger{% else %}go{% endif %}">{% if clock %}<i class="bi bi-stop-fill"></i> Clock out{% else %}<i class="bi bi-play-fill"></i> Clock in{% endif %}</button></form>
+</section>
+<div class="tiles two"><div class="tile"><b style="color:#16a34a">{{ today_h }}h</b><span>Ticket time today</span></div><div class="tile"><b style="color:#2563eb">{{ week_h }}h</b><span>This week</span></div></div>
+
+<h2 class="sec">Log mileage</h2>
+<form method="post" class="card stack">{% csrf_token %}<input type="hidden" name="action" value="mileage">
+  <input name="trip" class="input" placeholder="From → To (e.g. Office → Desert Dental)" maxlength="255" aria-label="Trip">
+  <div class="row"><input name="miles" class="input" inputmode="decimal" placeholder="Miles" aria-label="Miles" style="max-width:110px">
+    <select name="client" class="input grow" aria-label="Client"><option value="">No client</option>{% for c in clients %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select></div>
+  <label class="check"><input type="checkbox" name="billable" value="1"> Bill this to the client</label>
+  <button class="btn primary wide">Save trip</button>
+</form>
+{% if trips %}<div class="list">{% for m in trips %}<div class="r"><div class="grow"><b>{{ m.trip }}</b><small>{{ m.trip_date|date:"D M j" }}{% if m.client %} · {{ m.client.name }}{% endif %}{% if m.billable %} · billable{% endif %}</small></div><div class="rt"><b>{{ m.miles }} mi</b></div></div>{% endfor %}</div>{% endif %}
+
+<h2 class="sec">Ticket time this week</h2>
+<div class="list">{% for e in entries %}<a class="r" href="/tech/t/{{ e.ticket_id }}/"><div class="grow"><b>{{ e.ticket.subject }}</b><small>{{ e.work_date|date:"D M j" }} · {{ e.ticket.client.name|default:"" }} · {{ e.work_type }}</small></div><div class="rt"><b>{{ e.minutes }} min</b></div></a>{% empty %}<p class="empty">No time logged this week.</p>{% endfor %}</div>
+
+<h2 class="sec">Shifts this week</h2>
+<div class="list">{% for s in shifts %}<div class="r"><div class="grow"><b>{{ s.clock_in|date:"D M j" }}</b><small>{{ s.clock_in|time:"g:i A" }} – {% if s.clock_out %}{{ s.clock_out|time:"g:i A" }}{% else %}now{% endif %}</small></div><div class="rt"><small>{{ s.status }}</small></div></div>{% empty %}<p class="empty">No shifts this week.</p>{% endfor %}</div>
+</main>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "tech/base.html" %}{% block title %}Me{% endblock %}
+{% block body %}
+<header class="bar"><h1>{{ request.user.name }}</h1><p class="muted" style="margin:0">{{ request.user.email }}</p></header>
+<main class="page">
+<div class="list">
+  <a class="r" href="/"><i class="bi bi-display ic"></i><div class="grow"><b>Open the full website</b><small>Everything else — billing, clients, settings</small></div><i class="bi bi-chevron-right muted"></i></a>
+  <a class="r" href="/my-hr/"><i class="bi bi-person-badge ic"></i><div class="grow"><b>My HR</b><small>Time off, notices, agreements</small></div><i class="bi bi-chevron-right muted"></i></a>
+  <a class="r" href="/profile/"><i class="bi bi-gear ic"></i><div class="grow"><b>Profile &amp; password</b></div><i class="bi bi-chevron-right muted"></i></a>
+</div>
+<section class="card install" data-install>
+  <h2 class="sec" style="margin-top:0">Put this app on your home screen</h2>
+  <ol class="small"><li>Open this page in <b>Safari</b>.</li><li>Tap the <b>Share</b> button <i class="bi bi-box-arrow-up"></i>.</li><li>Tap <b>Add to Home Screen</b>, then <b>Add</b>.</li></ol>
+  <p class="small muted" style="margin:0">On Android: Chrome menu ⋮ › <b>Install app</b>.</p>
+</section>
+<p class="small muted">{% if stay %}On this phone you stay signed in for up to {{ stay }} day{{ stay|pluralize }}. Lock your phone with Face ID or a passcode, and sign out if the phone is shared or lost.{% else %}You'll be signed out after a while without use, like on the website.{% endif %}</p>
+<form method="post" action="/logout/">{% csrf_token %}<button class="btn danger wide"><i class="bi bi-box-arrow-right"></i> Sign out</button></form>
+</main>
+{% endblock %}

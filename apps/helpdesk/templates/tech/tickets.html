@@ -1,0 +1,14 @@
+{% extends "tech/base.html" %}{% block title %}Tickets{% endblock %}
+{% block body %}
+<header class="bar"><h1>Tickets</h1>
+<form class="search" method="get"><i class="bi bi-search"></i><input type="search" name="q" value="{{ q }}" placeholder="Search number, client, subject, device" aria-label="Search tickets" enterkeyhint="search"></form>
+<div class="chips">
+  <a class="chip {% if f == 'mine' %}on{% endif %}" href="?f=mine">Mine {{ counts.mine }}</a>
+  <a class="chip {% if f == 'unassigned' %}on{% endif %}" href="?f=unassigned">Unassigned {{ counts.unassigned }}</a>
+  <a class="chip {% if f == 'urgent' %}on{% endif %}" href="?f=urgent">Urgent</a>
+  <a class="chip {% if f == 'sign' %}on{% endif %}" href="?f=sign">Need signature</a>
+  <a class="chip {% if f == 'open' %}on{% endif %}" href="?f=open">All open</a>
+  <a class="chip {% if f == 'closed' %}on{% endif %}" href="?f=closed">My closed</a>
+</div></header>
+<main class="page"><div class="list">{% for r in rows %}{% include "tech/_row.html" with show_who=True %}{% empty %}<p class="empty">No tickets here.</p>{% endfor %}</div></main>
+{% endblock %}

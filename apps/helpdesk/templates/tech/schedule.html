@@ -1,0 +1,15 @@
+{% extends "tech/base.html" %}{% block title %}Schedule{% endblock %}
+{% block body %}
+<header class="bar"><h1>Schedule</h1>
+<div class="days"><a class="nav" href="?d={{ prev }}" aria-label="Previous week"><i class="bi bi-chevron-left"></i></a>
+{% for d in week %}<a href="?d={{ d|date:'Y-m-d' }}" class="{% if d == pick %}on{% elif d == today %}now{% endif %}">{{ d|date:"D" }}<b>{{ d|date:"j" }}</b></a>{% endfor %}
+<a class="nav" href="?d={{ next }}" aria-label="Next week"><i class="bi bi-chevron-right"></i></a></div></header>
+<main class="page">
+<h2 class="sec">{{ pick|date:"l, F j" }}</h2>
+<div class="list">{% for e in events %}<div class="r"><b class="when">{{ e.starts_at|time:"g:i A" }}</b><div class="grow"><b>{{ e.title }}</b>
+  <small>{{ e.client.name|default:"" }}{% if e.location %} · <a href="https://maps.apple.com/?daddr={{ e.location|urlencode }}">{{ e.location }}</a>{% endif %}</small>{% if e.notes %}<small>{{ e.notes|truncatechars:140 }}</small>{% endif %}</div></div>
+{% empty %}<p class="empty">Nothing on the calendar.</p>{% endfor %}</div>
+<h2 class="sec">{% if pick == today %}Tickets due today or overdue{% else %}Tickets due{% endif %}</h2>
+<div class="list">{% for r in due %}{% include "tech/_row.html" %}{% empty %}<p class="empty">None.</p>{% endfor %}</div>
+</main>
+{% endblock %}

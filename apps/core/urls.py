@@ -9,6 +9,7 @@ from apps.hr import views as hr
 from apps.legacy import views as lv
 from apps.portal import staff_views as psv
 from apps.billing import pay_views, sign_views
+from apps.helpdesk import tech_views as tech
 
 from apps.accounts.agreements import agreements as agreements_view
 
@@ -34,6 +35,15 @@ urlpatterns = [
     path("account/agreements/", agreements_view, name="agreements"),
     path("profile/", acc.profile_view, name="profile"),
     path("search/", views.jump, name="jump"),
+    path("tech/", tech.today, name="tech"),
+    path("tech/tickets/", tech.tickets, name="tech_tickets"),
+    path("tech/t/<int:pk>/", tech.ticket, name="tech_ticket"),
+    path("tech/schedule/", tech.schedule, name="tech_schedule"),
+    path("tech/time/", tech.time_tab, name="tech_time"),
+    path("tech/me/", tech.me, name="tech_me"),
+    path("tech/manifest.webmanifest", tech.manifest, name="tech_manifest"),
+    path("tech/sw.js", tech.service_worker, name="tech_sw"),
+    path("tech/offline/", tech.offline, name="tech_offline"),
     path("tickets/", hd.tickets, name="tickets"),
     path("tickets/new/", hd.ticket_new, name="ticket_new"),
     path("tickets/ui/", hd.switch_ui, name="tickets_ui"),

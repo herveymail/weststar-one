@@ -1,0 +1,26 @@
+{% load static %}<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex"><meta name="theme-color" content="#1e4f8f">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="{% if dark_top %}black-translucent{% else %}default{% endif %}">
+<meta name="apple-mobile-web-app-title" content="WS Tech">
+<link rel="manifest" href="/tech/manifest.webmanifest">
+<link rel="apple-touch-icon" href="{% static 'tech/apple-touch-icon.png' %}">
+<link rel="icon" href="{% static 'tech/icon-192.png' %}">
+<link rel="stylesheet" href="{% static 'core/bi/bootstrap-icons.min.css' %}">
+<link rel="stylesheet" href="{% static 'tech/tech.css' %}">
+<script src="{% static 'tech/tech.js' %}" defer></script>
+<title>{% block title %}Tech{% endblock %} · Weststar ONE</title></head>
+<body class="{% block bodyclass %}{% endblock %}">
+{% if messages %}<div class="toasts" role="status">{% for m in messages %}<div class="toast {{ m.tags }}">{{ m }}</div>{% endfor %}</div>{% endif %}
+{% block body %}{% endblock %}
+{% if timer and tab != "today" and timer.ticket_id != t.pk %}<div class="strip-space"></div><a class="timer-strip" href="/tech/t/{{ timer.ticket_id }}/"><i class="bi bi-stopwatch"></i> <span data-since="{{ timer.started_at|date:'c' }}">…</span> · {{ timer.ticket.number }} {{ timer.ticket.client.name|default:"" }}</a>{% endif %}
+<nav class="tabs" aria-label="Tech app">
+  <a href="/tech/" class="{% if tab == 'today' %}on{% endif %}"><i class="bi bi-house{% if tab == 'today' %}-fill{% endif %}"></i>Today</a>
+  <a href="/tech/tickets/" class="{% if tab == 'tickets' %}on{% endif %}"><i class="bi bi-ticket-detailed{% if tab == 'tickets' %}-fill{% endif %}"></i>Tickets</a>
+  <a href="/tech/schedule/" class="{% if tab == 'schedule' %}on{% endif %}"><i class="bi bi-calendar3"></i>Schedule</a>
+  <a href="/tech/time/" class="{% if tab == 'time' %}on{% endif %}"><i class="bi bi-clock{% if tab == 'time' %}-fill{% endif %}"></i>Time</a>
+  <a href="/tech/me/" class="{% if tab == 'me' %}on{% endif %}"><i class="bi bi-person-circle"></i>Me</a>
+</nav>
+</body></html>

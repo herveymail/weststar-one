@@ -1,0 +1,2 @@
+<a class="r" href="/tech/t/{{ r.pk }}/"><div class="grow"><b>{{ r.subject }}</b><small>{{ r.number }}{% if r.client %} · {{ r.client.name }}{% endif %}{% if r.due_date %} · due {{ r.due_date|date:"M j" }}{% endif %}{% if show_who %} · {{ r.assigned_to.name|default:"Unassigned" }}{% endif %}</small></div>
+<div class="rt"><span class="pri pri-{{ r.priority|lower }}">{{ r.priority }}</span><small>{{ r.status }}</small></div></a>
