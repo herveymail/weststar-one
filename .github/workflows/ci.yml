@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.13", cache: pip }
-      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends default-libmysqlclient-dev pkg-config php-cli php-mysql mariadb-client
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends default-libmysqlclient-dev pkg-config php-cli php-mysql mariadb-client postgresql-client-17
       - run: pip install -r requirements-dev.txt ruff
       - name: Old-schema database for the importer tests
         run: |
