@@ -6,12 +6,17 @@ COPY requirements.txt /tmp/
 RUN pip wheel --no-cache-dir --wheel-dir /wheels -r /tmp/requirements.txt
 
 FROM python:3.13-slim-bookworm
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 MEDIA_ROOT=/data/media
-RUN apt-get update && apt-get install -y --no-install-recommends libmariadb3 tini \
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 MEDIA_ROOT=/data/media BACKUP_ROOT=/data/backups
+# pg_dump / pg_restore 17 (same as the db container) for Settings › Backups, from the PostgreSQL apt repo.
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
+    && install -d /usr/share/postgresql-common/pgdg \
+    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg \
+    && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update && apt-get install -y --no-install-recommends libmariadb3 tini postgresql-client-17 \
     libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 fonts-dejavu-core fonts-liberation2 \
-    && rm -rf /var/lib/apt/lists/* \
+    && apt-get purge -y curl gnupg && apt-get autoremove -y && rm -rf /var/lib/apt/lists/* \
     && useradd --system --uid 10001 --home /app weststar \
-    && mkdir -p /data/media && chown weststar:weststar /data/media
+    && mkdir -p /data/media /data/backups && chown weststar:weststar /data/media /data/backups
 COPY --from=build /wheels /wheels
 RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
 WORKDIR /app

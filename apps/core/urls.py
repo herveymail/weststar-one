@@ -11,6 +11,7 @@ from apps.portal import staff_views as psv
 from apps.billing import pay_views, sign_views
 from apps.helpdesk import tech_views as tech
 from apps.billing import ready_views, ar_views
+from apps.core import backup_views
 
 from apps.accounts.agreements import agreements as agreements_view
 
@@ -81,6 +82,7 @@ urlpatterns = [
     path("settings/email/google/", sv.gmail_connect, name="gmail_connect"),
     path("settings/email/preview/<slug:name>/", sv.email_preview, name="email_preview"),
     path("settings/email/google/callback/", sv.gmail_connect, name="gmail_callback"),
+    path("settings/backups/download/<str:name>/<str:part>/", backup_views.download, name="backup_download"),
     path("settings/<slug:page>/", sv.settings_page, name="settings_page"),
     path("m/messages/", psv.messages_list, name="messages"),
     path("messages/<int:pk>/", psv.message_thread, name="message"),

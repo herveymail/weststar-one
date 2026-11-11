@@ -1,0 +1,31 @@
+{% extends "core/settings_frame.html" %}{% load ws %}
+{% block settings %}
+<div class="page-head"><div class="titles"><h1>Backups</h1><p class="desc">Everything in Weststar ONE — the database and every uploaded file — in one click. Restore puts everything back the way it was.</p></div>
+  <form method="post" style="margin-left:auto">{% csrf_token %}<button class="btn primary" name="action" value="backup"{% if busy %} disabled{% endif %}>{% icon "download" 16 %}Back up now</button></form></div>
+
+<div class="ar-tiles" style="margin-bottom:14px">
+  <div class="card pad ar-tile"><span class="small muted">Last backup</span><b style="font-size:18px">{% if last %}{{ last.created_at|timesince }} ago{% else %}—{% endif %}</b></div>
+  <div class="card pad ar-tile"><span class="small muted">Nightly</span><b style="font-size:18px">{% if nightly %}On · {{ hour }}:00{% else %}Off{% endif %}</b></div>
+  <div class="card pad ar-tile"><span class="small muted">Kept for</span><b style="font-size:18px">{{ keep }} days</b></div>
+  <div class="card pad ar-tile"><span class="small muted">Off-site copy</span><b style="font-size:18px">{% if offsite %}On{% else %}Not set up{% endif %}</b></div>
+</div>
+<p class="small muted" style="margin-top:0">Change these in <a href="/settings/offsite/">Backup schedule &amp; off-site copy</a>. Backups need the same encryption key (APP_ENCRYPTION_KEY in the server's .env) to read encrypted fields — keep a copy of it somewhere safe, away from the server.</p>
+
+{% include "core/_backup_status.html" %}
+
+<h2 style="margin-top:22px">Backups you can restore</h2>
+<section class="card table-card"><table class="grid">
+<thead><tr><th>Backup</th><th>Made</th><th>Database</th><th>Files</th><th></th></tr></thead>
+<tbody>{% for b in backups %}<tr>
+  <td><b>{{ b.name }}</b>{% if b.server %} <span class="pill muted">server script</span>{% endif %}</td>
+  <td class="small">{{ b.when|date:"M j, Y g:i A" }}</td>
+  <td class="small"><a href="/settings/backups/download/{{ b.name }}/db/">{{ b.db_bytes|filesizeformat }}</a></td>
+  <td class="small">{% if b.files %}<a href="/settings/backups/download/{{ b.name }}/files/">{{ b.files_bytes|filesizeformat }}</a>{% else %}—{% endif %}</td>
+  <td><details class="restore-box"><summary class="btn small">Restore…</summary>
+    <form method="post" class="stack" style="margin-top:8px;min-width:280px">{% csrf_token %}<input type="hidden" name="action" value="restore"><input type="hidden" name="name" value="{{ b.name }}">
+      <p class="small" style="margin:0"><b>This replaces everything</b> — tickets, invoices, clients, settings and files — with this backup from {{ b.when|date:"M j g:i A" }}. Anything since then is lost (a safety backup is taken first, so you can undo it). Everyone is signed out.</p>
+      <label class="small" for="cf-{{ forloop.counter }}">Type <b>RESTORE</b> to confirm</label><input id="cf-{{ forloop.counter }}" name="confirm" class="input" autocomplete="off">
+      <button class="btn danger"{% if busy %} disabled{% endif %}>Restore this backup</button></form></details></td></tr>
+{% empty %}<tr><td colspan="5" class="muted">No backups yet. Click <b>Back up now</b>.</td></tr>{% endfor %}</tbody></table></section>
+<p class="small muted">Stored on the server in {{ folder }}.</p>
+{% endblock %}

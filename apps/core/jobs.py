@@ -157,6 +157,11 @@ def recurring_tickets():
     return {"opened": made}
 
 
+def backups():
+    from .backups import run_queued
+    return run_queued()
+
+
 def morning_summary():
     from .today import morning_summary as run
     return run()
@@ -188,6 +193,7 @@ JOBS = {
     "overdue-invoices": {"label": "Mark overdue invoices", "every_minutes": 60, "run": overdue_invoices},
     "msp360": {"label": "MSP360: sync backups, tickets for failed plans", "every_minutes": 15, "run": msp360_sync},
     "recurring-tickets": {"label": "Recurring tickets", "every_minutes": 60, "run": recurring_tickets},
+    "backups": {"label": "Backups (Back up now, restores, and the nightly backup)", "every_minutes": 1, "run": backups},
     "morning-summary": {"label": "Morning summary emails (people who turned it on in Profile)", "every_minutes": 30, "run": morning_summary},
     "renewal-notices": {"label": "Renewal, domain and SSL heads-up emails", "every_minutes": 360, "run": renewal_notices},
     "payment-reminders": {"label": "Payment reminders to clients", "every_minutes": 60, "run": payment_reminders},

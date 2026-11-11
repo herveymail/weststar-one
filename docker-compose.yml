@@ -58,7 +58,7 @@ services:
       TIME_ZONE: ${TIME_ZONE:-America/Denver}
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
       LOG_LEVEL: INFO
-    volumes: [media:/data/media]
+    volumes: [media:/data/media, appbackups:/data/backups]
     read_only: true
     tmpfs: [/tmp]
     security_opt: ["no-new-privileges:true"]
@@ -70,7 +70,7 @@ services:
     depends_on: { app: { condition: service_healthy } }
     environment: *appenv
     command: ["jobs"]
-    volumes: [media:/data/media]
+    volumes: [media:/data/media, appbackups:/data/backups]
     read_only: true
     tmpfs: [/tmp]
     security_opt: ["no-new-privileges:true"]
@@ -87,4 +87,4 @@ services:
       - caddydata:/data
       - caddyconfig:/config
 
-volumes: { dbdata: {}, media: {}, caddydata: {}, caddyconfig: {} }
+volumes: { dbdata: {}, media: {}, appbackups: {}, caddydata: {}, caddyconfig: {} }

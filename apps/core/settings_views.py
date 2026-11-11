@@ -108,6 +108,9 @@ def settings_page(request, page):
         return audit_view(request)
     if target == "jobs":
         return render(request, "core/jobs.html", {"jobs": _jobs()})
+    if target == "backups":
+        from .backup_views import backups_page
+        return backups_page(request)
     if target == "health":
         from .health import health_page
         return health_page(request)

@@ -204,6 +204,7 @@ USE_TZ = True
 
 # Uploaded files. Never served directly: downloads go through an access-checked view.
 MEDIA_ROOT = Path(env("MEDIA_ROOT", str(BASE_DIR / "media")))
+BACKUP_ROOT = Path(env("BACKUP_ROOT", str(BASE_DIR / "backups-local")))
 MEDIA_URL = "/files-not-served-directly/"
 MAX_UPLOAD_MB = int(env("MAX_UPLOAD_MB", "25"))
 FILE_UPLOAD_MAX_MEMORY_SIZE = 3 * 1024 * 1024

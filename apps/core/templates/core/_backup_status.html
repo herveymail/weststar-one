@@ -1,0 +1,12 @@
+{% load ws %}<div id="bk-status" {% if busy %}hx-get="/settings/backups/?part=status" hx-trigger="every 4s" hx-swap="outerHTML"{% endif %}>
+{% if busy %}<div class="banner info" role="status"><span class="spin" aria-hidden="true"></span> <b>Working…</b> {% for r in runs %}{% if r.status == "queued" or r.status == "running" %}{% if r.kind == "restore" %}Restoring {{ r.name }}{% else %}Making a backup{% endif %} ({{ r.status }}).{% endif %}{% endfor %} The jobs container picks this up within a minute.</div>{% endif %}
+<section class="card table-card"><table class="grid">
+<thead><tr><th>When</th><th>What</th><th>Result</th><th>Size</th><th>Off-site</th><th>By</th></tr></thead>
+<tbody>{% for r in runs %}<tr><td class="small">{{ r.created_at|date:"M j, g:i A" }}</td>
+  <td>{% if r.kind == "restore" %}<b>Restore</b> of {{ r.name }}{% else %}Backup{% if r.trigger == "nightly" %} (nightly){% elif r.trigger == "before-restore" %} (safety, before a restore){% endif %}{% if r.name %} · {{ r.name }}{% endif %}{% endif %}</td>
+  <td>{% if r.status == "done" %}<span class="pill good">Done</span>{% elif r.status == "failed" %}<span class="pill bad">Failed</span>{% else %}<span class="pill info">{{ r.status|title }}</span>{% endif %}{% if r.message %}<div class="small muted" style="max-width:420px">{{ r.message }}</div>{% endif %}</td>
+  <td class="small">{% if r.db_bytes %}{{ r.db_bytes|filesizeformat }} + {{ r.files_bytes|filesizeformat }} files{% endif %}</td>
+  <td class="small">{% if r.offsite == "copied" %}<span class="good-text">Copied</span>{% elif r.offsite %}<span class="bad-text">{{ r.offsite }}</span>{% elif r.kind == "backup" and r.status == "done" %}<span class="muted">—</span>{% endif %}</td>
+  <td class="small">{{ r.requested_by.name|default:"Automatic" }}</td></tr>
+{% empty %}<tr><td colspan="6" class="muted">No backups made from here yet.</td></tr>{% endfor %}</tbody></table></section>
+</div>

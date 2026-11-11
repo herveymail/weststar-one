@@ -109,6 +109,25 @@ class JobRun(models.Model):
     last_ok = models.BooleanField(default=True)
 
 
+class BackupRun(models.Model):
+    """Backups made (or restores done) from Settings › Backups, by a person or the nightly job."""
+    KINDS = [("backup", "Backup"), ("restore", "Restore")]
+    kind = models.CharField(max_length=10, choices=KINDS, default="backup")
+    status = models.CharField(max_length=10, default="queued")  # queued / running / done / failed
+    trigger = models.CharField(max_length=20, default="manual")  # manual / nightly / before-restore
+    name = models.CharField(max_length=100, blank=True)  # e.g. ws_2026-11-10_0230 (files: <name>.dump, <name>_files.tar.gz)
+    db_bytes = models.BigIntegerField(default=0)
+    files_bytes = models.BigIntegerField(default=0)
+    offsite = models.CharField(max_length=200, blank=True)  # "" / "copied" / error text
+    message = models.TextField(blank=True)
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+
 class OutboxEmail(models.Model):
     """An email waiting to go out. Ticket emails are queued here so the screen updates straight away;
     a background thread sends them a moment later and the jobs loop retries any that failed."""

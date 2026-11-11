@@ -108,7 +108,8 @@ SETTINGS = [
             H("On tickets"), ("ai.triage", "Suggest category, priority and queue on new tickets", B), ("ai.summary", "Summarize button", B), ("ai.suggest", "Draft reply button", B),
             H("Automatic first response", "Emails new email and portal tickets a helpful first reply with things to try"), ("ai.first_response", "Send an automatic first response", B), ("ai.first_response_when", "When", SEL, ["always", "after_hours"]), ("ai.first_response_skip", "Never for tickets mentioning", T)]),
         ("jobs", "Scheduled jobs", "Background jobs and when they last ran", "jobs"),
-        ("offsite", "Offsite backups (Wasabi / S3)", "Where nightly backups are copied", [("backup.s3_endpoint", "Endpoint", T), ("backup.s3_region", "Region", T), ("backup.s3_bucket", "Bucket", T), ("backup.s3_prefix", "Folder", T), ("backup.s3_key", "Access key", S), ("backup.s3_secret", "Secret key", S)]),
+        ("backups", "Backups", "Back up now, nightly backups, download and restore", "backups"),
+        ("offsite", "Backup schedule & off-site copy", "Nightly time, how long to keep them, and Wasabi / S3", [("backup.nightly", "Back up automatically every night", B), ("backup.hour", "Nightly backup hour (0–23, office time)", I), ("backup.keep_days", "Keep backups for (days)", I), H("Off-site copy", "Every backup is also copied here when filled in. Wasabi endpoint e.g. s3.us-west-1.wasabisys.com."), ("backup.s3_endpoint", "Endpoint", T), ("backup.s3_region", "Region", T), ("backup.s3_bucket", "Bucket", T), ("backup.s3_prefix", "Folder", T), ("backup.s3_key", "Access key", S), ("backup.s3_secret", "Secret key", S)]),
     ]),
     ("system", "Security & system", "Keep the app safe, backed up and up to date", [
         ("my_security", "My sign-in & 2FA", "Your password, two-factor and active sessions", "my_security"),
@@ -125,7 +126,7 @@ SETTINGS = [
 DEFAULTS = {
     "legal.az_county": "Maricopa", "legal.tx_county": "El Paso", "legal.dispute_days": "10", "legal.suspend_days": "30",
     "legal.staff_gate": "true", "legal.portal_gate": "true", "legal.staff_ack_months": "12", "legal.tx_workers_comp": "yes",
-    "billing.public_links": "true", "billing.reminders_on": "false", "billing.remind_before_days": "3", "billing.remind_on_due": "true", "billing.remind_after_days": "7, 14, 30", "billing.labor_taxable": "no", "renewals.notice_days": "30", "renewals.markup_pct": "0", "billing.quote_deposit_invoice": "true",
+    "billing.public_links": "true", "billing.reminders_on": "false", "billing.remind_before_days": "3", "billing.remind_on_due": "true", "billing.remind_after_days": "7, 14, 30", "billing.labor_taxable": "no", "renewals.notice_days": "30", "backup.nightly": "true", "backup.hour": "2", "backup.keep_days": "14", "renewals.markup_pct": "0", "billing.quote_deposit_invoice": "true",
     "portal.enabled": "true", "portal.magic_links": "true", "portal.reopen_hours": "48", "portal.show_billing": "true", "portal.show_invoices": "false", "portal.show_contracts": "true",
     "portal.show_policies": "true", "portal.show_assets": "true", "portal.show_kb": "true", "portal.show_messages": "true",
     "tickets.email_ack": "true", "tickets.email_on_close": "true", "tickets.auto_add_contacts": "true", "tickets.email_priority": "Medium",
@@ -182,7 +183,7 @@ TILE_LOOK = {
     "users": ("bi-people", "#16a34a"), "portal_groups": ("bi-people-fill", "#0d9488"), "signin": ("bi-key", "#7c3aed"),
     "integrations": ("bi-plug", "#9333ea"), "msp360": ("bi-cloud-check", "#0e7490"), "rmm": ("bi-pc-display-horizontal", "#2563eb"),
     "ai": ("bi-stars", "#9333ea"), "jobs": ("bi-clock-history", "#0d9488"), "offsite": ("bi-cloud-download", "#059669"),
-    "my_security": ("bi-shield-lock", "#dc2626"), "audit": ("bi-journal-text", "#6b7280"), "security_log": ("bi-shield-exclamation", "#b91c1c"), "health": ("bi-speedometer2", "#0891b2"),
+    "my_security": ("bi-shield-lock", "#dc2626"), "audit": ("bi-journal-text", "#6b7280"), "security_log": ("bi-shield-exclamation", "#b91c1c"), "health": ("bi-speedometer2", "#0891b2"), "backups": ("bi-cloud-arrow-up", "#0d9488"),
     "import": ("bi-truck", "#0f766e"), "old_settings": ("bi-archive", "#64748b"),
 }
 

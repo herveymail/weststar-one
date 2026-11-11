@@ -11,3 +11,4 @@ media/
 .installed
 .install-progress
 backups/
+backups-local/
