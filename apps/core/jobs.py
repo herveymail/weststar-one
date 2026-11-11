@@ -123,6 +123,11 @@ def late_fees():
     return run()
 
 
+def payment_reminders():
+    from apps.billing.reminders import run
+    return run()
+
+
 def outbox():
     from .mail import deliver_outbox
     return deliver_outbox()
@@ -138,6 +143,7 @@ JOBS = {
     "recurring-invoices": {"label": "Recurring invoices", "every_minutes": 60, "run": recurring_invoices},
     "overdue-invoices": {"label": "Mark overdue invoices", "every_minutes": 60, "run": overdue_invoices},
     "msp360": {"label": "MSP360: sync backups, tickets for failed plans", "every_minutes": 15, "run": msp360_sync},
+    "payment-reminders": {"label": "Payment reminders to clients", "every_minutes": 60, "run": payment_reminders},
     "late-fees": {"label": "Late fees on past-due invoices", "every_minutes": 360, "run": late_fees},
     "auto-close": {"label": "Auto-close resolved tickets", "every_minutes": 60, "run": auto_close},
     "cleanup": {"label": "Clean up old sessions and sign-in records", "every_minutes": 1440, "run": cleanup},

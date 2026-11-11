@@ -193,6 +193,7 @@ CTA = {  # button on the branded HTML version
     "email/portal_magic": "Sign in", "email/portal_reset": "Choose a new password", "email/portal_invite": "Set up your account",
     "email/portal_secure_notice": "Read the message", "email/portal_staff_notice": "Open in Weststar One", "email/invoice": "View & pay invoice", "email/late_fee": "Pay now",
     "email/quote": "Review & approve quote", "email/contract": "Review & sign",
+    "email/payment_reminder": "View & pay invoice", "email/statement": "Pay the oldest invoice",
 }
 
 

@@ -400,3 +400,9 @@ document.body.addEventListener('click', (e) => {
     setTimeout(end, 30000);  // never let it spin forever
   });
 })();
+
+// <form data-confirm="Are you sure?">: ask before submitting.
+document.addEventListener('submit', (e) => {
+  const f = e.target;
+  if (f instanceof HTMLFormElement && f.dataset.confirm && !window.confirm(f.dataset.confirm)) { e.preventDefault(); e.stopImmediatePropagation(); }
+}, true);

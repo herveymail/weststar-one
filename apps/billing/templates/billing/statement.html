@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% load ws %}
+{% block title %}Statement · {{ client.name }} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="doc-bar no-print"><a href="/billing/ar/" class="link-btn">{% icon "back" 16 %}Receivables</a><h1>Statement</h1>
+  <button class="btn" data-print>{% icon "print" 16 %}Print / Save PDF</button></div>
+<div class="send-layout">
+<section class="card pad stack statement">
+  <div class="row"><div class="grow"><h2 style="margin:0">{{ company }}</h2><div class="muted small">Account statement</div></div>
+    <div style="text-align:right"><b>{{ client.name }}</b><div class="small muted">As of {{ today|date:"F j, Y" }}</div></div></div>
+  <table class="grid"><thead><tr><th>Invoice</th><th>Date</th><th>Due</th><th style="text-align:right">Total</th><th style="text-align:right">Balance</th></tr></thead>
+  <tbody>{% for i in invoices %}<tr><td><a href="{{ i.link }}">{{ i.number }}</a></td><td>{{ i.invoice_date|date:"M j, Y" }}</td>
+    <td>{{ i.due_date|date:"M j, Y" }}{% if i.days_late > 0 %} <span class="bad-text small">· {{ i.days_late }} days late</span>{% endif %}</td>
+    <td style="text-align:right">{{ i.total|dollars }}</td><td style="text-align:right"><b>{{ i.balance|dollars }}</b></td></tr>
+  {% empty %}<tr><td colspan="5" class="muted">Nothing is owed. Thank you!</td></tr>{% endfor %}</tbody>
+  <tfoot><tr><td colspan="4" style="text-align:right"><b>Total due</b></td><td style="text-align:right"><b>{{ total|dollars }}</b></td></tr></tfoot></table>
+  <div class="row small" style="flex-wrap:wrap;gap:14px">{% for label, v in by_bucket %}<span><span class="muted">{{ label }}:</span> {{ v|dollars }}</span>{% endfor %}</div>
+</section>
+{% if can_edit %}
+<form method="post" class="card pad stack send-form no-print">{% csrf_token %}
+  <h3 style="margin:0">Email this statement</h3>
+  <div class="field"><label for="to">To</label><input id="to" name="to" class="input" value="{{ to }}"></div>
+  <div class="field"><label for="msg">Message</label><textarea id="msg" name="message" class="textarea" rows="4">Here is your account statement. Each invoice has its own link to view and pay online — no sign-in needed.</textarea></div>
+  <button class="btn primary"{% if not mail_ok or not invoices %} disabled{% endif %}>{% icon "send" 16 %}Send statement</button>
+</form>{% endif %}
+</div>
+{% endblock %}

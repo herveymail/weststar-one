@@ -40,6 +40,7 @@ class MileageTrip(Record):
     miles = models.DecimalField(max_digits=8, decimal_places=1)
     client = models.ForeignKey(Client, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     billable = models.BooleanField(default=False)
+    invoice = models.ForeignKey("billing.Invoice", null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False)
 
     def __str__(self):
         return self.trip

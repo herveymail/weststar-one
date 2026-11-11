@@ -216,3 +216,11 @@ table.grid tbody tr:hover td { background: var(--surface2); }
 pre.block { margin: 0; padding: 14px; border-radius: var(--r); background: var(--surface2); border: 1px solid var(--line); overflow-x: auto; font: 13px/1.5 ui-monospace, 'SFMono-Regular', Menlo, monospace; }
 
 .nav-section .count { margin-left: auto; margin-right: 6px; font-weight: 500; letter-spacing: 0; }
+.bad-text { color: var(--danger, #b42318); }
+.muted-row td { background: color-mix(in srgb, var(--surface-2, #f2f4f7) 60%, transparent); }
+.ready-table td { vertical-align: top; }
+.warn-text { color: #b45309; }
+.ar-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.ar-tile b { display: block; font-size: 22px; margin-top: 2px; }
+.ar-tile.b-d60 b { color: #b45309; } .ar-tile.b-d90 b, .ar-tile.b-d90p b { color: var(--danger, #b42318); }
+.ar-tile.b-total { border: 2px solid var(--accent, #2c5cc5); }

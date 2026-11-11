@@ -10,6 +10,7 @@ from apps.legacy import views as lv
 from apps.portal import staff_views as psv
 from apps.billing import pay_views, sign_views
 from apps.helpdesk import tech_views as tech
+from apps.billing import ready_views, ar_views
 
 from apps.accounts.agreements import agreements as agreements_view
 
@@ -91,6 +92,9 @@ urlpatterns = [
     path("quote/<str:token>/", sign_views.quote_page, name="quote_public"),
     path("quote/<str:token>/pdf/", sign_views.quote_pdf, name="quote_public_pdf"),
     path("sign/<str:token>/", sign_views.contract_page, name="contract_public"),
+    path("billing/ready/", ready_views.ready_page, name="ready_to_bill"),
+    path("billing/ar/", ar_views.ar_page, name="receivables"),
+    path("billing/ar/statement/<int:client_id>/", ar_views.statement, name="statement"),
     path("billing/contract/<int:pk>/send/", bv.contract_send, name="contract_send"),
     path("billing/<slug:kind>/<int:pk>/", bv.document, name="document"),
     path("billing/<slug:kind>/<int:pk>/pdf/", bv.document_pdf, name="document_pdf"),

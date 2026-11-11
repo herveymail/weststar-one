@@ -1,0 +1,13 @@
+{% autoescape off %}Hello,
+
+{{ intro }}
+{% if extra %}
+{{ extra }}
+{% endif %}
+You can view, download and pay it online — no sign-in needed:
+{{ link }}
+
+If you've already paid, thank you — please ignore this reminder.
+
+— {{ company }}
+{% endautoescape %}

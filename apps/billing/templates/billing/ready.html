@@ -1,0 +1,46 @@
+{% extends "base.html" %}{% load ws %}
+{% block title %}Ready to bill · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Ready to bill</h1>
+  <form method="get" class="row" style="gap:8px;margin-left:auto"><label for="th" class="small muted">Work through</label><input id="th" type="date" name="through" value="{{ through|date:'Y-m-d' }}" class="input" style="width:auto"><button class="btn">Show</button></form></div>
+<p class="muted" style="margin-top:0">Ticket time, billable mileage and parts from customer sign-offs that aren't on an invoice yet. Tick the clients to bill and click <b>Create draft invoices</b> — one per client. You can look them over before they go out.</p>
+
+{% if made %}
+<section class="card pad stack" style="border-left:4px solid var(--ok,#16a34a)">
+  <h2 style="margin:0">New drafts</h2>
+  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="send">
+  <table class="grid"><thead><tr><th></th><th>Invoice</th><th>Client</th><th>Goes to</th><th style="text-align:right">Total</th></tr></thead><tbody>
+  {% for inv in made %}<tr><td><input type="checkbox" name="inv" value="{{ inv.pk }}" {% if inv.emails and inv.status == "Draft" %}checked{% endif %} aria-label="Send {{ inv.number }}"></td>
+    <td><a href="/billing/invoice/{{ inv.pk }}/">{{ inv.number }}</a> <span class="small muted">{{ inv.status }}</span></td><td>{{ inv.client.name }}</td>
+    <td class="small">{% if inv.emails %}{{ inv.emails|join:", " }}{% else %}<span class="bad-text">No billing email — open it to send</span>{% endif %}</td><td style="text-align:right">{{ inv.total|dollars }}</td></tr>{% endfor %}
+  </tbody></table>
+  {% if can_edit %}<div class="row" style="margin-top:10px"><button class="btn primary"{% if not mail_ok %} disabled title="Set up email first"{% endif %}>{% icon "send" 16 %}Send ticked invoices</button><span class="small muted">Each gets its PDF and a view-and-pay link.</span></div>{% endif %}
+  </form>
+</section>{% endif %}
+
+{% if groups %}
+<form method="post" id="ready-form">{% csrf_token %}<input type="hidden" name="action" value="create"><input type="hidden" name="through" value="{{ through|date:'Y-m-d' }}">
+<div class="card table-card"><table class="grid ready-table">
+<thead><tr><th></th><th>Client</th><th>Time</th><th>Mileage</th><th>Parts</th><th style="text-align:right">Total</th><th></th></tr></thead>
+<tbody>{% for g in groups %}
+<tr class="{% if g.managed %}muted-row{% endif %}">
+  <td><input type="checkbox" name="client" value="{{ g.client.pk }}" {% if g.preselect %}checked{% endif %} {% if not can_edit %}disabled{% endif %} aria-label="Bill {{ g.client.name }}"></td>
+  <td><a href="/clients/{{ g.client.pk }}/"><b>{{ g.client.name }}</b></a>
+    <div class="small muted">{% if g.managed %}Managed — usually covered by the contract; tick to bill it{% else %}{{ g.client.plan|default:"No plan set" }}{% endif %}{% if g.oldest %} · since {{ g.oldest|date:"M j" }}{% endif %}{% if not g.emails %} · <span class="bad-text">no billing email</span>{% endif %}</div>
+    <details class="small"><summary>{{ g.tickets|length }} ticket{{ g.tickets|length|pluralize }}{% if g.miles %}, {{ g.miles|length }} trip{{ g.miles|length|pluralize }}{% endif %}{% if g.parts %}, {{ g.parts|length }} part{{ g.parts|length|pluralize }}{% endif %}</summary>
+      <ul style="margin:6px 0 0;padding-left:18px">{% for t in g.tickets %}<li><a href="/tickets/{{ t.ticket.pk }}/">{{ t.ticket.number }}</a> {{ t.ticket.subject|truncatechars:60 }} — {% widthratio t.minutes 60 1 as _ %}{{ t.minutes }} min</li>{% endfor %}
+      {% for m in g.miles %}<li>{{ m.trip_date|date:"M j" }} {{ m.trip }} — {{ m.miles }} mi</li>{% endfor %}
+      {% for s in g.parts %}<li>{{ s.ticket.number }} parts: {{ s.parts_desc|default:"parts" }} — {{ s.parts_amount|dollars }}</li>{% endfor %}</ul></details></td>
+  <td>{{ g.hours|floatformat:2 }} h<div class="small muted">@ {{ g.rate|dollars }}/h = {{ g.labor|dollars }}</div></td>
+  <td>{% if g.mi %}{{ g.mi }} mi<div class="small muted">{{ g.mileage|dollars }}</div>{% else %}—{% endif %}</td>
+  <td>{% if g.parts_total %}{{ g.parts_total|dollars }}{% else %}—{% endif %}</td>
+  <td style="text-align:right"><b>{{ g.total|dollars }}</b></td>
+  <td>{% if can_edit %}<button class="link-btn small" form="nc-{{ g.client.pk }}" title="Mark this client's waiting time and mileage as not billable">No charge</button>{% endif %}</td>
+</tr>{% endfor %}</tbody></table></div>
+{% if can_edit %}<div class="row" style="margin-top:12px"><button class="btn primary">{% icon "plus" 16 %}Create draft invoices</button><span class="muted small">Ticked by default: {{ total|dollars }}. Nothing is sent yet.</span></div>{% endif %}
+</form>
+{% for g in groups %}<form method="post" id="nc-{{ g.client.pk }}" hidden data-confirm="Mark all of {{ g.client.name }}'s waiting time and mileage as no charge?">{% csrf_token %}<input type="hidden" name="action" value="nocharge"><input type="hidden" name="client" value="{{ g.client.pk }}"><input type="hidden" name="through" value="{{ through|date:'Y-m-d' }}"></form>{% endfor %}
+{% elif not made %}
+<div class="card pad empty-state"><p style="margin:0"><b>Nothing waiting to be billed.</b> Billable ticket time, mileage and sign-off parts show up here until they're on an invoice.</p></div>
+{% endif %}
+{% endblock %}

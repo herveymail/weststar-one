@@ -332,3 +332,15 @@ def contract_link(c: "Contract") -> str:
     if Setting.get("billing.public_links", "true") == "false":
         return f"{dj.PORTAL_BASE}/contracts/{c.pk}/"
     return f"{dj.APP_URL}/sign/{_token_for(c)}/"
+
+
+class InvoiceReminder(models.Model):
+    """One row per automatic payment reminder sent, so the same reminder never goes out twice."""
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="reminders")
+    step = models.CharField(max_length=20)  # before3 / due / after7 / after14 …
+    sent_to = models.CharField(max_length=500, blank=True)
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["invoice", "step"], name="one_reminder_per_step")]
+        ordering = ["-sent_at"]

@@ -1,0 +1,12 @@
+{% autoescape off %}{{ message }}
+
+Statement for {{ client.name }} as of {{ today|date:"F j, Y" }}
+{% for i in invoices %}
+- {{ i.number }} · {{ i.invoice_date|date:"M j, Y" }} · due {{ i.due_date|date:"M j, Y" }}{% if i.days_late > 0 %} ({{ i.days_late }} days past due){% endif %} · balance ${{ i.balance|floatformat:2 }}
+  {{ i.link }}{% endfor %}
+
+Total due: ${{ total|floatformat:2 }}
+
+— {{ sender }}
+{{ company }}
+{% endautoescape %}

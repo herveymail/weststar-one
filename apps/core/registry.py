@@ -51,7 +51,8 @@ NAV = [
     ("CRM & Marketing", "CRM", "clients", [("clients", "Clients", "/clients/", "clients")]),
     ("Sales & Marketing", "Sales", "leads", [("leads", "Leads", "/m/leads/", "sales"), ("marketing", "Marketing", "/m/campaigns/", "sales")]),
     ("Billing", "Billing", "invoices", [
-        ("invoices", "Invoices", "/m/invoices/", "billing"), ("payments", "Payments", "/m/payments/", "billing"), ("recurring", "Recurring", "/m/recurring/", "billing"),
+        ("invoices", "Invoices", "/m/invoices/", "billing"), ("ready", "Ready to bill", "/billing/ready/", "billing"),
+        ("receivables", "Receivables", "/billing/ar/", "billing"), ("payments", "Payments", "/m/payments/", "billing"), ("recurring", "Recurring", "/m/recurring/", "billing"),
         ("banking", "Banking", "/m/banking/", "billing"), ("quotes", "Quotes", "/m/quotes/", "billing"),
         ("contracts", "Contracts", "/m/contracts/", "billing"), ("policies", "Policies", "/m/policies/", "billing"),
         ("training", "Security Training", "/m/training/", "billing"), ("renewals", "Renewals", "/m/renewals/", "billing"),
@@ -71,7 +72,7 @@ NAV = [
 NAV_COLORS = {None: "indigo", "CRM & Marketing": "indigo", "Sales & Marketing": "coral", "Billing": "teal", "Tools": "amber", "H/R": "pink", "Admin": "slate"}
 NAV_BI = {
     "dashboard": "bi-speedometer2", "tickets": "bi-ticket-detailed", "projects": "bi-kanban", "clients": "bi-people",
-    "leads": "bi-funnel", "marketing": "bi-megaphone", "invoices": "bi-receipt", "payments": "bi-credit-card",
+    "leads": "bi-funnel", "marketing": "bi-megaphone", "invoices": "bi-receipt", "ready": "bi-hourglass-split", "receivables": "bi-clock-history", "payments": "bi-credit-card",
     "recurring": "bi-arrow-repeat", "banking": "bi-bank", "quotes": "bi-file-earmark-text", "contracts": "bi-file-earmark-check",
     "policies": "bi-shield-check", "training": "bi-mortarboard", "renewals": "bi-calendar-check", "expenses": "bi-cash-stack",
     "vendors": "bi-shop", "calendar": "bi-calendar3", "inventory": "bi-box-seam", "mileage": "bi-car-front",

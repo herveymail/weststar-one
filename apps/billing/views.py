@@ -121,6 +121,21 @@ def document_pdf(request, kind, pk):
     return r
 
 
+def send_doc(request, doc, kind, to, cc, subject, message, attach=True) -> bool:
+    """Email an invoice or quote (PDF attached, view-and-pay / approve link), mark a draft Sent, and audit it."""
+    from . import documents
+    from .models import invoice_link, quote_link
+    link = invoice_link(doc) if kind == "invoice" else quote_link(doc)
+    files = [(documents.filename(doc, kind), documents.pdf(doc, kind), "application/pdf")] if attach else None
+    ctx = {"doc": doc, "message": message, "link": link, "sender": request.user.name, "meta": f"{documents.context(doc, kind)['title']} {doc.number}"}
+    if not mail.send(to, subject, f"email/{kind}", ctx, cc=cc, attachments=files):
+        return False
+    if doc.status == "Draft":
+        type(doc).objects.filter(pk=doc.pk).update(status="Sent")
+    audit(request, "send", kind, doc.pk, f"Emailed {kind} {doc.number} to {', '.join(list(to) + list(cc))}", area="billing")
+    return True
+
+
 @login_required
 def document_send(request, kind, pk):
     """Send an invoice/quote: edit the email, see exactly what goes out, PDF attached."""
@@ -150,12 +165,7 @@ def document_send(request, kind, pk):
         elif not doc.lines.exists():
             error = "Add line items before sending."
         else:
-            files = [(documents.filename(doc, kind), documents.pdf(doc, kind), "application/pdf")] if form["attach"] else None
-            ctx = {"doc": doc, "message": form["message"], "link": link, "sender": request.user.name, "meta": f"{documents.context(doc, kind)['title']} {doc.number}"}
-            if mail.send(to, form["subject"], f"email/{kind}", ctx, cc=cc, attachments=files):
-                if doc.status == "Draft":
-                    type(doc).objects.filter(pk=doc.pk).update(status="Sent")
-                audit(request, "send", kind, doc.pk, f"Emailed {kind} {doc.number} to {', '.join(to + cc)}", area="billing")
+            if send_doc(request, doc, kind, to, cc, form["subject"], form["message"], form["attach"]):
                 messages.success(request, f"Sent {doc.number} to {', '.join(to)}.")
                 return redirect(f"/billing/{kind}/{pk}/")
             error = "The email couldn't be sent. Check Settings › Email sending (Send test email)."

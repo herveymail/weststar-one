@@ -272,6 +272,7 @@ class TicketSignoff(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     ip = models.CharField(max_length=45, blank=True)
     via = models.CharField(max_length=20, default="web")
+    invoice = models.ForeignKey("billing.Invoice", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")  # parts billed on
     legacy_id = models.BigIntegerField(null=True, blank=True, unique=True)
     created_at = models.DateTimeField(default=timezone.now)
 

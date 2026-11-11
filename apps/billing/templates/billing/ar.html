@@ -1,0 +1,36 @@
+{% extends "base.html" %}{% load ws %}
+{% block title %}Receivables · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Receivables</h1><span class="muted" style="margin-left:auto">As of {{ today|date:"M j, Y" }}</span></div>
+<div class="ar-tiles">
+{% for k, label in buckets %}<div class="card pad ar-tile b-{{ k }}"><span class="small muted">{{ label }}</span><b>{% for kk, v in totals.items %}{% if kk == k %}{{ v|dollars }}{% endif %}{% endfor %}</b></div>{% endfor %}
+<div class="card pad ar-tile b-total"><span class="small muted">Total owed</span><b>{{ totals.total|dollars }}</b></div>
+</div>
+
+<div class="banner {% if reminders_on %}ok{% else %}info{% endif %}" style="margin:14px 0">
+{% if reminders_on %}<b>Automatic payment reminders are on:</b> {% for s, d in plan %}{% if d < 0 %}{{ d|stringformat:"d"|slice:"1:" }} days before{% elif d == 0 %}on the due date{% else %}{{ d }} days late{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}. Clients on AutoPay don't get them.
+{% else %}<b>Automatic payment reminders are off.</b> Turn them on in <a href="/settings/invoice_defaults/">Settings › Invoice defaults</a> to email clients before and after the due date.{% endif %}
+</div>
+
+{% if rows %}
+<div class="card table-card"><table class="grid">
+<thead><tr><th>Client</th>{% for k, label in buckets %}<th style="text-align:right">{{ label }}</th>{% endfor %}<th style="text-align:right">Total</th><th></th></tr></thead>
+<tbody>{% for r in rows %}<tr>
+  <td><a href="/clients/{{ r.client.pk }}/"><b>{{ r.client.name }}</b></a><div class="small muted">{{ r.invoices|length }} open invoice{{ r.invoices|length|pluralize }}{% if r.client.autopay_enabled %} · AutoPay{% endif %}{% if r.oldest > 0 %} · oldest {{ r.oldest }} day{{ r.oldest|pluralize }} late{% endif %}</div>
+    <details class="small"><summary>Invoices</summary><ul style="margin:4px 0 0;padding-left:18px">{% for i in r.invoices %}<li><a href="/billing/invoice/{{ i.pk }}/">{{ i.number }}</a> · due {{ i.due_date|date:"M j" }}{% if i.days_late > 0 %} · <span class="bad-text">{{ i.days_late }} days late</span>{% endif %} · {{ i.balance|dollars }}</li>{% endfor %}</ul></details></td>
+  <td style="text-align:right">{% if r.current %}{{ r.current|dollars }}{% else %}<span class="muted">—</span>{% endif %}</td>
+  <td style="text-align:right">{% if r.d30 %}{{ r.d30|dollars }}{% else %}<span class="muted">—</span>{% endif %}</td>
+  <td style="text-align:right">{% if r.d60 %}<span class="warn-text">{{ r.d60|dollars }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+  <td style="text-align:right">{% if r.d90 %}<span class="bad-text">{{ r.d90|dollars }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+  <td style="text-align:right">{% if r.d90p %}<b class="bad-text">{{ r.d90p|dollars }}</b>{% else %}<span class="muted">—</span>{% endif %}</td>
+  <td style="text-align:right"><b>{{ r.total|dollars }}</b></td>
+  <td><a class="btn small" href="/billing/ar/statement/{{ r.client.pk }}/">Statement</a></td>
+</tr>{% endfor %}</tbody></table></div>
+{% else %}<div class="card pad"><b>Nobody owes anything right now.</b></div>{% endif %}
+
+{% if log %}<h2 style="margin-top:22px">Recent reminders sent</h2>
+<div class="card table-card"><table class="grid"><thead><tr><th>When</th><th>Invoice</th><th>Client</th><th>Reminder</th><th>To</th></tr></thead><tbody>
+{% for x in log %}<tr><td class="small">{{ x.sent_at|date:"M j g:i A" }}</td><td><a href="/billing/invoice/{{ x.invoice_id }}/">{{ x.invoice.number }}</a></td><td>{{ x.invoice.client.name }}</td>
+<td class="small">{% if x.step == "due" %}Due today{% elif x.step|slice:":6" == "before" %}{{ x.step|slice:"6:" }} days before{% else %}{{ x.step|slice:"5:" }} days late{% endif %}</td><td class="small">{{ x.sent_to }}</td></tr>{% endfor %}
+</tbody></table></div>{% endif %}
+{% endblock %}
