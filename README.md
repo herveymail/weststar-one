@@ -155,6 +155,19 @@ before that. Re-running the import picks up whatever changed in the old app in t
 
 Copy the backups off the server as well, to another site or a cloud bucket.
 
+### Upgrading Ubuntu (24.04 → 26.04.1 LTS)
+
+Take a VM snapshot first, then:
+
+```
+cd /opt/weststar-one && sudo ./deploy/upgrade-os.sh
+```
+
+It checks the server, backs up Weststar ONE (and a copy of `.env`), installs all 24.04 updates, then runs Ubuntu's own
+`do-release-upgrade`. After the restart at the end it finishes by itself: switches Docker's package source to 26.04,
+updates Docker, starts Weststar ONE and checks it's healthy (log: `/var/log/weststar-os-upgrade.log`). Your data is in
+Docker volumes and isn't touched. Plan on 15–40 minutes with Weststar ONE offline for part of it.
+
 ## Developing
 
 ```sh

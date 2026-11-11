@@ -10,6 +10,11 @@ cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1
 [ -f .env ] || die "Not installed yet. Run: sudo bash install.sh"
 . ./.env
 BRANCH="${UPDATE_BRANCH:-main}"
+# After an Ubuntu upgrade, Docker's package source may still point at the old version (security updates stop).
+OS_CODENAME=$(. /etc/os-release 2>/dev/null; echo "${VERSION_CODENAME:-}")
+if [ -n "$OS_CODENAME" ] && [ -f /etc/apt/sources.list.d/docker.list ] && ! grep -q "^deb .* ${OS_CODENAME} stable" /etc/apt/sources.list.d/docker.list; then
+  warn "Docker's update source doesn't match this Ubuntu (${OS_CODENAME}). Fix it with:  sudo ./deploy/upgrade-os.sh --after"
+fi
 echo -e "\n  ${BOLD}Updating Weststar ONE (${BRANCH})${NC}\n"
 
 ./deploy/backup.sh >/dev/null && ok "Backup made first (backups/)." || die "Backup failed, so nothing was updated."
