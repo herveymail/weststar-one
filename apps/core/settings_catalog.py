@@ -75,6 +75,9 @@ SETTINGS = [
             ("billing.reminder_note", "Extra line added to every reminder (optional)", TA),
             H("Ready to bill", "Billing › Ready to bill turns unbilled ticket time, mileage and sign-off parts into draft invoices."),
             ("billing.labor_taxable", "Charge tax on labor", SEL, ["no", "yes"]),
+            H("Renewals", "Heads-up emails for renewals, domains and SSL certificates, and the price on renewal quotes."),
+            ("renewals.notice_days", "Heads-up this many days ahead", I), ("renewals.notify_to", "Send heads-ups to (blank = support address)", T),
+            ("renewals.markup_pct", "Renewal quote markup % over cost", T),
             ("billing.afterhours_rate", "After-hours hourly rate", T), ("billing.afterhours_minimum", "After-hours minimum charge", T)]),
         ("late_fees", "Late fees", "Late fee amount, grace period and notice", [("billing.late_fee_enabled", "Charge late fees automatically", B, "Checked every few hours. The fee is added to the invoice as a line, the client is emailed and a note goes on their account."), ("billing.late_fee_type", "Late fee type", SEL, ["flat", "percent"]), ("billing.late_fee_flat", "Flat fee", T), ("billing.late_fee_pct", "Percent per month", T),
             ("billing.late_fee_grace_days", "Charge once an invoice is more than", I), ("billing.late_fee_repeat", "Add another fee every 30 days while it stays unpaid", B),
@@ -122,7 +125,7 @@ SETTINGS = [
 DEFAULTS = {
     "legal.az_county": "Maricopa", "legal.tx_county": "El Paso", "legal.dispute_days": "10", "legal.suspend_days": "30",
     "legal.staff_gate": "true", "legal.portal_gate": "true", "legal.staff_ack_months": "12", "legal.tx_workers_comp": "yes",
-    "billing.public_links": "true", "billing.reminders_on": "false", "billing.remind_before_days": "3", "billing.remind_on_due": "true", "billing.remind_after_days": "7, 14, 30", "billing.labor_taxable": "no", "billing.quote_deposit_invoice": "true",
+    "billing.public_links": "true", "billing.reminders_on": "false", "billing.remind_before_days": "3", "billing.remind_on_due": "true", "billing.remind_after_days": "7, 14, 30", "billing.labor_taxable": "no", "renewals.notice_days": "30", "renewals.markup_pct": "0", "billing.quote_deposit_invoice": "true",
     "portal.enabled": "true", "portal.magic_links": "true", "portal.reopen_hours": "48", "portal.show_billing": "true", "portal.show_invoices": "false", "portal.show_contracts": "true",
     "portal.show_policies": "true", "portal.show_assets": "true", "portal.show_kb": "true", "portal.show_messages": "true",
     "tickets.email_ack": "true", "tickets.email_on_close": "true", "tickets.auto_add_contacts": "true", "tickets.email_priority": "Medium",

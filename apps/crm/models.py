@@ -14,6 +14,8 @@ class Client(Record):
     phone = models.CharField(max_length=50, blank=True)
     email = models.EmailField(blank=True)
     website = models.URLField(blank=True)
+    email_domains = models.CharField("Email domains", max_length=500, blank=True,
+                                     help_text="Emails from these domains become this client's tickets, e.g. desertdental.com, dd-mail.com")
     address = models.CharField(max_length=255, blank=True)
     city = models.CharField(max_length=100, blank=True)
     state = models.CharField(max_length=50, blank=True)
@@ -51,6 +53,18 @@ class Client(Record):
 
     def __str__(self):
         return self.name
+
+
+def domain_list(raw: str) -> list[str]:
+    out = []
+    for d in (raw or "").replace(";", ",").replace(" ", ",").split(","):
+        d = d.strip().lower().lstrip("@")
+        if d.startswith("http"):
+            d = d.split("//", 1)[-1]
+        d = d.split("/", 1)[0].removeprefix("www.")
+        if d and "." in d and d not in out:
+            out.append(d)
+    return out
 
 
 class Contact(Record):

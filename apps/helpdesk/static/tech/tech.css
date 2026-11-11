@@ -39,7 +39,7 @@ h1{font-size:24px;margin:0;line-height:1.2}
 .r{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line);color:var(--text)}
 .r:last-child{border-bottom:0}.r b{font-weight:600}.r small{display:block;color:var(--muted);font-size:13px;margin-top:1px}
 .r .rt{text-align:right;flex:none}.r .when{width:68px;flex:none;font-size:13px;color:var(--muted)}.r .ic{font-size:20px;color:var(--blue2)}
-.pri{font-size:12px;font-weight:700}.pri-urgent{color:var(--red)}.pri-high{color:var(--orange)}.pri-medium{color:var(--blue2)}.pri-low{color:var(--muted)}
+.pri{font-size:12px;font-weight:700}.pri-urgent,.pri-critical{color:var(--red)}.pri-high{color:var(--orange)}.pri-medium{color:var(--blue2)}.pri-low{color:var(--muted)}
 .empty{padding:16px;margin:0;color:var(--muted);text-align:center}
 .more{display:block;text-align:center;padding:14px;font-weight:600}
 .card{background:var(--card);border-radius:14px;padding:14px;margin-top:12px;display:block;color:var(--text)}

@@ -28,7 +28,7 @@ from . import services
 from .models import OPEN_STATUSES, STATUSES, WORK_TYPES, Ticket, TicketTimer, TimeEntry
 from .signoff import SignoffRequired, is_breakfix
 
-PRI_ORDER = Case(When(priority="Urgent", then=Value(0)), When(priority="High", then=Value(1)), When(priority="Medium", then=Value(2)),
+PRI_ORDER = Case(When(priority="Critical", then=Value(0)), When(priority="High", then=Value(1)), When(priority="Medium", then=Value(2)),
                  default=Value(3), output_field=IntegerField())
 
 
@@ -88,7 +88,7 @@ def today(request):
     due_today = [t for t in mine if t.due_date and t.due_date <= day]
     tiles = [
         {"n": len(events) + len(due_today), "label": "Jobs today", "color": "#2563eb", "href": "/tech/schedule/"},
-        {"n": sum(1 for t in mine if t.priority == "Urgent"), "label": "Urgent", "color": "#dc2626", "href": "/tech/tickets/?f=urgent"},
+        {"n": sum(1 for t in mine if t.priority == "Critical"), "label": "Urgent", "color": "#dc2626", "href": "/tech/tickets/?f=urgent"},
         {"n": f"{minutes / 60:.1f}".rstrip("0").rstrip(".") + "h", "label": "Logged today", "color": "#16a34a", "href": "/tech/time/"},
         {"n": len(need_sig), "label": "Need signature", "color": "#ea580c", "href": "/tech/tickets/?f=sign"},
     ]
@@ -115,7 +115,7 @@ def tickets(request):
     elif f == "open":
         qs = qs.filter(status__in=OPEN_STATUSES)
     elif f == "urgent":
-        qs = qs.filter(assigned_to=request.user, status__in=OPEN_STATUSES, priority="Urgent")
+        qs = qs.filter(assigned_to=request.user, status__in=OPEN_STATUSES, priority="Critical")
     elif f == "sign":
         ids = [t.pk for t in _mine(request.user) if is_breakfix(t.client) and not t.signoffs.filter(type="completion").exists()]
         qs = qs.filter(pk__in=ids)

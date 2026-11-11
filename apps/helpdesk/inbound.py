@@ -163,21 +163,39 @@ def find_ticket(msg) -> Ticket | None:
     return None
 
 
+PUBLIC_DOMAINS = {"gmail.com", "googlemail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com", "icloud.com", "live.com", "msn.com",
+                  "comcast.net", "att.net", "me.com", "mac.com", "proton.me", "protonmail.com", "ymail.com", "sbcglobal.net", "cox.net"}
+
+
+def client_for_domain(domain: str):
+    """The one client that owns this email domain: listed in its Email domains, else its own email/website, else its contacts."""
+    from apps.crm.models import Client, Contact, domain_list
+    domain = (domain or "").lower().strip()
+    if not domain or domain in PUBLIC_DOMAINS:
+        return None
+    live = Client.objects.filter(archived_at__isnull=True)
+    hits = [c for c in live.exclude(email_domains="").only("id", "email_domains", "name")
+            if any(domain == d or domain.endswith("." + d) for d in domain_list(c.email_domains))]
+    if len(hits) == 1:
+        return Client.objects.get(pk=hits[0].pk)
+    if len(hits) > 1:
+        return None  # two clients claim it: let a person decide
+    by_email = list(live.filter(email__iendswith=f"@{domain}").values_list("pk", flat=True)[:2])
+    if len(by_email) == 1:
+        return live.get(pk=by_email[0])
+    ids = set(Contact.objects.filter(email__iendswith=f"@{domain}", archived_at__isnull=True).values_list("client_id", flat=True)[:3])
+    if len(ids) == 1:
+        return Client.objects.filter(pk=ids.pop()).first()
+    return live.filter(website__icontains=domain).first() if not ids else None
+
+
 def match_client(sender: str):
-    """(client, contact) for a sender: a contact with that email, else a client whose contacts/website use that domain."""
-    from apps.crm.models import Client, Contact
+    """(client, contact) for a sender: a contact with that email, else the client that owns the sender's domain."""
+    from apps.crm.models import Contact
     c = Contact.objects.select_related("client").filter(email__iexact=sender, archived_at__isnull=True).first()
     if c:
         return c.client, c
-    domain = sender.rsplit("@", 1)[-1].lower()
-    public = {"gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com", "icloud.com", "live.com", "msn.com", "comcast.net", "att.net", "me.com"}
-    if domain in public:
-        return None, None
-    ids = set(Contact.objects.filter(email__iendswith=f"@{domain}", archived_at__isnull=True).values_list("client_id", flat=True)[:3])
-    if len(ids) == 1:
-        return Client.objects.filter(pk=ids.pop()).first(), None
-    cl = Client.objects.filter(archived_at__isnull=True, website__icontains=domain).first()
-    return cl, None
+    return client_for_domain(sender.rsplit("@", 1)[-1]), None
 
 
 def _alert_sender(sender: str) -> bool:

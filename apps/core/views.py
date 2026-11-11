@@ -13,7 +13,7 @@ from django.views.decorators.http import require_POST
 
 from .audit import audit
 from .forms import build_form_class, build_line_formset, encrypted_fields
-from .models import get_secret
+from .models import Setting, get_secret
 from .permissions import can
 from .registry import NAV, REGISTRY, Module
 from .ui import cell, field_label
@@ -201,6 +201,7 @@ def module_edit(request, slug, pk=None):
         "m": m, "obj": obj, "form": form, "lines": lines, "locked": locked,
         "can_manage": manager, "readonly_values": _readonly(obj, m) if obj else [],
         "can_reveal": obj is not None and can(request.user, m.area, "manage" if m.area == "hr" else "edit"),
+        "markup": m.slug == "renewals" and (Setting.get("renewals.markup_pct", "0") or "0") not in ("0", "0.0", ""),
     }, status=status)
 
 

@@ -1,0 +1,16 @@
+{% autoescape off %}Good morning {{ u.name|default:"" }},
+
+Here's your day — {{ today|date:"l, F j" }}.
+{% if events %}
+TODAY'S CALENDAR
+{% for e in events %}- {{ e.starts_at|time:"g:i A" }} {{ e.title }}{% if e.client %} ({{ e.client.name }}){% endif %}{% if e.location %} · {{ e.location }}{% endif %}
+{% endfor %}{% endif %}{% if tickets %}
+YOUR OPEN TICKETS ({{ tickets|length }})
+{% for t in tickets %}- {{ t.number }} {{ t.subject }}{% if t.client %} · {{ t.client.name }}{% endif %} · {{ t.priority }}{% if t.due_date %} · due {{ t.due_date|date:"M j" }}{% endif %}
+  {{ app_url }}/tickets/{{ t.pk }}/
+{% endfor %}{% endif %}{% if items %}
+TO DO
+{% for i in items %}- {{ i.text }}: {{ app_url }}{{ i.href }}
+{% endfor %}{% endif %}
+Turn this email off any time in your Profile.
+{% endautoescape %}

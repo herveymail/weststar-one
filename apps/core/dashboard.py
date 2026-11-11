@@ -93,4 +93,6 @@ def data(user) -> dict:
         day_start = timezone.make_aware(datetime.combine(today, time.min), tz)
         out["events"] = CalendarEvent.objects.filter(archived_at__isnull=True, starts_at__gte=day_start, starts_at__lt=day_start + timedelta(days=1)).filter(
             Q(who=user) | Q(who__isnull=True)).select_related("client").order_by("starts_at")[:6]
+    from .today import todo
+    out["todo"] = todo(user)
     return out

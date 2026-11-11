@@ -236,3 +236,20 @@ def contract_send(request, pk):
     email_html = mark_safe(m.group(1) if m else email_html)  # our own template; every value in it is escaped
     return render(request, "billing/contract_send.html", {"c": c, "form": form, "error": error, "email_html": email_html, "link": link,
                                                           "signature": c.signatures.order_by("-created_at").first(), "mail_ok": mail.configured()})
+
+
+@login_required
+def renewal_quote(request, pk):
+    from apps.core.today import renewal_quote as make
+
+    from .models import Renewal
+    if request.method != "POST" or not can(request.user, "billing", "edit"):
+        raise PermissionDenied
+    r = get_object_or_404(Renewal.objects.select_related("client"), pk=pk, archived_at__isnull=True)
+    q = make(r, request.user)
+    if q is None:
+        messages.error(request, "Pick a client for this renewal first.")
+        return redirect(f"/m/renewals/?open_form=/m/renewals/{pk}/")
+    audit(request, "create", "quote", q.pk, f"Renewal quote {q.number} for {r.item}", area="billing")
+    messages.success(request, f"Draft quote {q.number} created. Check it, then send it.")
+    return redirect(f"/billing/quote/{q.pk}/")

@@ -28,6 +28,7 @@
   </div>
   {% if t.client.account_alert %}<div class="warn">⚠ {{ t.client.account_alert }}</div>{% endif %}
   <h2>{{ t.subject }}</h2>
+  {% include "helpdesk/_new_sender.html" with sender_ctx="panel" %}
   <div class="meta">
     <div><span class="k">Status</span><span class="st {{ t.status|tkg_st }}" style="display:inline-flex">{{ t.status }}</span></div>
     <div><span class="k">Priority</span><span class="pri {{ t.priority|tkg_pri }}">{{ t.priority }}</span></div>

@@ -3,6 +3,7 @@ from django.db import models
 from django.utils import timezone
 
 from apps.core.choices import C
+from apps.core.models import Record
 from apps.crm.models import Client, Contact
 
 PRIORITIES = ["Critical", "High", "Medium", "Low"]
@@ -293,3 +294,56 @@ class TicketApproval(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class TicketTemplate(Record):
+    """A ready-made ticket: subject, details, checklist, priority and time estimate. Used by "New ticket from template"
+    and by recurring tickets."""
+    name = models.CharField("Template", max_length=150)
+    subject = models.CharField(max_length=255, help_text="{client} and {month} are filled in, e.g. \"Monthly server check — {client} — {month}\".")
+    details = models.TextField(blank=True)
+    checklist = models.TextField(blank=True, help_text="One step per line. Added to the ticket as a checklist.")
+    priority = models.CharField(max_length=10, choices=C(*PRIORITIES), default="Medium")
+    category = models.CharField(max_length=100, blank=True)
+    queue = models.ForeignKey(Queue, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    estimate_minutes = models.PositiveIntegerField("Estimate (minutes)", null=True, blank=True)
+    billable = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+    def render(self, client=None, on=None) -> tuple[str, str]:
+        on = on or timezone.localdate()
+        fill = {"{client}": client.name if client else "", "{month}": on.strftime("%B %Y"), "{date}": on.strftime("%b %-d, %Y")}
+        subject, details = self.subject, self.details
+        for k, v in fill.items():
+            subject, details = subject.replace(k, v), details.replace(k, v)
+        steps = [ln.strip().lstrip("-*☐ ").strip() for ln in self.checklist.splitlines() if ln.strip()]
+        if steps:
+            details = (details.rstrip() + "\n\n" if details.strip() else "") + "Checklist:\n" + "\n".join(f"☐ {x}" for x in steps)
+        if self.estimate_minutes:
+            details += f"\n\nEstimated time: {self.estimate_minutes} min"
+        return " ".join(subject.split())[:255], details
+
+
+class RecurringTicket(Record):
+    """Opens a ticket from a template on a schedule (e.g. monthly maintenance for each managed client)."""
+    name = models.CharField("Schedule", max_length=150)
+    template = models.ForeignKey(TicketTemplate, on_delete=models.PROTECT, related_name="schedules")
+    client = models.ForeignKey(Client, null=True, blank=True, on_delete=models.CASCADE, related_name="+",
+                               help_text="Leave empty to open one ticket for every active managed client.")
+    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    frequency = models.CharField("Every", max_length=10, choices=C("Week", "2 weeks", "Month", "Quarter", "6 months", "Year"), default="Month")
+    next_run = models.DateField("Next ticket on")
+    due_days = models.PositiveIntegerField("Due after (days)", default=7, help_text="The ticket's due date, counted from when it opens.")
+    status = models.CharField(max_length=10, choices=C("Active", "Paused"), default="Active")
+    last_run = models.DateField(null=True, blank=True, editable=False)
+
+    class Meta:
+        ordering = ["next_run"]
+
+    def __str__(self):
+        return self.name

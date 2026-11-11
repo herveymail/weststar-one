@@ -240,7 +240,7 @@ def _end_one(user, request):
 class ProfileForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ["name", "title", "phone"]
+        fields = ["name", "title", "phone", "morning_summary"]
         widgets = {f: forms.TextInput(attrs={"class": "input"}) for f in ["name", "title", "phone"]}
 
 

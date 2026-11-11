@@ -185,6 +185,7 @@ def _detail_ctx(request, t: Ticket, panel=False) -> dict:
         "approval_via": TicketApproval.VIA, "signoff_needed": t.is_open and completion_required(t),
         "conversation_count": sum(1 for m in msgs if m.kind != "event"),
         "history": [m for m in msgs if m.kind == "event"],
+        **_sender_ctx(t),
         "minutes": time_rows["m"] or 0, "billable_minutes": time_rows["b"] or 0, "unbilled_minutes": time_rows["unbilled"] or 0,
         "value": round((time_rows["m"] or 0) / 60 * float(rate), 2) if rate else None,
         "timer": timer, "other_timer": other_timer,
@@ -197,6 +198,45 @@ def _detail_ctx(request, t: Ticket, panel=False) -> dict:
         "escalate_to": t.queue.escalate_to if t.queue_id and t.queue.escalate_to_id else None,
         "now": timezone.now(), "avatar_colors": AVATAR_COLORS,
     }
+
+
+def _sender_ctx(t) -> dict:
+    """For the "isn't a saved contact" prompt on tickets from unknown senders."""
+    if not t.contact_email or t.contact_id:
+        return {}
+    from .inbound import PUBLIC_DOMAINS
+    dom = t.contact_email.rsplit("@", 1)[-1].lower()
+    return {"sender_domain": "" if dom in PUBLIC_DOMAINS else dom,
+            "sender_clients": [] if t.client_id else Client.objects.filter(archived_at__isnull=True, status="Active").only("id", "name").order_by("name")}
+
+
+@login_required
+@require_POST
+def ticket_contact(request, pk):
+    """Save a ticket's unknown sender as a contact of the client (and optionally remember their email domain)."""
+    from apps.crm.models import domain_list
+    _need(request, "edit")
+    t = get_object_or_404(Ticket, pk=pk)
+    client = t.client or Client.objects.filter(pk=_int(request.POST.get("client")) or 0, archived_at__isnull=True).first()
+    if not t.contact_email or client is None:
+        messages.error(request, "Choose the client first.")
+        return _after_change(request, t)
+    c = Contact.objects.filter(client=client, email__iexact=t.contact_email, archived_at__isnull=True).first()
+    if c is None:
+        name = t.contact_name.strip() or t.contact_email.split("@")[0].replace(".", " ").title()
+        c = Contact.objects.create(client=client, name=name[:150], email=t.contact_email, created_by=request.user)
+        audit(request, "create", "contact", c.pk, f"Added {c.email} as a contact of {client.name} from ticket {t.number}", area="clients")
+    Ticket.objects.filter(pk=t.pk).update(contact=c, client=client)
+    msg = f"Added {c.name} to {client.name}."
+    dom = t.contact_email.rsplit("@", 1)[-1].lower()
+    from .inbound import PUBLIC_DOMAINS
+    if request.POST.get("remember") and dom not in PUBLIC_DOMAINS and dom not in domain_list(client.email_domains):
+        client.email_domains = ", ".join(domain_list(client.email_domains) + [dom])[:500]
+        type(client).objects.filter(pk=client.pk).update(email_domains=client.email_domains)
+        msg += f" Email from @{dom} will be filed under them."
+    messages.success(request, msg)
+    t.refresh_from_db()
+    return _after_change(request, t)
 
 
 @login_required
@@ -454,9 +494,14 @@ def ticket_new(request):
     if request.method == "GET" and not request.headers.get("HX-Request"):
         from urllib.parse import urlencode
         return redirect("/tickets/?" + urlencode({"open_form": request.get_full_path()}))
+    from .models import TicketTemplate
     initial = {}
     if _int(request.GET.get("client_id")):
         initial["client"] = int(request.GET["client_id"])
+    tpl = TicketTemplate.objects.filter(pk=_int(request.GET.get("template") or request.POST.get("template")) or 0, archived_at__isnull=True).first()
+    if tpl and request.method == "GET":
+        subject, details = tpl.render(Client.objects.filter(pk=initial.get("client") or 0).first())
+        initial.update(subject=subject, details=details, priority=tpl.priority, category=tpl.category, queue=tpl.queue_id)
     form = NewTicketForm(request.POST or None, initial=initial)
     if request.method == "POST" and form.is_valid():
         d = form.cleaned_data
@@ -464,13 +509,17 @@ def ticket_new(request):
                                    priority=d["priority"], queue=d["queue"], assigned_to=d["assigned_to"], category=d["category"] or "",
                                    contact_name=d["contact_name"], contact_email=(d["contact_email"] or "").lower(), device=d["device"],
                                    due_date=d["due_date"], request=request)
+        if tpl and not tpl.billable:
+            Ticket.objects.filter(pk=t.pk).update(billable=False)
         messages.success(request, f"Created {t.number}.")
         resp = HttpResponse(status=204)
         resp["HX-Redirect"] = f"/tickets/{t.pk}/"
         return resp
     contacts = [{"n": n, "e": e, "c": c} for n, e, c in Contact.objects.filter(archived_at__isnull=True).exclude(email="")
                 .order_by("name").values_list("name", "email", "client_id")]
-    return render(request, "helpdesk/_new.html", {"form": form, "contacts": contacts}, status=422 if request.method == "POST" else 200)
+    return render(request, "helpdesk/_new.html", {"form": form, "contacts": contacts, "tpl": tpl,
+                                                  "templates": TicketTemplate.objects.filter(archived_at__isnull=True).only("id", "name")},
+                  status=422 if request.method == "POST" else 200)
 
 
 _ = Http404

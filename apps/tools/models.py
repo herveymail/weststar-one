@@ -73,6 +73,7 @@ class Domain(Record):
     ssl_status = models.CharField("SSL", max_length=20, choices=C("Valid", "Expiring", "Expired", "None", "Unknown"), default="Unknown")
     ssl_expires_on = models.DateField("SSL expires", null=True, blank=True)
     notes = models.TextField(blank=True)
+    notified_on = models.DateField(null=True, blank=True, editable=False)  # heads-up email sent for this expiry
 
     def __str__(self):
         return self.name

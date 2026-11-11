@@ -4,6 +4,10 @@
       <header class="nt-head"><h2 id="nt-title"><i class="bi bi-plus-circle" aria-hidden="true"></i>New ticket</h2><button type="button" class="nt-x" data-close aria-label="Close">×</button></header>
       <div class="nt-body">
         {% if form.non_field_errors %}<div class="banner">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+        {% if templates %}<div class="field nt-tpl"><label for="nt-tpl">Start from a template</label>
+          <select id="nt-tpl" name="template" class="input" hx-get="/tickets/new/" hx-target="#modal" hx-trigger="change" hx-include="[name=client]">
+            <option value="">— Blank ticket —</option>{% for x in templates %}<option value="{{ x.pk }}"{% if tpl.pk == x.pk %} selected{% endif %}>{{ x.name }}</option>{% endfor %}</select>
+          <span class="help"><a href="/m/ticket_templates/" target="_blank" rel="noopener">Manage templates</a> · <a href="/m/recurring_tickets/" target="_blank" rel="noopener">Recurring tickets</a></span></div>{% endif %}
         <div class="field"><label for="nt-client-q">Client <span class="req">*</span></label>
           <input id="nt-client-q" class="input" placeholder="Type to filter clients…" autocomplete="off" data-filter-select="{{ form.client.id_for_label }}" autofocus>
           {{ form.client }}{{ form.client.errors }}</div>

@@ -1,0 +1,11 @@
+{% autoescape off %}These are coming up in the next {{ days }} days:
+{% if renewals %}
+RENEWALS
+{% for r in renewals %}- {{ r.renews_on|date:"M j, Y" }} · {{ r.item }}{% if r.client %} · {{ r.client.name }}{% endif %}{% if r.cost %} · ${{ r.cost }}{% endif %}
+  {{ app_url }}/m/renewals/?open_form=/m/renewals/{{ r.pk }}/
+{% endfor %}{% endif %}{% if domains %}
+DOMAINS & SSL
+{% for d in domains %}- {{ d.first|date:"M j, Y" }} · {{ d.name }}{% if d.client %} · {{ d.client.name }}{% endif %}{% if d.expires_on == d.first %} · domain expires{% else %} · SSL certificate expires{% endif %}
+{% endfor %}{% endif %}
+Open a renewal and click "Make renewal quote" to send the client a quote they can approve online.
+{% endautoescape %}

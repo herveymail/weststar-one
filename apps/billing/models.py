@@ -268,6 +268,8 @@ class Renewal(Record):
     cost = money()
     status = models.CharField(max_length=20, choices=C("Upcoming", "Renewed", "Cancelled"), default="Upcoming")
     notes = models.TextField(blank=True)
+    notified_on = models.DateField(null=True, blank=True, editable=False)  # heads-up email sent for this renewal date
+    quote = models.ForeignKey("Quote", null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False)
 
     def __str__(self):
         return self.item

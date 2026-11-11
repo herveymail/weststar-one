@@ -59,7 +59,8 @@ NAV = [
         ("expenses", "Expenses", "/m/expenses/", "billing"), ("vendors", "Vendors", "/m/vendors/", "billing"),
     ]),
     ("Tools", "Tools", "tools", [
-        ("calendar", "Calendar", "/m/calendar/", "tools"), ("inventory", "Inventory", "/m/inventory/", "tools"),
+        ("calendar", "Calendar", "/m/calendar/", "tools"), ("recurring_tickets", "Recurring tickets", "/m/recurring_tickets/", "tickets"),
+        ("ticket_templates", "Ticket templates", "/m/ticket_templates/", "tickets"), ("inventory", "Inventory", "/m/inventory/", "tools"),
         ("mileage", "Mileage", "/m/mileage/", "tools"), ("messages", "Secure Messages", "/m/messages/", "tools"),
         ("domains", "Domains & SSL", "/m/domains/", "tools"), ("backups", "Backups", "/backups/", "tools"),
         ("rmm", "RMM", "/m/rmm/", "tools"), ("kb", "Knowledge Base", "/m/kb/", "tools"), ("workflows", "Workflows", "/m/workflows/", "admin"),
@@ -75,7 +76,7 @@ NAV_BI = {
     "leads": "bi-funnel", "marketing": "bi-megaphone", "invoices": "bi-receipt", "ready": "bi-hourglass-split", "receivables": "bi-clock-history", "payments": "bi-credit-card",
     "recurring": "bi-arrow-repeat", "banking": "bi-bank", "quotes": "bi-file-earmark-text", "contracts": "bi-file-earmark-check",
     "policies": "bi-shield-check", "training": "bi-mortarboard", "renewals": "bi-calendar-check", "expenses": "bi-cash-stack",
-    "vendors": "bi-shop", "calendar": "bi-calendar3", "inventory": "bi-box-seam", "mileage": "bi-car-front",
+    "vendors": "bi-shop", "calendar": "bi-calendar3", "recurring_tickets": "bi-arrow-repeat", "ticket_templates": "bi-card-checklist", "inventory": "bi-box-seam", "mileage": "bi-car-front",
     "messages": "bi-envelope-paper", "domains": "bi-globe", "backups": "bi-cloud-check", "rmm": "bi-pc-display-horizontal",
     "kb": "bi-book", "workflows": "bi-lightning", "my_hr": "bi-person-badge", "hr": "bi-people-fill", "settings": "bi-gear",
 }

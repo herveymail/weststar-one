@@ -27,6 +27,12 @@
   </section>
   {% endif %}
   <div class="dash-side">
+    {% if todo %}
+    <section class="card">
+      <div class="dash-card-head"><h2>To do</h2><span class="muted small">{{ todo|length }} thing{{ todo|length|pluralize }}</span></div>
+      {% for i in todo %}<a class="todo-row tone-{{ i.tone }}" href="{{ i.href }}"><i class="bi {{ i.icon }}" aria-hidden="true"></i><span>{{ i.text }}</span><i class="bi bi-chevron-right muted" aria-hidden="true"></i></a>{% endfor %}
+    </section>
+    {% endif %}
     {% if chart %}
     <section class="card">
       <div class="dash-card-head"><h2>Tickets, last 14 days</h2><span class="muted small">{{ chart_total }} opened</span></div>

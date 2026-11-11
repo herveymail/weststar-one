@@ -38,7 +38,7 @@ def client_detail(request, pk):
     from apps.core.ui import cell, field_label
 
     ctx = {"c": client, "tabs": tabs, "tab": tab, "slug": slug, "can_edit_client": can(request.user, "clients", "edit"), "tickets": None,
-           "account": [(field_label(Client, f), cell(client, f)) for f in ["phone", "email", "website", "city", "state", "account_manager", "hourly_rate", "net_terms", "sla_response_hours", "sla_resolution_hours"]]}
+           "account": [(field_label(Client, f), cell(client, f)) for f in ["phone", "email", "website", "email_domains", "city", "state", "account_manager", "hourly_rate", "net_terms", "sla_response_hours", "sla_resolution_hours"]]}
     if can(request.user, "tickets"):
         ctx["tickets"] = client.tickets.select_related("assigned_to").order_by("-updated_at")[:20]
         ctx["open_tickets"] = client.tickets.filter(status__in=["New", "Open", "Waiting on client", "Waiting on vendor", "Scheduled"]).count()

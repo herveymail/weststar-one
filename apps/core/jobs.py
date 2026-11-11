@@ -123,6 +123,50 @@ def late_fees():
     return run()
 
 
+STEP = {"Week": (0, 7), "2 weeks": (0, 14), "Month": (1, 0), "Quarter": (3, 0), "6 months": (6, 0), "Year": (12, 0)}
+
+
+def recurring_tickets():
+    """Open tickets from Recurring tickets schedules whose day has come (one per client; empty client = every managed client)."""
+    from apps.crm.models import Client
+    from apps.helpdesk import services
+    from apps.helpdesk.models import RecurringTicket, Ticket
+    today = timezone.localdate()
+    made = 0
+    for sid in RecurringTicket.objects.filter(status="Active", archived_at__isnull=True, next_run__lte=today).values_list("id", flat=True):
+        with transaction.atomic():
+            s = RecurringTicket.objects.select_for_update(skip_locked=True).select_related("template").filter(pk=sid, next_run__lte=today).first()
+            if s is None:
+                continue
+            tpl = s.template
+            clients = [s.client] if s.client_id else list(Client.objects.filter(archived_at__isnull=True, status="Active", plan__startswith="Managed").order_by("name"))
+            for c in clients:
+                subject, details = tpl.render(c, s.next_run)
+                t = services.create_ticket(subject=subject, details=details, client=c, priority=tpl.priority, source="Manual",
+                                           assigned_to=s.assigned_to, queue=tpl.queue, category=tpl.category,
+                                           due_date=s.next_run + timedelta(days=s.due_days))
+                Ticket.objects.filter(pk=t.pk).update(billable=tpl.billable)
+                services.event(t, f"Opened automatically by the recurring schedule \"{s.name}\"")
+                made += 1
+            months, days = STEP.get(s.frequency, (1, 0))
+            nxt = s.next_run
+            while nxt <= today:  # catch up without opening a pile of old tickets
+                nxt = _add_months(nxt, months) if months else nxt + timedelta(days=days)
+            s.last_run, s.next_run = today, nxt
+            s.save(update_fields=["last_run", "next_run", "updated_at"])
+    return {"opened": made}
+
+
+def morning_summary():
+    from .today import morning_summary as run
+    return run()
+
+
+def renewal_notices():
+    from .today import renewal_notices as run
+    return run()
+
+
 def payment_reminders():
     from apps.billing.reminders import run
     return run()
@@ -143,6 +187,9 @@ JOBS = {
     "recurring-invoices": {"label": "Recurring invoices", "every_minutes": 60, "run": recurring_invoices},
     "overdue-invoices": {"label": "Mark overdue invoices", "every_minutes": 60, "run": overdue_invoices},
     "msp360": {"label": "MSP360: sync backups, tickets for failed plans", "every_minutes": 15, "run": msp360_sync},
+    "recurring-tickets": {"label": "Recurring tickets", "every_minutes": 60, "run": recurring_tickets},
+    "morning-summary": {"label": "Morning summary emails (people who turned it on in Profile)", "every_minutes": 30, "run": morning_summary},
+    "renewal-notices": {"label": "Renewal, domain and SSL heads-up emails", "every_minutes": 360, "run": renewal_notices},
     "payment-reminders": {"label": "Payment reminders to clients", "every_minutes": 60, "run": payment_reminders},
     "late-fees": {"label": "Late fees on past-due invoices", "every_minutes": 360, "run": late_fees},
     "auto-close": {"label": "Auto-close resolved tickets", "every_minutes": 60, "run": auto_close},

@@ -28,7 +28,7 @@ def tech(client):
 def job(tech):
     c = Client.objects.create(name="Desert Dental", phone="(480) 555-0100", address="1250 E Baseline Rd", city="Tempe", state="AZ", zip="85283")
     Contact.objects.create(client=c, name="Pat Lee", phone="602-555-0199", email="pat@dd.test", is_primary=True)
-    return Ticket.objects.create(number="T-1", subject="Front desk PC won't boot", client=c, assigned_to=tech, priority="Urgent", status="Open")
+    return Ticket.objects.create(number="T-1", subject="Front desk PC won't boot", client=c, assigned_to=tech, priority="Critical", status="Open")
 
 
 def test_today_tiles_and_lists(client, tech, job):
