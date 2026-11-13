@@ -6,6 +6,7 @@ import string
 import qrcode
 import qrcode.image.svg
 from django import forms
+from django.conf import settings
 from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth import logout as django_logout
@@ -40,14 +41,18 @@ def login_view(request):
     if request.method == "POST":
         user, reason = security.check_password_step(request, request.POST.get("email", ""), request.POST.get("password", ""))
         if user and not password_login_allowed(user):
+            # The password was right, so saying why doesn't help a guesser.
             security.record_attempt(user.email, request, False, "password_off")
+            error = "Your password is right, but your account signs in with Google. Use “Sign in with Google” instead."
             user = None
         if user:
             needs_code = user.mfa_enabled
             security.start_session(request, user, mfa_passed=not needs_code)
             audit(request, "login", "user", user.pk, f"{user.email} signed in{' (password step)' if needs_code else ''}", user=user)
             return redirect("/login/mfa/" if needs_code else request.GET.get("next", "/") if request.GET.get("next", "/").startswith("/") and not request.GET.get("next", "/").startswith("//") else "/")
-        error = security.GENERIC_FAIL
+        if not error:
+            error = ("Too many failed sign-ins from your network in the last 15 minutes, so it's paused. Wait 15 minutes, "
+                     "or ask an admin to clear it in Settings › Security log.") if reason == "ip_blocked" else security.GENERIC_FAIL
     from . import google
     return render(request, "accounts/login.html", {"error": error, "expired": request.GET.get("expired"), "google": google.enabled(),
                                                    "password_login": not google.enabled() or Setting.get("security.password_login", "everyone") == "everyone"
@@ -361,7 +366,7 @@ def user_edit_view(request, pk=None):
                 obj.recovery_codes.all().delete()
                 security.revoke_sessions(obj)
             elif action == "unlock":
-                User.objects.filter(pk=obj.pk).update(failed_logins=0, mfa_failures=0, locked_until=None)
+                User.objects.filter(pk=obj.pk).update(failed_logins=0, mfa_failures=0, locked_until=None, lock_count=0)
             elif action == "archive":
                 User.objects.filter(pk=obj.pk).update(is_active=False)
                 security.revoke_sessions(obj)
@@ -383,8 +388,47 @@ def _hx_refresh():
     return r
 
 
+REASONS = {
+    "ok": ("Signed in", "good"), "google": ("Signed in with Google", "good"),
+    "bad_password": ("Wrong password", "bad"), "unknown_email": ("No staff account with that email", "warn"),
+    "locked": ("Account locked (too many wrong passwords)", "bad"), "ip_blocked": ("Network paused (too many failures from this IP)", "bad"),
+    "password_off": ("Right password, but this account must use Google", "warn"),
+    "cleared": ("Failure cleared by an admin", "muted"), "bad_mfa": ("Wrong 2FA code", "bad"),
+    "unknown_or_locked": ("Client portal: wrong or locked", "warn"), "client_inactive": ("Client portal: turned off", "warn"), "google_no_account": ("Google: no staff account for that address", "warn"),
+    "google_inactive": ("Google: account turned off", "warn"), "google_domain": ("Google: email domain not allowed", "warn"),
+}
+
+
 @login_required
 def security_log_view(request):
     if not can(request.user, "admin", "view"):
         raise PermissionDenied
-    return render(request, "accounts/security_log.html", {"rows": LoginAttempt.objects.order_by("-created_at")[:300]})
+    if request.method == "POST":
+        if not can(request.user, "admin", "manage"):
+            raise PermissionDenied
+        a = request.POST.get("action")
+        if a == "unlock" and request.POST.get("user", "").isdigit():
+            u = User.objects.filter(pk=int(request.POST["user"])).first()
+            if u:
+                User.objects.filter(pk=u.pk).update(failed_logins=0, mfa_failures=0, locked_until=None, lock_count=0)
+                audit(request, "unlock", "user", u.pk, f"Unlocked {u.email} from the security log")
+                messages.success(request, f"Unlocked {u.email}. They can sign in now.")
+        elif a == "unlock_all":
+            n = User.objects.filter(locked_until__gt=timezone.now()).update(failed_logins=0, mfa_failures=0, locked_until=None, lock_count=0)
+            audit(request, "unlock", "user", None, f"Unlocked all {n} locked accounts")
+            messages.success(request, f"Unlocked {n} account{'s' if n != 1 else ''}.")
+        elif a == "clear_ip" and request.POST.get("ip"):
+            n = security.clear_ip(request.POST["ip"][:64])
+            audit(request, "unblock", "security", None, f"Cleared {n} recent failures for {request.POST['ip'][:64]}")
+            messages.success(request, f"Network {request.POST['ip'][:64]} can sign in again.")
+        return redirect("/settings/security_log/")
+    rows = list(LoginAttempt.objects.order_by("-created_at")[:300])
+    q = request.GET.get("q", "").strip().lower()
+    if q:
+        rows = [r for r in rows if q in r.email.lower() or q in (r.ip or "")]
+    for r in rows:
+        r.label, r.tone = REASONS.get(r.reason, (r.reason.replace("_", " ").capitalize() or "Failed", "bad" if not r.success else "good"))
+    return render(request, "accounts/security_log.html", {
+        "rows": rows, "q": q, "locked": User.objects.filter(locked_until__gt=timezone.now()).order_by("email"),
+        "blocked": security.blocked_ips(), "can_manage": can(request.user, "admin", "manage"),
+        "max_fails": settings.LOGIN_IP_MAX_FAILS, "lock_after": settings.LOGIN_LOCK_AFTER})

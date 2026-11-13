@@ -125,7 +125,8 @@ def _record(email, request, ok, reason):
 
 def ip_blocked(request) -> bool:
     since = timezone.now() - timedelta(minutes=15)
-    return LoginAttempt.objects.filter(ip=client_ip(request), success=False, created_at__gte=since).count() >= settings.LOGIN_IP_MAX_FAILS
+    fails = LoginAttempt.objects.filter(ip=client_ip(request), success=False, created_at__gte=since)
+    return fails.exclude(reason__startswith="google").exclude(reason__in=["ip_blocked", "cleared"]).count() >= settings.LOGIN_IP_MAX_FAILS
 
 
 def check_password_step(request, email: str, password: str) -> PortalUser | None:

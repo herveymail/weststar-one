@@ -57,7 +57,23 @@ def record_attempt(email: str, request, success: bool, reason: str):
 def ip_blocked(request) -> bool:
     since = timezone.now() - timedelta(minutes=15)
     fails = LoginAttempt.objects.filter(ip=client_ip(request), success=False, created_at__gte=since)
-    return fails.exclude(reason__startswith="google").count() >= settings.LOGIN_IP_MAX_FAILS  # Google failures aren't password guesses
+    # Google failures aren't password guesses; attempts made while already paused don't extend the pause
+    # (otherwise an office that keeps trying stays blocked forever); admins can clear a block.
+    return fails.exclude(reason__startswith="google").exclude(reason__in=["ip_blocked", "cleared"]).count() >= settings.LOGIN_IP_MAX_FAILS
+
+
+def clear_ip(ip: str) -> int:
+    """Admin: forget recent failures from one IP (e.g. the office), so it isn't blocked any more."""
+    since = timezone.now() - timedelta(minutes=15)
+    return LoginAttempt.objects.filter(ip=ip, success=False, created_at__gte=since).update(reason="cleared")
+
+
+def blocked_ips() -> list[dict]:
+    from django.db.models import Count, Max
+    since = timezone.now() - timedelta(minutes=15)
+    rows = (LoginAttempt.objects.filter(success=False, created_at__gte=since).exclude(reason__startswith="google").exclude(reason__in=["ip_blocked", "cleared"])
+            .values("ip").annotate(n=Count("id"), last=Max("created_at")).order_by("-n"))
+    return [r for r in rows if r["n"] >= settings.LOGIN_IP_MAX_FAILS]
 
 
 def _fail(user_id: int, counter: str) -> None:
@@ -93,7 +109,7 @@ def check_password_step(request, email: str, password: str) -> tuple[User | None
         _fail(user.pk, "failed_logins")
         _record(email, request, False, "bad_password")
         return None, "bad_password"
-    User.objects.filter(pk=user.pk).update(failed_logins=0)
+    User.objects.filter(pk=user.pk).update(failed_logins=0, lock_count=0)  # a good sign-in starts the lock-time doubling over
     _record(email, request, True, "ok")
     return user, ""
 

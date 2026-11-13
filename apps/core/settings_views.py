@@ -87,6 +87,9 @@ def _status() -> dict:
     failed = LoginAttempt.objects.filter(success=False, created_at__date=timezone.localdate()).count()
     st["security_log"] = (f"{failed} failed today", "warn", f"{failed} failed sign-ins today") if failed >= 10 else \
         ((f"{failed} failed today", "warn") if failed else ("Clean today", "good"))
+    locked = User.objects.filter(locked_until__gt=timezone.now()).count()
+    if locked:
+        st["security_log"] = (f"{locked} locked out", "bad", f"{locked} staff account{'s are' if locked != 1 else ' is'} locked — open to unlock")
     return st
 
 
