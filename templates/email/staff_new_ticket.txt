@@ -1,0 +1,16 @@
+{% autoescape off %}{% if mine %}A new ticket was assigned to you.{% else %}A new ticket is waiting{% if t.queue %} in {{ t.queue.name }}{% endif %} — nobody has picked it up yet.{% endif %}
+
+{{ t.number }} · {{ t.priority }} priority
+{{ t.subject }}
+Client: {{ where }}{% if t.contact_name or t.contact_email %}
+From: {{ t.contact_name }}{% if t.contact_email %} <{{ t.contact_email }}>{% endif %}{% endif %}{% if t.device %}
+Device: {{ t.device }}{% endif %}
+Came in by: {{ t.get_source_display }}
+{% if details %}
+{{ details }}
+{% endif %}
+Open it: {{ link }}
+
+This is an automatic alert — don't reply to this email; open the ticket instead.
+Change these emails in your Profile.
+{% endautoescape %}

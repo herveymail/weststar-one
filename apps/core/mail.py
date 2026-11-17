@@ -194,7 +194,7 @@ CTA = {  # button on the branded HTML version
     "email/portal_secure_notice": "Read the message", "email/portal_staff_notice": "Open in Weststar One", "email/invoice": "View & pay invoice", "email/late_fee": "Pay now",
     "email/quote": "Review & approve quote", "email/contract": "Review & sign",
     "email/payment_reminder": "View & pay invoice", "email/statement": "Pay the oldest invoice",
-    "email/morning_summary": "Open Weststar ONE", "email/renewals": "See renewals",
+    "email/morning_summary": "Open Weststar ONE", "email/staff_new_ticket": "Open the ticket", "email/renewals": "See renewals",
 }
 
 
@@ -248,7 +248,7 @@ def new_message_id(ticket_pk: int | None = None) -> str:
     return f"<{tag}{secrets.token_hex(8)}@{domain}>"
 
 
-def _build(to, subject, template, context, cc=None, reply_to=None, message_id=None, references=None, attachments=None):
+def _build(to, subject, template, context, cc=None, reply_to=None, message_id=None, references=None, attachments=None, headers=None):
     to = [a for a in ([to] if isinstance(to, str) else list(to or [])) if a and "@" in a]
     cc = [a for a in (cc or []) if a and "@" in a and a not in to]
     if not to:
@@ -261,6 +261,8 @@ def _build(to, subject, template, context, cc=None, reply_to=None, message_id=No
                                  reply_to=[reply_to or support] if (reply_to or support) else None)
     if message_id:
         msg.extra_headers["Message-ID"] = message_id
+    for k, v in (headers or {}).items():
+        msg.extra_headers[k] = v
     refs = [r for r in (references or []) if r]
     if refs:
         msg.extra_headers["In-Reply-To"] = refs[-1]
@@ -273,14 +275,14 @@ def _build(to, subject, template, context, cc=None, reply_to=None, message_id=No
 
 
 def send(to, subject: str, template: str, context: dict, cc=None, reply_to=None, message_id=None, references=None, attachments=None,
-         background=False, after=None) -> bool:
+         background=False, after=None, headers=None) -> bool:
     """Renders templates/<template>.txt (and .html if present) and sends it. Returns True if sent.
     background=True: queue it and send a moment later, so the person clicking doesn't wait on the mail server
     (returns True if queued). `after` is recorded on the ticket once it has really gone (see _after_sent)."""
     if not configured():
         log.warning("Email not set up (Settings › Email); not sending %r to %s", subject, to)
         return False
-    msg = _build(to, subject, template, context, cc, reply_to, message_id, references, attachments)
+    msg = _build(to, subject, template, context, cc, reply_to, message_id, references, attachments, headers)
     if msg is None:
         return False
     if background and getattr(settings, "MAIL_BACKGROUND", True):

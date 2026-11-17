@@ -143,7 +143,61 @@ def create_ticket(*, user=None, subject, details="", client=None, contact=None, 
     ai_will_answer = source in ("Email", "Portal") and ai.enabled("first_response")  # its reply includes the "we got it"
     if not ai_will_answer and (portal_user is not None or (source == "Email" and Setting.get("tickets.email_ack", "true") != "false")):
         transaction.on_commit(lambda: send_ticket_email(t, "new", "email/ticket_received", {}))
+    transaction.on_commit(lambda: alert_staff_new_ticket(t, created_by=user))
     return t
+
+
+STAFF_ALERT_ROLES = "admin, manager, help_desk, tech"
+
+
+def staff_alert_recipients(t: Ticket, created_by=None) -> list[str]:
+    """Who gets the "new ticket waiting" email (Settings › Ticket emails › Alerts to your team; each person can opt out in Profile).
+    Already assigned → just that person. Otherwise everyone in the chosen roles who wants every new ticket, plus extra addresses."""
+    from apps.accounts.models import User
+    from apps.core.mail import own_addresses
+    if Setting.get("tickets.staff_alert", "true") == "false":
+        return []
+    if created_by is not None and Setting.get("tickets.staff_alert_which", "client") == "client":
+        return []  # someone on the team typed it in, so the team already knows
+    if t.source in ("Alert", "MSP360") and Setting.get("tickets.staff_alert_monitoring", "true") == "false":
+        return []
+    ours = own_addresses()
+    if t.assigned_to_id:
+        u = t.assigned_to
+        people = [u] if u.is_active and u.ticket_alerts != "none" and u != created_by else []
+        extra = []
+    else:
+        roles = [r.strip() for r in (Setting.get("tickets.staff_alert_roles", "") or STAFF_ALERT_ROLES).split(",") if r.strip()]
+        people = list(User.objects.filter(is_active=True, role__in=roles, ticket_alerts="all").exclude(pk=getattr(created_by, "pk", None)))
+        extra = [a.strip() for a in (Setting.get("tickets.staff_alert_to", "") or "").replace(";", ",").split(",") if "@" in a]
+    out = []
+    for a in [p.email for p in people] + extra:
+        a = (a or "").strip()
+        if a and "@" in a and a.lower() not in ours and a.lower() not in [x.lower() for x in out]:
+            out.append(a)
+    return out
+
+
+def alert_staff_new_ticket(t: Ticket, created_by=None) -> bool:
+    from django.conf import settings as dj
+
+    from apps.core import mail
+    try:
+        t = Ticket.objects.select_related("client", "assigned_to", "queue").get(pk=t.pk)
+        to = staff_alert_recipients(t, created_by)
+        if not to:
+            return False
+        where = t.client.name if t.client else (t.contact_name or t.contact_email or "No client")
+        subject = f"[New ticket] {t.number} · {where} · {t.subject}"[:200]
+        return mail.send(to, subject, "email/staff_new_ticket", {
+            "t": t, "where": where, "link": f"{dj.APP_URL}/tickets/{t.pk}/", "mine": bool(t.assigned_to_id),
+            "details": (t.details or "").strip()[:800], "meta": f"Ticket {t.number}"},
+            reply_to=mail.from_address(), background=True,
+            headers={"Auto-Submitted": "auto-generated", "X-Auto-Response-Suppress": "All"})
+    except Exception:  # noqa: BLE001 — an alert problem must never stop a ticket from being created
+        import logging
+        logging.getLogger(__name__).exception("New-ticket alert for %s failed", t.pk)
+        return False
 
 
 @transaction.atomic

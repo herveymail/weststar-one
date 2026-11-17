@@ -28,6 +28,8 @@ class User(AbstractBaseUser):
     look = models.CharField("Theme", max_length=20, choices=[(t[0], t[1]) for t in __import__("apps.core.themes", fromlist=["THEMES"]).THEMES], default="paper")
     tickets_ui = models.CharField("Ticket screen", max_length=10, choices=[("classic", "Classic (views on the left, full ticket page)"),
                                                                            ("grid", "Grid (sortable table, ticket opens beside it)")], default="classic")
+    ticket_alerts = models.CharField("Email me about new tickets", max_length=10, default="all",
+                                     choices=[("all", "Every new ticket"), ("mine", "Only tickets assigned to me"), ("none", "Don't email me")])
     morning_summary = models.BooleanField("Email me a morning summary", default=False,
                                           help_text="About 7 AM on weekdays: your tickets, today's calendar and what needs doing.")
     google_only = models.BooleanField("Must sign in with Google", default=False,
