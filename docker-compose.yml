@@ -81,7 +81,7 @@ services:
     restart: unless-stopped
     depends_on: [app]
     ports: ["80:80", "443:443"]
-    environment: { DOMAIN: "${DOMAIN}", PORTAL_DOMAIN: "${PORTAL_DOMAIN:-}" }
+    environment: { DOMAIN: "${DOMAIN}", PORTAL_DOMAIN: "${PORTAL_DOMAIN:-}", CLOUDFLARE_ONLY: "${CLOUDFLARE_ONLY:-off}" }
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddydata:/data

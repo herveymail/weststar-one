@@ -164,6 +164,19 @@ cd /opt/weststar-one && sudo ./deploy/ssh-lock.sh 162.235.208.133
 Only that address can then open an SSH session (the website is unaffected). You get 5 minutes to confirm a new
 connection works; otherwise SSH re-opens by itself. `--status` shows the rule, `--open` undoes it.
 
+### Cloudflare in front (optional)
+
+Weststar ONE reads the visitor's real address from Cloudflare automatically (and ignores that header from anyone
+else). In Cloudflare: proxy the app's DNS records (orange cloud) and set SSL/TLS to **Full (strict)**. Then:
+
+```
+cd /opt/weststar-one && sudo ./deploy/cloudflare.sh status   # are the addresses going through Cloudflare?
+sudo ./deploy/cloudflare.sh lock                             # refuse visitors that bypass Cloudflare
+```
+
+`lock` checks first and undoes itself if the site stops answering; `unlock` turns it off. Cloudflare's free plan
+limits one upload to 100 MB and one request to 100 seconds — use `unlock` + grey cloud for a big data import.
+
 ### Upgrading Ubuntu (24.04 → 26.04.1 LTS)
 
 Take a VM snapshot first, then:
