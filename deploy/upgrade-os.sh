@@ -140,7 +140,7 @@ else
     echo "    • A config file was changed (\"keep the local version\" or \"install the package maintainer's\")? Keep the local version (N / default)."
     echo "    • Remove obsolete packages: y"
     echo "    • Restart now: y"
-    echo "  If you're connected over SSH, Ubuntu opens a spare SSH on port 1022 in case the connection drops."
+    echo "  If you're connected over SSH, Ubuntu opens a spare SSH on port 1022 in case the connection drops (the firewall keeps it closed to outsiders)."
     echo
     do-release-upgrade
 fi

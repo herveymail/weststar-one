@@ -206,7 +206,9 @@ if [ -n "$BUSY" ]; then
 fi
 
 info "Firewall: allowing SSH, HTTP and HTTPS only."
-ufw allow OpenSSH >/dev/null 2>&1; ufw allow 80/tcp >/dev/null 2>&1; ufw allow 443/tcp >/dev/null 2>&1
+# If SSH was limited to certain addresses with deploy/ssh-lock.sh, don't open it back up to everyone.
+[ -s /etc/weststar-ssh-allow ] || ufw allow OpenSSH >/dev/null 2>&1
+ufw allow 80/tcp >/dev/null 2>&1; ufw allow 443/tcp >/dev/null 2>&1
 ufw --force enable >/dev/null 2>&1 && success "Firewall on (SSH, 80, 443)."
 
 # ════════════════════════════════════════════

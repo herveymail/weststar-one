@@ -155,6 +155,15 @@ before that. Re-running the import picks up whatever changed in the old app in t
 
 Copy the backups off the server as well, to another site or a cloud bucket.
 
+### Limiting SSH to your office address
+
+```
+cd /opt/weststar-one && sudo ./deploy/ssh-lock.sh 162.235.208.133
+```
+
+Only that address can then open an SSH session (the website is unaffected). You get 5 minutes to confirm a new
+connection works; otherwise SSH re-opens by itself. `--status` shows the rule, `--open` undoes it.
+
 ### Upgrading Ubuntu (24.04 → 26.04.1 LTS)
 
 Take a VM snapshot first, then:
