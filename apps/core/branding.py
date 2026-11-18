@@ -86,7 +86,7 @@ def login_brand() -> dict:
     from .models import Setting
     color = (Setting.get("brand.login_color", "") or "").strip()
     if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
-        color = "#0b2545"
+        color = "#1e4f8f"
     site = (Setting.get("company.website", "") or "").strip()
     return {
         "lb_name": Setting.get("company.name", "") or Setting.get("brand.app_name", "") or "Weststar ONE",

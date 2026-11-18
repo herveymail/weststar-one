@@ -2,14 +2,8 @@
 {% block title %}Client portal{% endblock %}
 {% block kicker %}Client portal{% endblock %}
 {% block headline %}Your IT support, one sign-in away.{% endblock %}
-{% block tagline %}Open and track requests, pay invoices and find answers from the {{ lb_name }} team.{% endblock %}
-{% block points %}
-<li><span class="ic"><i class="bi bi-ticket-detailed" aria-hidden="true"></i></span><div><b>Submit &amp; track tickets</b><span>See every request and its status, start to finish.</span></div></li>
-<li><span class="ic"><i class="bi bi-credit-card" aria-hidden="true"></i></span><div><b>View &amp; pay invoices</b><span>Statements, payment history and secure online payment.</span></div></li>
-<li><span class="ic"><i class="bi bi-book" aria-hidden="true"></i></span><div><b>Knowledge base</b><span>Step-by-step guides for common questions.</span></div></li>
-<li><span class="ic"><i class="bi bi-pc-display" aria-hidden="true"></i></span><div><b>Your devices</b><span>The equipment and work on your account.</span></div></li>
-{% endblock %}
-{% block mobile_switch %}<a class="wl-mobile-link" href="/login/">Staff sign-in <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% endblock %}
+{% block tagline %}Open and track support requests and sign agreements with the {{ lb_name }} team.{% endblock %}
+{% block badges %}<li><i class="bi bi-lock" aria-hidden="true"></i>Encrypted</li><li><i class="bi bi-journal-check" aria-hidden="true"></i>Sign-ins are logged</li><li><i class="bi bi-eye-slash" aria-hidden="true"></i>Private to your company</li>{% endblock %}
 {% block switch %}Team member? <a href="/login/">Staff sign-in</a>{% endblock %}
 {% block terms %}{% endblock %}
 {% block form %}<div class="stack">{% block card %}{% endblock %}</div>{% endblock %}

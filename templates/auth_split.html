@@ -16,32 +16,37 @@
 </head>
 <body>
 <div class="wl" style="--panel:{{ lb_panel }};--panel-2:{{ lb_panel2 }}">
-  <aside class="wl-panel">
-    <div>{% if logo_url %}<img class="wl-logo" src="{{ logo_url }}" alt="{{ lb_name }}">{% else %}<span class="wl-name">{{ lb_name }}</span>{% endif %}</div>
-    {% block mobile_switch %}{% endblock %}
-    <div class="wl-mid">
-      <div class="wl-kicker">{% block kicker %}{% endblock %}</div>
-      <h1 class="wl-h">{% block headline %}{% endblock %}</h1>
-      <p class="wl-tag">{% block tagline %}{% endblock %}</p>
-      <ul class="wl-pts">{% block points %}{% endblock %}</ul>
-    </div>
-    {% if lb_phone or lb_email or lb_site %}
-    <div class="wl-contact">
-      {% if lb_phone %}<a href="tel:{{ lb_tel }}"><i class="bi bi-telephone" aria-hidden="true"></i>{{ lb_phone }}</a>{% endif %}
-      {% if lb_email %}<a href="mailto:{{ lb_email }}"><i class="bi bi-envelope" aria-hidden="true"></i>{{ lb_email }}</a>{% endif %}
-      {% if lb_site %}<a href="{{ lb_site_url }}" target="_blank" rel="noopener"><i class="bi bi-globe2" aria-hidden="true"></i>{{ lb_site_label }}</a>{% endif %}
-    </div>
-    {% endif %}
-  </aside>
   <main class="wl-main">
-    <div class="wl-top">{% block switch %}{% endblock %}</div>
+    <header class="wl-top">
+      <a class="wl-brand" href="/" aria-label="{{ lb_name }}">{% if logo_url %}<img class="wl-logo" src="{{ logo_url }}" alt="{{ lb_name }}">{% else %}<span class="wl-mark" aria-hidden="true"><i class="bi bi-shield-lock-fill"></i></span><span class="wl-name">{{ lb_name }}</span>{% endif %}</a>
+      <span class="wl-switch">{% block switch %}{% endblock %}</span>
+    </header>
     <div class="wl-center"><div class="wl-form">
       {% block form %}{% endblock %}
       {% block terms %}{% if lb_terms %}<div class="wl-terms">{{ lb_terms|linebreaksbr }}</div>{% endif %}{% endblock %}
-      <div class="wl-secure"><i class="bi bi-shield-lock" aria-hidden="true"></i>{% block secure %}Secure, encrypted sign-in{% endblock %}</div>
+      <ul class="wl-badges" aria-label="How this sign-in is protected">{% block badges %}
+        <li><i class="bi bi-shield-lock" aria-hidden="true"></i>Two-factor protected</li>
+        <li><i class="bi bi-lock" aria-hidden="true"></i>Encrypted</li>
+        <li><i class="bi bi-journal-check" aria-hidden="true"></i>Sign-ins are logged</li>{% endblock %}
+      </ul>
     </div></div>
     <footer class="wl-foot"><span>&copy; {{ lb_year }} {{ lb_name }} · <a href="/legal/terms/">Terms of use</a> · <a href="/legal/privacy/">Privacy</a></span><span>{% block foot %}Powered by Weststar One{% endblock %}</span></footer>
   </main>
+  <aside class="wl-panel" aria-label="{{ lb_name }}">
+    <span class="wl-ring r1" aria-hidden="true"></span><span class="wl-ring r2" aria-hidden="true"></span>
+    <div class="wl-cap">
+      <div class="wl-kicker">{% block kicker %}{% endblock %}</div>
+      <p class="wl-h">{% block headline %}{% endblock %}</p>
+      <p class="wl-tag">{% block tagline %}{% endblock %}</p>
+      {% if lb_phone or lb_email or lb_site %}
+      <div class="wl-contact">
+        {% if lb_phone %}<a href="tel:{{ lb_tel }}"><i class="bi bi-telephone" aria-hidden="true"></i>{{ lb_phone }}</a>{% endif %}
+        {% if lb_email %}<a href="mailto:{{ lb_email }}"><i class="bi bi-envelope" aria-hidden="true"></i>{{ lb_email }}</a>{% endif %}
+        {% if lb_site %}<a href="{{ lb_site_url }}" target="_blank" rel="noopener"><i class="bi bi-globe2" aria-hidden="true"></i>{{ lb_site_label }}</a>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </aside>
 </div>
 </body>
 </html>

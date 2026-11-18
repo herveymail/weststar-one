@@ -4,30 +4,31 @@
 html, body { height: 100%; }
 body { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; font-size: 15px; line-height: 1.5; }
 a { color: var(--brand); text-decoration: none; } a:hover { text-decoration: underline; }
-.wl { display: grid; grid-template-columns: minmax(380px, 44%) 1fr; min-height: 100vh; }
-.wl-panel { position: relative; overflow: hidden; color: #fff; background: linear-gradient(155deg, var(--panel) 0%, var(--panel-2) 100%); padding: 48px 56px; display: flex; flex-direction: column; }
-.wl-panel::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.07) 1px, transparent 1px); background-size: 22px 22px; mask-image: linear-gradient(160deg, #000 0%, transparent 75%); -webkit-mask-image: linear-gradient(160deg, #000 0%, transparent 75%); pointer-events: none; }
-.wl-panel::after { content: ""; position: absolute; right: -180px; bottom: -180px; width: 520px; height: 520px; border-radius: 50%; background: radial-gradient(circle, rgba(0,98,204,.35), transparent 65%); pointer-events: none; }
-.wl-panel > * { position: relative; z-index: 1; }
-.wl-logo { height: 40px; width: auto; max-width: 240px; object-fit: contain; object-position: left; }
-.wl-name { font-weight: 800; font-size: 20px; letter-spacing: -.01em; }
-.wl-mid { margin: auto 0; padding: 48px 0; }
-.wl-kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.72); margin-bottom: 16px; }
-.wl-kicker::before { content: ""; width: 22px; height: 2px; background: #4da3ff; border-radius: 2px; }
-.wl-h { font-size: 36px; line-height: 1.15; font-weight: 800; letter-spacing: -.025em; margin-bottom: 14px; max-width: 460px; }
-.wl-tag { font-size: 16.3px; color: rgba(255,255,255,.78); max-width: 440px; margin-bottom: 34px; }
-.wl-pts { list-style: none; display: grid; gap: 18px; max-width: 440px; }
-.wl-pts li { display: flex; gap: 14px; align-items: flex-start; }
-.wl-pts .ic { width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; color: #9ccbff; }
-.wl-pts b { display: block; font-size: 14.9px; font-weight: 600; }
-.wl-pts span { display: block; font-size: 13.4px; color: rgba(255,255,255,.66); line-height: 1.45; }
-.wl-contact { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13.4px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.14); }
-.wl-contact a { color: rgba(255,255,255,.85); display: inline-flex; align-items: center; gap: 7px; }
+/* Form on the left, patterned brand panel on the right (login option 11). */
+.wl { display: grid; grid-template-columns: minmax(440px, 44%) 1fr; min-height: 100vh; --brand: var(--panel); --brand-h: var(--panel-2); }
+.wl-panel { position: relative; overflow: hidden; color: #fff; background-color: var(--panel);
+  background-image: radial-gradient(rgba(255,255,255,.16) 1.5px, transparent 2px), linear-gradient(135deg, var(--panel) 0%, var(--panel-2) 100%);
+  background-size: 28px 28px, 100% 100%; display: flex; align-items: flex-end; padding: 56px; }
+.wl-ring { position: absolute; border: 2px solid rgba(255,255,255,.22); border-radius: 50%; pointer-events: none; }
+.wl-ring.r1 { width: 420px; height: 420px; right: -110px; top: -110px; }
+.wl-ring.r2 { width: 240px; height: 240px; right: 150px; top: 150px; }
+.wl-cap { position: relative; z-index: 1; max-width: 520px; }
+.wl-kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.75); margin-bottom: 12px; }
+.wl-kicker:empty { display: none; }
+.wl-kicker::before { content: ""; width: 22px; height: 2px; background: rgba(255,255,255,.7); border-radius: 2px; }
+.wl-h { font-size: 30px; line-height: 1.2; font-weight: 800; letter-spacing: -.02em; margin-bottom: 10px; }
+.wl-tag { font-size: 15.5px; color: rgba(255,255,255,.82); }
+.wl-contact { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13.4px; margin-top: 22px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.2); }
+.wl-contact a { color: rgba(255,255,255,.9); display: inline-flex; align-items: center; gap: 7px; }
 .wl-contact a:hover { color: #fff; text-decoration: none; }
-.wl-contact i { color: #9ccbff; }
+.wl-logo { height: 38px; width: auto; max-width: 220px; object-fit: contain; object-position: left; display: block; }
+.wl-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); }
+.wl-brand:hover { text-decoration: none; }
+.wl-mark { width: 34px; height: 34px; border-radius: 9px; background: var(--panel); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
+.wl-name { font-weight: 800; font-size: 19px; letter-spacing: -.01em; }
 .wl-main { display: flex; flex-direction: column; background: var(--bg); }
-.wl-top { display: flex; justify-content: flex-end; align-items: center; gap: 6px; padding: 22px 32px; min-height: 66px; font-size: 13.8px; color: var(--mut); }
-.wl-top a { font-weight: 600; }
+.wl-top { display: flex; justify-content: space-between; align-items: center; gap: 12px 20px; flex-wrap: wrap; padding: 26px 40px; min-height: 74px; font-size: 13.8px; color: var(--mut); }
+.wl-switch a { font-weight: 600; }
 .wl-center { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px 32px 40px; }
 .wl-form { width: 100%; max-width: 400px; }
 .wl-title { font-size: 28px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 6px; }
@@ -64,21 +65,20 @@ a { color: var(--brand); text-decoration: none; } a:hover { text-decoration: und
 .wl-2fa .ic { width: 52px; height: 52px; border-radius: 14px; background: #eaf2fc; color: var(--brand); display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 12px; }
 .wl-terms { margin-top: 22px; padding: 12px 14px; border-radius: 10px; background: var(--soft); font-size: 12.5px; line-height: 1.55; color: var(--mut); max-height: 132px; overflow: auto; }
 .wl-help { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 13.8px; color: var(--mut); }
-.wl-secure { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 22px; font-size: 12.5px; color: #7a8396; }
-.wl-foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 20px; padding: 18px 32px; font-size: 12.5px; color: #8a93a6; border-top: 1px solid #eef1f5; }
+.wl-badges { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 22px; font-size: 12.5px; color: #5f6878; }
+.wl-badges li { display: inline-flex; align-items: center; gap: 6px; }
+.wl-badges i { color: var(--ok); font-size: 14px; }
+.wl-foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 20px; padding: 18px 40px; font-size: 12.5px; color: #8a93a6; border-top: 1px solid #eef1f5; }
 .wl-foot a { color: #6b7386; }
-.wl-mobile-link { display: none; font-size: 13px; font-weight: 600; color: rgba(255,255,255,.88) !important; align-items: center; gap: 6px; }
 .wl-codes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; font: 600 15px ui-monospace, 'SFMono-Regular', Menlo, monospace; padding: 14px; border-radius: 10px; background: var(--soft); border: 1px solid var(--line); margin-bottom: 18px; }
 .wl-qr { display: block; width: 220px; height: 220px; margin: 0 auto 16px; border-radius: 8px; background: #fff; padding: 6px; border: 1px solid var(--line); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (max-width: 980px) {
   .wl { grid-template-columns: 1fr; }
-  .wl-panel { padding: 18px 22px; flex-direction: row; align-items: center; justify-content: space-between; }
-  .wl-panel::after { display: none; }
-  .wl-mid, .wl-contact, .wl-top { display: none; }
+  .wl-panel { display: none; }
+  .wl-top { padding: 18px 22px; border-bottom: 3px solid var(--panel); }
   .wl-logo { height: 30px; }
-  .wl-mobile-link { display: inline-flex; }
-  .wl-center { align-items: flex-start; padding: 36px 22px 32px; }
+  .wl-center { align-items: flex-start; padding: 32px 22px; }
   .wl-foot { padding: 16px 22px; }
 }
 

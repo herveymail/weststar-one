@@ -3,15 +3,7 @@
 {% block kicker %}Staff sign-in{% endblock %}
 {% block headline %}{{ login_heading }}{% endblock %}
 {% block tagline %}{{ login_text }}{% endblock %}
-{% block points %}
-<li><span class="ic"><i class="bi bi-headset" aria-hidden="true"></i></span><div><b>Helpdesk &amp; ticketing</b><span>Queues, SLAs and saved replies to resolve requests faster.</span></div></li>
-<li><span class="ic"><i class="bi bi-building" aria-hidden="true"></i></span><div><b>Clients &amp; assets</b><span>Contacts, devices and history for every account.</span></div></li>
-<li><span class="ic"><i class="bi bi-receipt" aria-hidden="true"></i></span><div><b>Billing &amp; contracts</b><span>Invoices, payments and recurring agreements.</span></div></li>
-<li><span class="ic"><i class="bi bi-shield-check" aria-hidden="true"></i></span><div><b>Secure by design</b><span>Encrypted connection and two-factor authentication.</span></div></li>
-{% endblock %}
-{% block mobile_switch %}<a class="wl-mobile-link" href="/client-portal/login/">Customer portal <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% endblock %}
 {% block switch %}Are you a client? <a href="/client-portal/login/">Customer portal</a>{% endblock %}
-{% block secure %}Encrypted connection · two-factor authentication available{% endblock %}
 {% block form %}
 <h2 class="wl-title">{% block heading %}{% endblock %}</h2>
 {% block sub %}{% endblock %}
