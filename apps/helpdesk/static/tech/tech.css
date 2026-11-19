@@ -92,3 +92,22 @@ select.input{appearance:none;-webkit-appearance:none;padding-right:26px;backgrou
 .toast.error{background:var(--red)}.toast.success{background:#14532d}.toast.hide{opacity:0}
 @media (min-width:700px){.tiles{grid-template-columns:repeat(4,1fr)}}
 .strip-space{height:52px}
+
+/* ── Ocean glass: the same look as the desktop system (frosted panels over deep blue and teal) ── */
+:root{--blue:#0e3a6b;--blue2:#a5e9ff;--bg:#0b1f4a;--card:rgba(255,255,255,.12);--text:#fff;--muted:rgba(255,255,255,.74);--line:rgba(255,255,255,.22);--red:#ff5a6e;--green:#34d399;--orange:#ffa23f}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1f4a;--card:rgba(255,255,255,.12);--text:#fff;--muted:rgba(255,255,255,.74);--line:rgba(255,255,255,.22)}}
+html{background:#0b1f4a}
+body{background:radial-gradient(520px 420px at 100% 0%,#22d3ee 0,transparent 62%),radial-gradient(640px 560px at 0% 100%,#1d4ed8 0,transparent 60%),linear-gradient(135deg,#0b1f4a,#0e3a6b);background-attachment:fixed}
+.hero{background:transparent}
+.tile,.list,.card,.q,.chip,.feed .msg,.bar{border:1px solid rgba(255,255,255,.26);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 12px 30px rgba(0,0,0,.25)}
+.bar{border-width:0 0 1px;background:rgba(11,31,74,.55);box-shadow:none}
+.active-job,.timer-strip,.toast{background:#fff;color:#0e3a6b}.active-job small,.active-job .muted{color:#3b6a9c}
+.toast.error{background:#ff5a6e;color:#fff}.toast.success{background:#34d399;color:#05291c}
+.input{background:rgba(6,22,54,.4);border-color:rgba(255,255,255,.3)}.input::placeholder{color:rgba(255,255,255,.55)}
+select.input option{background:#12305f;color:#fff}
+.tabs{background:rgba(11,31,74,.82);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+.seg input:checked+span,.days a.on{background:#fff;color:#0e3a6b}.days a.on b{color:#0e3a6b}
+.clk{background:#34d399;color:#05291c}.clk.out{color:#fff}
+.btn.primary{background:#fff;color:#0e3a6b}.btn.go{color:#05291c}
+.tile b{color:#fff !important}
+.tabs a.on{color:#fff}

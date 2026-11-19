@@ -2,7 +2,8 @@
 shape, type, spacing and how cards and menus are drawn. Key, name, description, Google font family query."""
 
 STYLES = [
-    ("classic", "Classic", "The standard Weststar One look.", ""),
+    ("ocean", "Ocean glass", "The Weststar ONE look: frosted glass over deep blue and teal, with the icon menu. Brings its own colours.", ""),
+    ("classic", "Classic", "The earlier Weststar One look. Works with every colour theme.", ""),
     ("soft", "Soft", "Rounded corners, pill buttons, floating shadows and a friendly font.", "Nunito:wght@400;500;600;700;800"),
     ("compact", "Compact", "Small type and tight rows, so more fits on screen.", "IBM+Plex+Sans:wght@400;500;600;700"),
     ("sharp", "Sharp", "Square corners, bold lines and uppercase headings.", "Archivo:wght@400;500;600;700;800"),

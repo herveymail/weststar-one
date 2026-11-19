@@ -3,20 +3,20 @@
 <div class="page-head"><div class="titles"><div class="eyebrow">Your account</div><h1>Profile &amp; look</h1></div><span class="pill" title="The version running on this server">Version {{ app_version }}</span></div>
 <div class="stack" style="max-width:820px">
   <form method="post" class="card pad" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">{% csrf_token %}
-    <div style="flex:1;min-width:220px"><span class="strong">Standard look</span><div class="small muted">Classic style, Indigo theme, full side menu, classic ticket page.</div></div>
+    <div style="flex:1;min-width:220px"><span class="strong">Standard look</span><div class="small muted">Ocean glass with the icon menu and the classic ticket page.</div></div>
     <button class="btn" name="reset_look" value="1">Use the standard look</button></form>
   <section class="card pad stack">
-    <h2>Style</h2><p class="desc" style="margin:0">Changes the shape, type and spacing of everything. Works with any theme colour below.</p>
+    <h2>Style</h2><p class="desc" style="margin:0">Ocean glass is the Weststar ONE look and brings its own colours. The other styles change the shape, type and spacing, and use the theme colour below.</p>
     <form method="post" class="style-grid">{% csrf_token %}
       {% for key, name, desc, font in styles %}
       <button name="ui_style" value="{{ key }}" class="style-card{% if user.ui_style == key %} on{% endif %}" aria-pressed="{% if user.ui_style == key %}true{% else %}false{% endif %}"><b>{{ name }}</b><small>{{ desc }}</small></button>{% endfor %}
     </form>
   </section>
   <section class="card pad stack">
-    <h2>Theme</h2><p class="desc" style="margin:0">Pick the colours you like. It only changes your screen.</p>
+    <h2>Theme</h2><p class="desc" style="margin:0">{% if user.ui_style == 'ocean' %}Ocean glass has its own colours. Picking a theme here switches you to the Classic style in that colour.{% else %}Pick the colours you like. It only changes your screen.{% endif %}</p>
     <form method="post" class="theme-grid">{% csrf_token %}
       {% for key, name, mode, sw, desc in themes %}
-      <button name="look" value="{{ key }}" class="theme-card{% if user.look == key %} on{% endif %}" aria-pressed="{% if user.look == key %}true{% else %}false{% endif %}">
+      <button name="look" value="{{ key }}" class="theme-card{% if user.look == key and user.ui_style != 'ocean' %} on{% endif %}" aria-pressed="{% if user.look == key %}true{% else %}false{% endif %}">
         <span class="theme-mini" style="background:{{ sw.0 }}"><span class="tm-nav" style="background:{{ sw.1 }}"></span><span class="tm-body"><span class="tm-bar" style="background:{{ sw.2 }}"></span><span class="tm-card"></span><span class="tm-card short"></span></span></span>
         <span class="theme-name">{{ name }}{% if mode == "dark" %} <span class="pill">Dark</span>{% endif %}</span>
         <span class="small muted">{{ desc }}</span>
