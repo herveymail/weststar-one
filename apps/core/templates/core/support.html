@@ -1,0 +1,87 @@
+{% extends "core/settings_frame.html" %}{% load ws humanize %}
+{% block title %}System support · Settings{% endblock %}
+{% block settings %}
+<div class="page-head"><div class="titles"><h1>System support</h1><p class="desc">For the people who look after Weststar ONE. Only staff picked at the bottom of this page can see it.</p></div>
+  <a class="btn" href="/settings/support/?report=1">{% icon "download" 16 %}Download support report</a></div>
+
+<section class="card pad stack">
+  {% for tone, text in notes %}<div class="hl-find {{ tone }}">{% if tone == "good" %}✓{% elif tone == "bad" %}✗{% else %}!{% endif %} {{ text }}</div>{% endfor %}
+</section>
+
+<div class="ar-tiles" style="margin:14px 0">
+  <div class="card pad ar-tile"><span class="small muted">Database</span><b>{{ db_size }}</b></div>
+  <div class="card pad ar-tile"><span class="small muted">Uploaded files</span><b>{{ storage.media }}</b><span class="small muted">{{ storage.media_files }} files</span></div>
+  <div class="card pad ar-tile"><span class="small muted">Backups on this server</span><b>{{ storage.backups }}</b><span class="small muted">{{ storage.backup_files }} files</span></div>
+  <div class="card pad ar-tile"><span class="small muted">Disk free</span><b>{{ storage.disk_free }}</b><span class="small muted">of {{ storage.disk_total }} · {{ storage.disk_pct }}% used</span></div>
+</div>
+
+<section class="card pad stack">
+  <div class="row"><h2 class="grow" style="margin:0">Database — what's taking the room</h2><span class="small muted">PostgreSQL {{ db.version }} · {{ db.table_count }} tables · {{ db.connections }} connection{{ db.connections|pluralize }}</span></div>
+  {% if db.error %}<div class="banner">{{ db.error }}</div>{% endif %}
+  <div class="table-wrap"><table class="grid sup-table">
+    <thead><tr><th>Table</th><th style="width:26%">Share</th><th style="text-align:right">Size</th><th style="text-align:right">Data</th><th style="text-align:right">Indexes</th><th style="text-align:right">Rows (about)</th></tr></thead>
+    <tbody>{% for t in db.tables %}<tr>
+      <td><b>{{ t.label|default:t.name }}</b>{% if t.label %}<div class="small muted">{{ t.name }}</div>{% endif %}</td>
+      <td><div class="sup-bar" title="{{ t.share }}% of the database"><i style="width:{{ t.pct }}%"></i></div><span class="small muted">{{ t.share }}%</span></td>
+      <td style="text-align:right"><b>{{ t.total }}</b></td><td style="text-align:right" class="small">{{ t.data }}</td><td style="text-align:right" class="small">{{ t.indexes }}</td>
+      <td style="text-align:right">{{ t.rows|intcomma }}</td></tr>{% endfor %}
+    {% if db.rest %}<tr><td class="muted" colspan="2">All other tables</td><td style="text-align:right">{{ db.rest }}</td><td colspan="3"></td></tr>{% endif %}</tbody>
+  </table></div>
+  <div class="row small" style="flex-wrap:wrap;gap:6px 18px">{% for k, v in counts %}<span><span class="muted">{{ k }}:</span> <b>{{ v|intcomma }}</b></span>{% endfor %}</div>
+</section>
+
+<div class="hl-grid">
+<section class="card pad stack">
+  <h2 style="margin:0">System</h2>
+  <dl class="hl-dl">{% for k, v in system %}<dt>{{ k }}</dt><dd>{{ v }}</dd>{% endfor %}
+    <dt>Database updates waiting</dt><dd>{% if pending %}<b class="bad-text">{{ pending|length }}</b> — {{ pending|slice:":4"|join:", " }}{% if pending|length > 4 %}…{% endif %}{% else %}None (up to date){% endif %}</dd>
+    <dt>Email outbox</dt><dd>{{ outbox.pending }} waiting · {% if outbox.failed %}<b class="bad-text">{{ outbox.failed }} failed</b>{% else %}0 failed{% endif %} <a class="small" href="/settings/email/">open</a></dd>
+    <dt>Files are stored in</dt><dd class="small">{{ storage.media_path }}</dd>
+    <dt>Backups are stored in</dt><dd class="small">{{ storage.backup_path }}</dd>
+  </dl>
+  <div class="row small" style="flex-wrap:wrap;gap:6px 14px"><a href="/settings/health/">Speed &amp; server health</a><a href="/settings/backups/">Backups</a><a href="/settings/jobs/">Scheduled jobs</a><a href="/settings/security_log/">Security log</a><a href="/settings/audit/">Audit log</a></div>
+</section>
+
+<section class="card pad stack">
+  <h2 style="margin:0">Clean-up</h2>
+  <form method="post" class="stack" data-confirm="Tidy the database now? It's safe while people are working and usually takes a few seconds.">{% csrf_token %}
+    <div class="row"><div class="grow"><b>Tidy the database</b><div class="small muted">Hands back space left by deleted rows and refreshes its statistics so searches stay fast. Postgres does this by itself too; use this after a big delete or import.</div></div>
+      <button class="btn" name="action" value="tidy">Tidy now</button></div></form>
+  <form method="post" class="stack" data-confirm="Remove the old log entries listed? The audit log is not touched.">{% csrf_token %}
+    <div class="row"><div class="grow"><b>Trim old logs</b>
+      <div class="small muted">Removes: {{ trim.sessions }} expired sign-in sessions · {{ trim.slow }} slow-page entries over {{ keep.slow }} days · {{ trim.attempts }} sign-in attempts over {{ keep.attempts }} days · {{ trim.outbox }} sent emails over {{ keep.outbox }} days · {{ trim.errors }} crash records over {{ keep.errors }} days. Never touches tickets, invoices, clients or the audit log.</div></div>
+      <button class="btn" name="action" value="trim">Trim</button></div></form>
+</section>
+</div>
+
+<section class="card pad stack">
+  <div class="row"><h2 class="grow" style="margin:0">Background jobs</h2><a class="small" href="/settings/jobs/">Run one now</a></div>
+  <div class="table-wrap"><table class="grid"><thead><tr><th>Job</th><th>Every</th><th>Last ran</th><th>Result</th></tr></thead><tbody>
+  {% for j in jobs %}<tr><td>{{ j.label }}<div class="small muted">{{ j.name }}</div></td><td class="small">{{ j.every }} min</td>
+    <td class="small">{% if j.run.last_run_at %}{{ j.run.last_run_at|timesince }} ago{% else %}Never{% endif %}</td>
+    <td>{% if j.bad %}<span class="pill bad">Failed</span>{% elif j.late %}<span class="pill warn">Overdue</span>{% else %}<span class="pill good">OK</span>{% endif %} <span class="small muted">{{ j.run.last_result|truncatechars:90 }}</span></td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+
+<section class="card pad stack">
+  <div class="row"><h2 class="grow" style="margin:0">Crashes</h2>
+    {% if errors %}<form method="post" data-confirm="Clear the crash log?">{% csrf_token %}<button class="btn small" name="action" value="clear_errors">Clear</button></form>{% endif %}</div>
+  <p class="small muted" style="margin:0">Every time someone gets a "Server error" page it's recorded here — the same error in the same place is one line with a count. It records where in the program it happened, not what was on the page.</p>
+  {% for e in errors %}<details class="sup-err"><summary><span class="pill {% if e.count > 9 %}bad{% else %}warn{% endif %}">{{ e.count }}×</span> <b>{{ e.kind }}</b> <span class="muted">{{ e.message|truncatechars:110 }}</span>
+      <span class="small muted" style="margin-left:auto">{{ e.last_seen|timesince }} ago</span></summary>
+    <dl class="hl-dl"><dt>Where</dt><dd><code>{{ e.where }}</code></dd><dt>Page</dt><dd>{{ e.method }} {{ e.path }}</dd><dt>Last person</dt><dd>{{ e.last_user|default:"(not signed in)" }}</dd>
+      <dt>First / last</dt><dd>{{ e.first_seen|date:"M j, g:i A" }} / {{ e.last_seen|date:"M j, g:i A" }}</dd></dl>
+    <pre class="sup-trace">{{ e.trace }}</pre></details>
+  {% empty %}<div class="hl-find good">✓ No crashes recorded.</div>{% endfor %}
+</section>
+
+<section class="card pad stack">
+  <h2 style="margin:0">Who can see this screen</h2>
+  <p class="small muted" style="margin:0">Only ticked people see System support in Settings. Everyone else — including other admins — doesn't see it and can't open it. Only admins can be picked. Changes are written to the audit log.</p>
+  <form method="post" class="stack">{% csrf_token %}<input type="hidden" name="action" value="access">
+    {% for u in admins %}<label class="check"><input type="checkbox" name="user" value="{{ u.pk }}"{% if u.support_access %} checked{% endif %}{% if u.pk == request.user.pk %} disabled{% endif %}>
+      <span><b>{{ u.name }}</b> <span class="muted">{{ u.email }}</span>{% if u.pk == request.user.pk %} <span class="small muted">(you — ask another person here to remove you)</span>{% endif %}</span></label>{% endfor %}
+    <div><button class="btn primary">Save</button></div>
+  </form>
+</section>
+{% endblock %}

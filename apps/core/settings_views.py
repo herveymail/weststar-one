@@ -35,11 +35,15 @@ OPTION_HELP = {
 def settings_home(request):
     q = request.GET.get("q", "").strip().lower()
     admin = can(request.user, "admin")
+    from .support import tile_visible
+    support_visible = tile_visible(request.user)
     groups = []
     for gid, title, desc, items in SETTINGS:
         visible = []
         for item in items:
             if item[0] != "my_security" and not admin:
+                continue
+            if item[0] == "support" and not support_visible:
                 continue
             labels = " ".join(f[1] for f in item[3]) if isinstance(item[3], list) else ""
             if q and q not in f"{title} {item[1]} {item[2]} {labels}".lower():
@@ -101,6 +105,9 @@ def settings_page(request, page):
     target = item[3]
     if target == "my_security":
         return my_security_view(request)
+    if target == "support":
+        from .support import support_page
+        return support_page(request)
     if not can(request.user, "admin"):
         raise PermissionDenied
     if target == "users":

@@ -58,12 +58,16 @@ def _settings_nav(user, path):
     """Left menu on every Settings page: groups → pages, with the words each page holds (for the filter box)."""
     from .settings_catalog import SETTINGS, TILE_LOOK, field_specs
     admin = can(user, "admin")
+    from .support import tile_visible
+    support_visible = tile_visible(user)
     current = path.split("/")[2] if path.count("/") >= 3 else ""
     out = []
     for gid, title, _desc, items in SETTINGS:
         pages = []
         for item in items:
             if item[0] != "my_security" and not admin:
+                continue
+            if item[0] == "support" and not support_visible:
                 continue
             words = " ".join(f["label"] for f in field_specs(item) if f["type"] != "section") if isinstance(item[3], list) else ""
             icon, color = TILE_LOOK.get(item[0], ("bi-gear", "#64748b"))

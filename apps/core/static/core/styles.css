@@ -232,3 +232,8 @@ pre.block { margin: 0; padding: 14px; border-radius: var(--r); background: var(-
 .spin { display: inline-block; width: 12px; height: 12px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: wsspin .8s linear infinite; vertical-align: -1px; }
 @keyframes wsspin { to { transform: rotate(360deg); } }
 .restore-box[open] { position: relative; }
+.sup-bar { height: 8px; background: var(--surface-2, #eef1f5); border-radius: 4px; overflow: hidden; display: inline-block; width: calc(100% - 52px); vertical-align: middle; margin-right: 6px; }
+.sup-bar i { display: block; height: 100%; background: #7c3aed; border-radius: 4px; min-width: 2px; }
+.sup-err { border: 1px solid var(--line, #e5e7eb); border-radius: 8px; padding: 8px 12px; }
+.sup-err summary { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.sup-trace { font: 12px/1.5 ui-monospace, Menlo, Consolas, monospace; background: var(--surface-2, #f6f7f9); border-radius: 6px; padding: 10px; overflow: auto; white-space: pre; margin: 8px 0 0; }

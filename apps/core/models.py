@@ -149,6 +149,25 @@ class OutboxEmail(models.Model):
         ordering = ["-created_at"]
 
 
+class ErrorEvent(models.Model):
+    """A crash ("Server error" page) caught on the live site, grouped: the same error at the same place is one row
+    with a count. Shown on Settings › System support. Stores where it happened, never the data that was on the page."""
+    fingerprint = models.CharField(max_length=40, unique=True)
+    kind = models.CharField(max_length=120)            # exception class
+    message = models.CharField(max_length=500, blank=True)
+    where = models.CharField(max_length=300, blank=True)  # file:line in function
+    path = models.CharField(max_length=300, blank=True)   # last page it happened on
+    method = models.CharField(max_length=8, blank=True)
+    trace = models.TextField(blank=True)               # file / line / function only
+    count = models.PositiveIntegerField(default=1)
+    last_user = models.CharField(max_length=254, blank=True)
+    first_seen = models.DateTimeField(auto_now_add=True)
+    last_seen = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-last_seen"]
+
+
 class SlowRequest(models.Model):
     """Pages or saves that took longer than a second — shown on Settings › Speed & server health."""
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)

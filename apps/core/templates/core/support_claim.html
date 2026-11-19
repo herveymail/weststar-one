@@ -1,0 +1,10 @@
+{% extends "core/settings_frame.html" %}
+{% block title %}System support · Settings{% endblock %}
+{% block settings %}
+<div class="page-head"><div class="titles"><h1>System support</h1><p class="desc">A screen for the people who look after Weststar ONE: database size, storage, versions, crashes and clean-up tools.</p></div></div>
+<section class="card pad stack" style="max-width:640px">
+  <h2 style="margin:0">Nobody has access yet</h2>
+  <p style="margin:0">Only people who are given access can see this screen — other admins won't even see it in Settings. Because nobody has it yet, you can take it now. After that, you choose who else gets it.</p>
+  <form method="post">{% csrf_token %}<button class="btn primary" name="action" value="claim">Give me access</button></form>
+</section>
+{% endblock %}
