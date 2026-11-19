@@ -30,6 +30,19 @@
   <div class="row small" style="flex-wrap:wrap;gap:6px 18px">{% for k, v in counts %}<span><span class="muted">{{ k }}:</span> <b>{{ v|intcomma }}</b></span>{% endfor %}</div>
 </section>
 
+<section class="card pad stack">
+  <div class="row"><h2 class="grow" style="margin:0">The whole server — what's using the disk</h2>{% if server %}<span class="small muted">Checked {{ server.when|timesince }} ago · {{ server.free }} free of {{ server.total }} ({{ server.disk_pct }}% used)</span>{% endif %}</div>
+  {% if server %}
+  <div class="table-wrap"><table class="grid"><thead><tr><th>What</th><th style="text-align:right">Size</th><th>Can be freed</th><th></th></tr></thead><tbody>
+    {% for r in server.rows %}<tr><td><b>{{ r.label }}</b></td><td style="text-align:right">{{ r.size }}</td><td>{{ r.freeable }}</td><td class="small muted">{{ r.note }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% if server.last_clean %}<p class="small good-text" style="margin:0">Last clean-up: {{ server.last_clean }}</p>{% endif %}
+  {% else %}<p style="margin:0">Weststar ONE can see its own database and files, but not the rest of the server (Docker, system logs). Run this once on the server and the numbers show up here:</p>{% endif %}
+  <div class="small"><span class="muted">Refresh these numbers:</span> <code>cd /opt/weststar-one &amp;&amp; sudo ./deploy/cleanup.sh</code> &nbsp;·&nbsp; <span class="muted">Free the space:</span> <code>sudo ./deploy/cleanup.sh clean</code>
+    <div class="muted" style="margin-top:4px">The clean-up removes leftovers from old updates, oversized container logs, system logs older than 14 days and the package cache. It never touches the database, uploaded files or backups. The numbers also refresh on every update.</div></div>
+  {% if folders %}<div class="row small" style="flex-wrap:wrap;gap:6px 18px"><b>Uploaded files by folder:</b>{% for f in folders %}<span>{{ f.name }} <span class="muted">{{ f.size }} · {{ f.files }} files</span></span>{% endfor %}</div>{% endif %}
+</section>
+
 <div class="hl-grid">
 <section class="card pad stack">
   <h2 style="margin:0">System</h2>
@@ -47,6 +60,16 @@
   <form method="post" class="stack" data-confirm="Tidy the database now? It's safe while people are working and usually takes a few seconds.">{% csrf_token %}
     <div class="row"><div class="grow"><b>Tidy the database</b><div class="small muted">Hands back space left by deleted rows and refreshes its statistics so searches stay fast. Postgres does this by itself too; use this after a big delete or import.</div></div>
       <button class="btn" name="action" value="tidy">Tidy now</button></div></form>
+  {% if task.state == "running" %}<div class="banner info" role="status"><span class="spin" aria-hidden="true"></span> <b>{{ task.label }}…</b> started by {{ task.by }}. Reload this page to check.</div>
+  {% elif task.result %}<div class="hl-find {% if task.state == 'failed' %}bad{% else %}good{% endif %}">{{ task.result }}</div>{% endif %}
+  <form method="post" class="stack" data-confirm="Rebuild all indexes now? People can keep working; it can take a few minutes.">{% csrf_token %}
+    <div class="row"><div class="grow"><b>Rebuild indexes</b><div class="small muted">Rewrites every index so it's compact again. Safe during the day — nothing is locked. Good a few times a year, or when searches feel slow.</div></div>
+      <button class="btn" name="action" value="reindex"{% if task.state == "running" %} disabled{% endif %}>Rebuild indexes</button></div></form>
+  <details><summary class="link-btn"><b>Full rebuild</b> — shrink the database files (after hours only)</summary>
+    <form method="post" class="stack" style="margin-top:8px">{% csrf_token %}
+      <p class="small muted" style="margin:0">Rewrites every table from scratch and gives unused space back to the server ({{ dead_rows|intcomma }} dead rows waiting in the biggest tables right now). <b>Each table is locked while it's rewritten</b>, so pages can hang for a minute or more — do it after hours, and make a backup first. Needs free disk space about the size of the database.</p>
+      <div class="row"><input name="confirm" class="input" placeholder="Type REBUILD" autocomplete="off" style="max-width:180px" aria-label="Type REBUILD to confirm">
+        <button class="btn danger" name="action" value="rebuild"{% if task.state == "running" %} disabled{% endif %}>Full rebuild</button><a class="small" href="/settings/backups/">Back up first</a></div></form></details>
   <form method="post" class="stack" data-confirm="Remove the old log entries listed? The audit log is not touched.">{% csrf_token %}
     <div class="row"><div class="grow"><b>Trim old logs</b>
       <div class="small muted">Removes: {{ trim.sessions }} expired sign-in sessions · {{ trim.slow }} slow-page entries over {{ keep.slow }} days · {{ trim.attempts }} sign-in attempts over {{ keep.attempts }} days · {{ trim.outbox }} sent emails over {{ keep.outbox }} days · {{ trim.errors }} crash records over {{ keep.errors }} days. Never touches tickets, invoices, clients or the audit log.</div></div>

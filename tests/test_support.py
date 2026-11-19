@@ -81,3 +81,36 @@ def test_report_and_cleanup(client, boss):
     client.post("/settings/support/", {"action": "trim"})
     assert not SlowRequest.objects.exists()
     assert client.post("/settings/support/", {"action": "tidy"}).status_code == 302
+
+
+def test_server_report_and_rebuild(client, boss, settings, tmp_path):
+    import json
+
+    from django.utils import timezone
+    settings.BACKUP_ROOT = tmp_path
+    User.objects.filter(pk=boss.pk).update(support_access=True)
+    assert b"Run this once on the server" in client.get("/settings/support/").content
+    (tmp_path / ".server-report.json").write_text(json.dumps({
+        "when": timezone.now().isoformat(), "disk_total": 100 * 1024 ** 3, "disk_used": 60 * 1024 ** 3, "disk_free": 40 * 1024 ** 3,
+        "rows": [{"label": "Docker build leftovers", "size": "12.4GB", "freeable": "12.4GB", "note": "safe"}], "last_clean": ""}))
+    page = client.get("/settings/support/")
+    assert b"Docker build leftovers" in page.content and b"12.4GB" in page.content and b"60% used" in page.content
+    assert "Docker build leftovers" in client.get("/settings/support/?report=1").content.decode()
+    # full rebuild needs the typed word
+    client.post("/settings/support/", {"action": "rebuild", "confirm": "nope"})
+    assert support.task_status() == {}
+
+
+@pytest.mark.django_db(transaction=True)
+def test_rebuild_indexes_runs_in_background():
+    import time
+    u = make_user(role="admin", email="dev@example.com", support_access=True)
+    assert support.start_rebuild("indexes", u) is True
+    assert support.start_rebuild("full", u) is False          # one at a time
+    for _ in range(300):
+        if support.task_status().get("state") != "running":
+            break
+        time.sleep(0.2)
+    st = support.task_status()
+    assert st["state"] == "done", st
+    assert "Database size" in st["result"]

@@ -70,6 +70,9 @@ def _status() -> dict:
     st["email_in"] = ("On", "good") if Setting.get("email.fetch_enabled", "") == "true" else ("Off", "")
     st["payments"] = (("Live" if stripe_api.live() else "Test mode"), "good") if stripe_api.configured() else ("Not connected", "")
     st["signin"] = ("Google on", "good") if google.enabled() else ("Passwords only", "")
+    gm = google.missing()
+    if 0 < len(gm) < 3:   # started but not finished: that's why the Google button isn't on the sign-in page
+        st["signin"] = ("Google off", "warn", "Google sign-in is off — still missing " + " and ".join(gm))
     st["portal"] = ("On", "good") if Setting.get("portal.enabled", "true") != "false" else ("Off", "")
     st["google_chat"] = ("On", "good") if Setting.get("chat.webhook_url", "") else ("Off", "")
     st["branding"] = ("Logo set", "good") if Setting.get("brand.logo", "") else ("No logo yet", "")

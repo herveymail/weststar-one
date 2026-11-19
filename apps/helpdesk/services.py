@@ -142,7 +142,8 @@ def create_ticket(*, user=None, subject, details="", client=None, contact=None, 
     from . import ai
     ai_will_answer = source in ("Email", "Portal") and ai.enabled("first_response")  # its reply includes the "we got it"
     if not ai_will_answer and (portal_user is not None or (source == "Email" and Setting.get("tickets.email_ack", "true") != "false")):
-        transaction.on_commit(lambda: send_ticket_email(t, "new", "email/ticket_received", {}))
+        from apps.core.legal import notice
+        transaction.on_commit(lambda: send_ticket_email(t, "new", "email/ticket_received", {"data_notice": notice("notice_tickets")}))
     transaction.on_commit(lambda: alert_staff_new_ticket(t, created_by=user))
     return t
 

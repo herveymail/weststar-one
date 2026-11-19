@@ -1,10 +1,11 @@
 {% extends "auth_split.html" %}
 {% block title %}Client portal{% endblock %}
 {% block kicker %}Client portal{% endblock %}
-{% block headline %}Your IT support, one sign-in away.{% endblock %}
-{% block tagline %}Open and track support requests and sign agreements with the {{ lb_name }} team.{% endblock %}
+{% block headline %}Need help? Open a service call.{% endblock %}
+{% block tagline %}Open a service call and follow it from start to finish with the {{ lb_name }} team.{% endblock %}
 {% block badges %}<li><i class="bi bi-lock" aria-hidden="true"></i>Encrypted</li><li><i class="bi bi-journal-check" aria-hidden="true"></i>Sign-ins are logged</li><li><i class="bi bi-eye-slash" aria-hidden="true"></i>Private to your company</li>{% endblock %}
 {% block switch %}Team member? <a href="/login/">Staff sign-in</a>{% endblock %}
 {% block terms %}{% endblock %}
+{% block notice %}{% if lb_notice_portal %}<div class="wl-notice" role="note"><i class="bi bi-shield-exclamation" aria-hidden="true"></i><span>{{ lb_notice_portal }}</span></div>{% endif %}{% endblock %}
 {% block form %}<div class="stack">{% block card %}{% endblock %}</div>{% endblock %}
 {% block foot %}{% if company_phone %}Need help now? Call {{ company_phone }} · {% endif %}Powered by Weststar One{% endblock %}

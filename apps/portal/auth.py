@@ -34,7 +34,16 @@ TOKEN_LIFETIME = {"reset": timedelta(hours=1), "magic": timedelta(minutes=15), "
 def enabled(key: str = "enabled") -> bool:
     """Settings › Customer portal switches (on unless turned off)."""
     from apps.core.settings_catalog import DEFAULTS
+    if key.startswith("show_") and service_only():
+        return False
     return Setting.get(f"portal.{key}", DEFAULTS.get(f"portal.{key}", "true")) != "false"
+
+
+def service_only() -> bool:
+    """Settings › Customer portal › Service calls only (the default): clients can open and follow service calls and
+    nothing else — no invoices, payments, quotes, contracts, policies, equipment lists, articles or messages."""
+    default = "true" if getattr(settings, "PORTAL_SERVICE_ONLY", True) else "false"
+    return Setting.get("portal.service_only", default) != "false"
 
 
 def _auth_hash(user: PortalUser) -> str:

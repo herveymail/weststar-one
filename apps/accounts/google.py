@@ -51,6 +51,12 @@ def enabled() -> bool:
     return bool(c["client_id"] and c["client_secret"] and c["domains"])
 
 
+def missing() -> list[str]:
+    """What still has to be filled in (Settings › Sign-in & 2FA) before the Google button shows on the sign-in page."""
+    c = config()
+    return [label for key, label in (("client_id", "the OAuth client ID"), ("client_secret", "the OAuth client secret"), ("domains", "the allowed Google Workspace domain")) if not c[key]]
+
+
 def counts_as_2fa() -> bool:
     return Setting.get("google.counts_as_2fa", "yes") != "no"
 

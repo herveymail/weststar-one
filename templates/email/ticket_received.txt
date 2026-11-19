@@ -7,5 +7,7 @@ We received your request and created ticket {{ t.number }}: {{ t.subject }}.
 
 Follow it or add details here: {{ link }}
 
-— {{ company }}
+— {{ company }}{% if data_notice %}
+
+{{ data_notice }}{% endif %}
 {% endautoescape %}

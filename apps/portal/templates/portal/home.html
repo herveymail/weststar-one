@@ -2,7 +2,7 @@
 {% block title %}Home{% endblock %}
 {% block content %}
 <section class="hero">
-  <div style="flex:1 1 420px"><h1>Welcome back, {{ pu.first_name }}!</h1><p>{% if welcome %}{{ welcome }}{% else %}Welcome to our client portal. Submit tickets, view invoices, and manage your IT services.{% endif %}</p></div>
+  <div style="flex:1 1 420px"><h1>Welcome back, {{ pu.first_name }}!</h1><p>{% if welcome %}{{ welcome }}{% else %}Open a service call and follow it here. For anything urgent, call us.{% endif %}</p></div>
   {% if can.submit_tickets %}<a class="btn light" href="/client-portal/tickets/#new"><i class="bi bi-plus-lg" aria-hidden="true"></i>New Ticket</a>{% endif %}
   {% if company_phone %}<a class="btn ghost" href="tel:{{ lb_tel }}"><i class="bi bi-telephone" aria-hidden="true"></i>Call Us</a>{% endif %}
 </section>

@@ -13,3 +13,5 @@ from weststar.settings import *  # noqa: E402,F403
 
 MAIL_BACKGROUND = False  # send inline so tests can see the result; the outbox has its own tests
 LEGAL_GATES = False  # the sign-in agreement steps have their own tests (test_legal.py)
+
+PORTAL_SERVICE_ONLY = False  # most portal tests cover the optional sections; test_portal_service_only turns it on

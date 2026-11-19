@@ -40,3 +40,5 @@ else
   warn "The app isn't healthy yet. Check: docker compose logs app  (the backup from a minute ago is in backups/)"
 fi
 docker image prune -f >/dev/null 2>&1
+docker builder prune -f --filter until=168h >/dev/null 2>&1   # build leftovers older than a week
+[ -x deploy/cleanup.sh ] && ./deploy/cleanup.sh report --quiet >/dev/null 2>&1   # refresh the disk numbers on Settings › System support

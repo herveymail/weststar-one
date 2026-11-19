@@ -198,3 +198,24 @@ def notices() -> list[dict]:
 def portal_gate_on() -> bool:
     from django.conf import settings
     return getattr(settings, "LEGAL_GATES", True) and Setting.get("legal.portal_gate", "true") != "false"
+
+
+# ── Short warnings shown at sign-in and where clients write to us (Settings › Legal & terms › Sign-in warnings) ──
+NOTICE_DEFAULTS = {
+    "notice_staff": "Authorized use only. This is a private system of {company}. Sign-ins and activity are logged and monitored. "
+                    "Unauthorized access or use is prohibited and may be reported to law enforcement.",
+    "notice_portal": "This system is logged and monitored. Do not enter passwords, Social Security numbers, card or bank numbers, "
+                     "patient or health information (HIPAA), or other personal information here. {company} is not responsible for "
+                     "sensitive information that clients choose to submit.",
+    "notice_tickets": "Please do not include passwords, personal information, or patient/health information (HIPAA) in a service call or "
+                      "its attachments. If we need something sensitive, we will call you. {company} is not responsible for sensitive "
+                      "information submitted in tickets.",
+}
+
+
+def notice(key: str) -> str:
+    """One of the short warnings, or "" when warnings are switched off."""
+    if Setting.get("legal.notices_on", "true") == "false":
+        return ""
+    raw = (Setting.get(f"legal.{key}", "") or "").strip() or NOTICE_DEFAULTS[key]
+    return raw.replace("{company}", Setting.get("company.name", "") or "Weststar MSP")

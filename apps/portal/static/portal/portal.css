@@ -111,3 +111,5 @@ table.t { width: 100%; border-collapse: collapse; } .t th { text-align: left; co
 .legal-doc p { margin: 0 0 10px; } .legal-doc ul { margin: 0 0 10px; padding-left: 20px; }
 .legal-fold summary { cursor: pointer; } .legal-fold[open] summary { margin-bottom: 12px; }
 .legal-box { max-height: 340px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: #fff; }
+.data-notice { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 8px; background: #fffaeb; border: 1px solid #fedf89; color: #7a2e0e; font-size: 13px; line-height: 1.45; }
+.data-notice i { margin-top: 2px; }

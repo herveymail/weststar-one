@@ -19,6 +19,10 @@ SETTINGS = [
             ("legal.dispute_days", "Days a client has to question a bill", I), ("legal.suspend_days", "Pause non-emergency service when this many days past due", I),
             H("Invoices & quotes", "Printed as a Terms & Conditions page on every invoice and quote. {late_policy}, {state}, {county} and the other words in braces fill in automatically."),
             ("legal.invoice_terms", "Invoice terms & conditions", TA), ("legal.quote_terms", "Quote terms & conditions", TA),
+            H("Sign-in warnings", "Short notices on the sign-in screens and wherever clients write to you. Leave a box empty to use the standard wording; {company} fills in your company name."),
+            ("legal.notices_on", "Show these warnings", B),
+            ("legal.notice_staff", "Staff sign-in screen", TA), ("legal.notice_portal", "Client portal sign-in screen", TA),
+            ("legal.notice_tickets", "Where clients open or reply to a service call (and on the “we got your request” email)", TA),
             H("Client portal", "Clients tick “I agree” to the terms on their first sign-in, and again whenever you change them."),
             ("legal.portal_gate", "Ask clients to agree on their first portal sign-in", B),
             ("legal.portal_terms", "Client portal terms of use", TA), ("legal.privacy", "Privacy policy", TA),
@@ -59,7 +63,9 @@ SETTINGS = [
         ("queues", "Helpdesk queues", "Level 1, Level 2, Billing, Dev, Bug Reports", "queues"),
         ("saved_replies", "Saved replies", "Reply templates", [("tickets.saved_replies", "Saved replies (separate with a line of ---)", TA)]),
         ("portal", "Customer portal", "What clients can see and do in the portal", [H("Access"), ("portal.enabled", "Portal is on", B), ("portal.welcome", "Welcome message on the portal home page", TA), ("portal.magic_links", "Allow \"Email me a sign-in link\"", B), ("portal.reopen_hours", "Clients can reopen a closed ticket for (hours)", I),
-            H("What clients can see"), ("portal.show_invoices", "Show invoices & AutoPay (normally off: clients pay from the invoice email link, no sign-in)", B), ("portal.show_billing", "Show quotes", B), ("portal.show_contracts", "Show contracts", B), ("portal.show_policies", "Show policies", B), ("portal.show_assets", "Show assets", B), ("portal.show_kb", "Show help articles", B), ("portal.show_messages", "Show secure messages", B)]),
+            H("What clients can see", "Service calls only is the safe default: clients sign in to open and follow service calls, and nothing about money or contracts is reachable from the portal."),
+            ("portal.service_only", "Service calls only — hide everything below (invoices, quotes, contracts, policies, assets, help articles, messages)", B),
+            ("portal.show_invoices", "Show invoices & AutoPay (normally off: clients pay from the invoice email link, no sign-in)", B), ("portal.show_billing", "Show quotes", B), ("portal.show_contracts", "Show contracts", B), ("portal.show_policies", "Show policies", B), ("portal.show_assets", "Show assets", B), ("portal.show_kb", "Show help articles", B), ("portal.show_messages", "Show secure messages", B)]),
     ]),
     ("comms", "Email & messaging", "Email, chat and phone connections", [
         ("email", "Email sending", "How Weststar One sends email to clients and staff", [H("Provider"), ("email.provider", "Provider", SEL, ["Google Workspace (Gmail API)", "Gmail / SMTP", "SMTP2GO (HTTPS)"]),
@@ -132,9 +138,9 @@ SETTINGS = [
 # Shown (and used) when a setting has never been saved.
 DEFAULTS = {
     "legal.az_county": "Maricopa", "legal.tx_county": "El Paso", "legal.dispute_days": "10", "legal.suspend_days": "30",
-    "legal.staff_gate": "true", "legal.portal_gate": "true", "legal.staff_ack_months": "12", "legal.tx_workers_comp": "yes",
+    "legal.notices_on": "true", "legal.staff_gate": "true", "legal.portal_gate": "true", "legal.staff_ack_months": "12", "legal.tx_workers_comp": "yes",
     "billing.public_links": "true", "billing.reminders_on": "false", "billing.remind_before_days": "3", "billing.remind_on_due": "true", "billing.remind_after_days": "7, 14, 30", "billing.labor_taxable": "no", "renewals.notice_days": "30", "backup.nightly": "true", "backup.hour": "2", "backup.keep_days": "14", "renewals.markup_pct": "0", "billing.quote_deposit_invoice": "true",
-    "portal.enabled": "true", "portal.magic_links": "true", "portal.reopen_hours": "48", "portal.show_billing": "true", "portal.show_invoices": "false", "portal.show_contracts": "true",
+    "portal.enabled": "true", "portal.service_only": "true", "portal.magic_links": "true", "portal.reopen_hours": "48", "portal.show_billing": "true", "portal.show_invoices": "false", "portal.show_contracts": "true",
     "portal.show_policies": "true", "portal.show_assets": "true", "portal.show_kb": "true", "portal.show_messages": "true",
     "tickets.email_ack": "true", "tickets.staff_alert": "true", "tickets.staff_alert_which": "client", "tickets.staff_alert_roles": "admin, manager, help_desk, tech", "tickets.staff_alert_monitoring": "true", "tickets.email_on_close": "true", "tickets.auto_add_contacts": "true", "tickets.email_priority": "Medium",
     "chat.notify_new_ticket": "true", "chat.notify_client_replies": "true", "email.imap_host": "imap.gmail.com", "email.imap_port": "993",

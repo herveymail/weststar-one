@@ -29,6 +29,7 @@
         <li><i class="bi bi-lock" aria-hidden="true"></i>Encrypted</li>
         <li><i class="bi bi-journal-check" aria-hidden="true"></i>Sign-ins are logged</li>{% endblock %}
       </ul>
+      {% block notice %}{% if lb_notice_staff %}<div class="wl-notice" role="note"><i class="bi bi-shield-exclamation" aria-hidden="true"></i><span>{{ lb_notice_staff }}</span></div>{% endif %}{% endblock %}
     </div></div>
     <footer class="wl-foot"><span>&copy; {{ lb_year }} {{ lb_name }} · <a href="/legal/terms/">Terms of use</a> · <a href="/legal/privacy/">Privacy</a></span><span>{% block foot %}Powered by Weststar One{% endblock %}</span></footer>
   </main>

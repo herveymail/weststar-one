@@ -79,6 +79,11 @@ def _shade(hex_color: str, amt: float) -> str:
     return out
 
 
+def _notice(key):
+    from .legal import notice
+    return notice(key)
+
+
 def login_brand() -> dict:
     """Everything the split sign-in pages (staff and client portal) show, like the old Weststar One."""
     import re
@@ -97,5 +102,6 @@ def login_brand() -> dict:
         "lb_site_label": re.sub(r"^https?://", "", site).rstrip("/"),
         "lb_panel": color, "lb_panel2": _shade(color, -0.45),
         "lb_terms": Setting.get("brand.login_terms", ""),
+        "lb_notice_staff": _notice("notice_staff"), "lb_notice_portal": _notice("notice_portal"), "lb_notice_tickets": _notice("notice_tickets"),
         "lb_year": __import__("django.utils.timezone", fromlist=["now"]).now().year,
     }

@@ -1,6 +1,6 @@
 """Built-in drafts of the legal texts (see apps/core/legal.py). No imports here: settings_catalog loads it early."""
 
-RELEASED = "2026-11-10"  # "last updated" for the built-in drafts until someone edits them
+RELEASED = "2026-11-18"  # "last updated" for the built-in drafts until someone edits them
 
 INVOICE_TERMS = """## Terms & Conditions
 These terms apply to the services and products on this invoice. If {company} and you have a signed services agreement, that agreement controls where it differs from these terms.
@@ -80,7 +80,15 @@ These terms cover your use of the {company} client portal (the "Portal"). By sig
 ## Using the Portal
 - Use the Portal only to request and track support, review and sign documents, and other purposes connected with {company}'s services.
 - Do not upload anything unlawful or harmful, try to reach accounts or data that are not yours, test or disrupt the Portal's security, or use automated tools to collect information from it.
-- Do not send passwords, full card numbers or other highly sensitive information in tickets unless we ask you to use a secure method.
+
+## Do not send us sensitive information
+- Do not put passwords, Social Security or other government ID numbers, card or bank account numbers, or other personal information into tickets, messages or attachments.
+- Do not submit protected health information (PHI) or any other information regulated by HIPAA. The Portal and our ticket system are not intended to receive, store or transmit it.
+- If we need something sensitive to help you, we will call you or tell you a secure way to share it.
+- You decide what you send us. To the fullest extent the law allows, {company} is not responsible for sensitive, personal or regulated information that you or your users submit against these instructions, and you agree to tell us promptly if that happens so it can be removed.
+
+## Monitoring
+Sign-ins and activity in the Portal are logged and may be monitored to keep it secure and to investigate misuse.
 
 ## Documents and signatures
 When you approve a quote, sign a contract or acknowledge a policy in the Portal, you agree that your electronic approval or signature has the same effect as a handwritten one, and that we may keep an electronic record of it (including the date, time and the address you signed from).

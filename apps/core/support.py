@@ -26,7 +26,7 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 
 from .audit import audit
-from .models import AuditLog, BackupRun, ErrorEvent, JobRun, OutboxEmail, SlowRequest
+from .models import AuditLog, BackupRun, ErrorEvent, JobRun, OutboxEmail, Setting, SlowRequest
 from .permissions import can
 
 START = timezone.now()   # when this copy of the app started
@@ -237,6 +237,87 @@ def tidy_database() -> str:
     return f"Database tidied. Size: {_size(before)} → {_size(after)}."
 
 
+def server_report() -> dict | None:
+    """What deploy/cleanup.sh found on the server itself (Docker, logs…). The app can't look there; the script sends it."""
+    import json
+    from datetime import datetime
+
+    from . import backups
+    try:
+        d = json.loads((backups.root() / ".server-report.json").read_text())
+        d["when"] = datetime.fromisoformat(d["when"])
+        d["disk_pct"] = round(d["disk_used"] * 100 / d["disk_total"]) if d.get("disk_total") else 0
+        d["free"], d["total"] = _size(d.get("disk_free")), _size(d.get("disk_total"))
+        d["rows"] = [r for r in d.get("rows", []) if isinstance(r, dict)][:20]
+        return d
+    except Exception:  # noqa: BLE001 — never run yet, or unreadable
+        return None
+
+
+def media_folders() -> list[dict]:
+    media = Path(settings.MEDIA_ROOT)
+    out = []
+    try:
+        for child in sorted(media.iterdir()):
+            if child.name.startswith("."):
+                continue
+            size, files = _dir_size(child) if child.is_dir() else (child.stat().st_size, 1)
+            out.append({"name": child.name, "bytes": size, "size": _size(size), "files": files})
+    except OSError:
+        pass
+    return sorted(out, key=lambda x: -x["bytes"])[:8]
+
+
+# ── rebuilds (long-running: done in the background, one at a time) ──
+TASK_KEY = "support.task"
+
+
+def task_status() -> dict:
+    import json
+    try:
+        return json.loads(Setting.get(TASK_KEY, "") or "{}")
+    except ValueError:
+        return {}
+
+
+def _set_task(**kw):
+    import json
+    Setting.put(TASK_KEY, json.dumps(kw))
+
+
+def start_rebuild(kind: str, user) -> bool:
+    """kind: "indexes" (REINDEX, people can keep working) or "full" (VACUUM FULL: each table is locked while it's rewritten)."""
+    import threading
+    cur = task_status()
+    if cur.get("state") == "running" and timezone.now().timestamp() - cur.get("started", 0) < 6 * 3600:
+        return False
+    label = "Rebuilding indexes" if kind == "indexes" else "Rebuilding the whole database"
+    _set_task(state="running", kind=kind, label=label, started=timezone.now().timestamp(), by=user.email)
+
+    def work():
+        from django.db import connections
+        conn = connections.create_connection("default")
+        try:
+            conn.autocommit = True
+            before = database()["size"] or 0
+            with conn.cursor() as c:
+                if kind == "indexes":
+                    c.execute("SELECT current_database()")
+                    c.execute(f'REINDEX (CONCURRENTLY) DATABASE "{c.fetchone()[0]}"')
+                else:
+                    c.execute("VACUUM (FULL, ANALYZE)")
+            after = database()["size"] or 0
+            _set_task(state="done", kind=kind, label=label, finished=timezone.now().timestamp(), by=user.email,
+                      result=f"{label}: finished. Database size {_size(before)} → {_size(after)}.")
+        except Exception as e:  # noqa: BLE001 — shown on the page
+            _set_task(state="failed", kind=kind, label=label, finished=timezone.now().timestamp(), by=user.email, result=f"{label} failed: {str(e)[:300]}")
+        finally:
+            conn.close()
+            connection.close()
+    threading.Thread(target=work, daemon=True, name="ws-rebuild").start()
+    return True
+
+
 def report(user) -> str:
     """Plain-text support report. No passwords, keys, settings values or customer data — sizes, versions and counts only."""
     db, st = database(), storage()
@@ -248,6 +329,9 @@ def report(user) -> str:
     lines += ["", "== Database updates waiting ==", *(pend or ["none"])]
     lines += ["", "== Storage ==", f"Uploaded files: {st['media']} in {st['media_files']} files", f"Backups: {st['backups']} in {st['backup_files']} files",
               f"Disk: {st['disk_free']} free of {st['disk_total']} ({st['disk_pct']}% used)"]
+    sr = server_report()
+    lines += ["", "== Server disk (from deploy/cleanup.sh) =="]
+    lines += ([f"as of {timezone.localtime(sr['when']):%Y-%m-%d %H:%M}: {sr['free']} free of {sr['total']}"] + [f"  {r.get('label', ''):<58} {r.get('size', ''):>12}  freeable: {r.get('freeable', '')}" for r in sr["rows"]]) if sr else ["never run"]
     lines += ["", "== Records =="] + [f"{k}: {v}" for k, v in counts()]
     lines += ["", "== Background jobs =="]
     for j in jobs():
@@ -291,6 +375,14 @@ def support_page(request):
             n = trim()
             audit(request, "maintain", "system", None, f"Trimmed {n} old log rows", area="admin")
             messages.success(request, f"Removed {n} old log entr{'ies' if n != 1 else 'y'}. The audit log is never trimmed.")
+        elif a in ("reindex", "rebuild"):
+            if a == "rebuild" and request.POST.get("confirm", "").strip() != "REBUILD":
+                messages.error(request, "Type REBUILD in capitals to confirm the full rebuild.")
+            elif start_rebuild("indexes" if a == "reindex" else "full", request.user):
+                audit(request, "maintain", "system", None, "Started: " + ("rebuild indexes" if a == "reindex" else "full database rebuild (VACUUM FULL)"), area="admin")
+                messages.success(request, "Started. This page shows when it's finished — you can leave and come back.")
+            else:
+                messages.error(request, "A rebuild is already running.")
         elif a == "clear_errors":
             n = ErrorEvent.objects.all().delete()[0]
             audit(request, "maintain", "system", None, f"Cleared {n} crash records", area="admin")
@@ -339,4 +431,6 @@ def support_page(request):
         "notes": notes, "errors": errs, "trim": trim_counts(), "keep": KEEP,
         "outbox": {"pending": OutboxEmail.objects.filter(status="pending").count(), "failed": OutboxEmail.objects.filter(status="failed").count()},
         "admins": User.objects.filter(is_active=True, role="admin").order_by("name"),
+        "server": server_report(), "folders": media_folders(), "task": task_status(),
+        "dead_rows": sum(t["dead"] for t in db["tables"]),
     })

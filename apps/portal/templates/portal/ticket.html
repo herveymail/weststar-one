@@ -25,6 +25,7 @@
 {% if can_reply %}
 <section class="card pad">
   <form method="post" enctype="multipart/form-data" class="stack">{% csrf_token %}
+      {% if lb_notice_tickets %}<div class="data-notice" role="note"><i class="bi bi-shield-exclamation" aria-hidden="true"></i><span>{{ lb_notice_tickets }}</span></div>{% endif %}
     <label for="rep" class="lbl">{% if t.is_open %}Reply{% else %}Reopen &amp; reply{% endif %}</label>
     <textarea id="rep" name="body" class="textarea" placeholder="Add details or answer our question…"></textarea>
     <div class="row"><label class="small">Attach files <input type="file" name="files" multiple></label><span class="grow"></span><button class="btn primary">{% if t.is_open %}Send reply{% else %}Reopen &amp; send{% endif %}</button></div>

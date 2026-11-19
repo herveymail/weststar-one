@@ -18,6 +18,7 @@
     <h2>Submit a Ticket</h2>
     {% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
     <form method="post" enctype="multipart/form-data" class="stack">{% csrf_token %}
+      {% if lb_notice_tickets %}<div class="data-notice" role="note"><i class="bi bi-shield-exclamation" aria-hidden="true"></i><span>{{ lb_notice_tickets }}</span></div>{% endif %}
       {% if queues %}<div class="field"><label for="q">What do you need help with?</label><select id="q" name="queue" class="select"><option value="">Something else</option>{% for q in queues %}<option value="{{ q.pk }}">{{ q.portal_label }}</option>{% endfor %}</select></div>{% endif %}
       <div class="field"><label for="subject">Subject</label><input id="subject" name="subject" class="input" maxlength="255" required placeholder="Short summary"></div>
       <div class="field"><label for="priority">How urgent is it?</label><select id="priority" name="priority" class="select">{% for k, l in priorities %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select></div>
