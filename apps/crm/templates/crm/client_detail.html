@@ -13,6 +13,8 @@
   {% if can_tickets_edit %}<button class="btn primary" hx-get="/tickets/new/?client_id={{ c.pk }}" hx-target="#modal">{% icon "plus" 16 %}New ticket</button>{% endif %}
 </div>
 {% if c.account_alert %}<div class="alert-line">⚠ {{ c.account_alert }}</div>{% endif %}
+{% include "crm/_flag_lines.html" with flags=flags %}
+{% if offboarding and tab != "Offboarding" %}<div class="banner info">Offboarding is under way — {{ offboarding.left }} step{{ offboarding.left|pluralize }} left. <a href="?tab=Offboarding">Open the checklist</a></div>{% endif %}
 <div class="tabs scroll" role="tablist" aria-label="Client sections">
   {% for label, slug in tabs %}<a href="?tab={{ label|urlencode }}" role="tab" aria-selected="{% if tab == label %}true{% else %}false{% endif %}" class="tab{% if tab == label %} on{% endif %}">{{ label }}</a>{% endfor %}
 </div>
@@ -48,6 +50,12 @@
 {% else %}<div class="later"><b style="display:block;color:var(--text);font-size:15px;margin-bottom:4px">No MSP360 backups linked</b>Match this client to its MSP360 company in <a href="/backups/?show=companies">Backups › Companies &amp; clients</a>.</div>{% endif %}
 {% elif tab == "Portal" %}
 <div hx-get="/clients/{{ c.pk }}/portal/" hx-trigger="load" hx-swap="outerHTML"><div class="empty">Loading…</div></div>
+{% elif tab == "Texts" %}
+<div hx-get="/clients/{{ c.pk }}/texts/" hx-trigger="load" hx-swap="outerHTML"><div class="empty">Loading…</div></div>
+{% elif tab == "Flags" %}
+<div hx-get="/clients/{{ c.pk }}/flags/" hx-trigger="load" hx-swap="outerHTML"><div class="empty">Loading…</div></div>
+{% elif tab == "Offboarding" %}
+<div hx-get="/clients/{{ c.pk }}/offboarding/" hx-trigger="load" hx-swap="outerHTML"><div class="empty">Loading…</div></div>
 {% elif tab == "Files" %}
 <div hx-get="/files/client/{{ c.pk }}/" hx-trigger="load" hx-swap="outerHTML"><div class="empty">Loading…</div></div>
 {% elif slug %}

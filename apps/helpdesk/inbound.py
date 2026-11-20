@@ -198,6 +198,26 @@ def match_client(sender: str):
     return client_for_domain(sender.rsplit("@", 1)[-1]), None
 
 
+def blocked_sender(sender: str) -> bool:
+    """Settings › Email to ticket › Blocked senders: an address, or a domain (which also covers its subdomains)."""
+    sender = (sender or "").strip().lower()
+    dom = sender.rsplit("@", 1)[-1]
+    for ln in Setting.get("tickets.blocked_senders", "").replace(",", "\n").splitlines():
+        ln = ln.strip().lower().lstrip("@")
+        if ln and (sender == ln or ("@" not in ln and (dom == ln or dom.endswith("." + ln)))):
+            return True
+    return False
+
+
+def block_sender(value: str) -> bool:
+    value = (value or "").strip().lower().lstrip("@")
+    if not value or blocked_sender(value if "@" in value else f"x@{value}"):
+        return False
+    lines = [ln.strip() for ln in Setting.get("tickets.blocked_senders", "").splitlines() if ln.strip()]
+    Setting.put("tickets.blocked_senders", "\n".join(lines + [value]))
+    return True
+
+
 def _alert_sender(sender: str) -> bool:
     lines = [ln.strip().lower() for ln in Setting.get("tickets.alert_senders", "").splitlines() if ln.strip()]
     return any(sender == ln or sender.endswith("@" + ln.lstrip("@")) for ln in lines)
@@ -238,6 +258,8 @@ def process_message(raw: bytes, uid: int | None = None) -> InboundEmail:
         row.result, row.note = "skipped", "no sender address"
     elif sender in own_addresses() or OUR_ID.search(mid):
         row.result, row.note = "skipped", "sent by us"
+    elif blocked_sender(sender):
+        row.result, row.note = "skipped", "blocked sender (Settings › Email to ticket)"
     elif (why := _is_auto(msg, sender)) and not _alert_sender(sender):
         row.result, row.note = "skipped", why
     if row.result:

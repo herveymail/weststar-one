@@ -227,3 +227,6 @@ html[data-style="ocean"] { background: #0b1f4a; }
 [data-style="ocean"] .topbar .tb-clockin { color: #fff; }
 [data-style="ocean"] .tkg .sla.bad { background: #e5484d; border-color: #e5484d; color: #fff; }
 [data-style="ocean"] .tkg .sla.warn { background: #ffb454; border-color: #ffb454; color: #3b1d00; }
+[data-style="ocean"] .acct-flag { color: #fff; }
+[data-style="ocean"] .acct-flag.stop { background: rgba(255, 90, 110, .32); border-color: rgba(255, 141, 155, .8); }
+[data-style="ocean"] .acct-flag.warn { background: rgba(255, 162, 63, .26); border-color: rgba(255, 196, 120, .7); }

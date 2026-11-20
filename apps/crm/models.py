@@ -143,3 +143,112 @@ class Project(Record):
 
     def __str__(self):
         return f"{self.number or ''} {self.name}".strip()
+
+
+# ── Account flags, text-message log, offboarding ──
+class ClientFlag(models.Model):
+    """A warning the whole team sees on the client and on every one of its tickets. Cleared flags are kept as history."""
+    LEVELS = [("stop", "Stop — check before doing any work"), ("warn", "Warning"), ("info", "Good to know")]
+    PRESETS = ["Past due — get approval before any work", "Prepay only", "Do not go onsite", "VIP — call the owner", "Texts staff on personal phones",
+               "Offboarding", "Former client — do not service", "Legal hold — do not delete anything"]
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="flags")
+    label = models.CharField(max_length=120)
+    level = models.CharField(max_length=5, choices=LEVELS, default="warn")
+    note = models.TextField(blank=True)
+    expires_on = models.DateField(null=True, blank=True)
+    set_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+    cleared_at = models.DateTimeField(null=True, blank=True)
+    cleared_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    clear_note = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ["cleared_at", "-created_at"]
+
+    def __str__(self):
+        return self.label
+
+    @property
+    def active(self):
+        from django.utils import timezone
+        return self.cleared_at is None and (self.expires_on is None or self.expires_on >= timezone.localdate())
+
+
+def active_flags(client):
+    """Flags to show right now, most serious first."""
+    from django.db.models import Q
+    from django.utils import timezone
+    if client is None:
+        return []
+    order = {"stop": 0, "warn": 1, "info": 2}
+    qs = client.flags.filter(cleared_at__isnull=True).filter(Q(expires_on__isnull=True) | Q(expires_on__gte=timezone.localdate()))
+    return sorted(qs, key=lambda f: (order.get(f.level, 9), -f.pk))
+
+
+Client.active_flags = property(active_flags)
+
+
+class ClientText(models.Model):
+    """Text messages a client sent to a staff member's own phone, filed here so the record isn't stuck on that phone."""
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="texts")
+    happened_on = models.DateField("Date of the texts")
+    staff = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+", verbose_name="Whose phone")
+    contact_name = models.CharField("Who texted", max_length=200, blank=True)
+    their_number = models.CharField("Their number", max_length=50, blank=True)
+    summary = models.CharField("What it was about", max_length=255)
+    transcript = models.TextField("The messages (typed or pasted)", blank=True)
+    ticket = models.ForeignKey("helpdesk.Ticket", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-happened_on", "-id"]
+
+    def __str__(self):
+        return f"{self.happened_on:%b %-d, %Y} · {self.summary}"
+
+
+class Offboarding(models.Model):
+    """Letting a client go: one checklist, who did each step and when."""
+    STEPS = [
+        ("passwords", "Return passwords and admin access",
+         "Hand over every admin login we hold: Microsoft 365 / Google admin, domain registrar and DNS, firewall, Wi-Fi, servers, backups, line-of-business apps. "
+         "Send them securely (never in a ticket or plain email). Write down who received them and how."),
+        ("agents", "Remove our agents and our access",
+         "Uninstall the RMM agent, antivirus, backup agent and remote-access tools from every computer. Remove our admin accounts, our MFA devices, "
+         "and partner / delegated admin access in Microsoft 365 and Google."),
+        ("invoice", "Final invoice", "Bill everything still unbilled, send the final invoice, and note the balance they still owe."),
+        ("cancel", "Cancel services", "Stop recurring billing, end contracts, cancel renewals and the licences we buy for them, and turn off AutoPay."),
+        ("export", "Export their data", "Download their records (contacts, devices, network notes, tickets, invoices, files) and give the client a copy."),
+        ("close", "Close the account", "Turn off their portal sign-ins and mark the client Former."),
+    ]
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="offboardings")
+    status = models.CharField(max_length=10, choices=C("Open", "Done", "Cancelled"), default="Open")
+    reason = models.TextField("Why we're parting ways", blank=True)
+    last_day = models.DateField("Last day of service", null=True, blank=True)
+    started_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    finished_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+
+    class Meta:
+        ordering = ["-started_at"]
+
+    def steps(self):
+        saved = {s.key: s for s in self.step_rows.all()}
+        return [{"key": k, "title": t, "hint": h, "row": saved.get(k), "done": bool(saved.get(k) and saved[k].done_at)} for k, t, h in self.STEPS]
+
+    @property
+    def left(self):
+        return sum(1 for s in self.steps() if not s["done"])
+
+
+class OffboardingStep(models.Model):
+    offboarding = models.ForeignKey(Offboarding, on_delete=models.CASCADE, related_name="step_rows")
+    key = models.CharField(max_length=20)
+    done_at = models.DateTimeField(null=True, blank=True)
+    done_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    note = models.TextField(blank=True)
+
+    class Meta:
+        unique_together = [("offboarding", "key")]

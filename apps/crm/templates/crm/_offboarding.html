@@ -1,0 +1,54 @@
+{% load ws %}
+<div class="stack">
+{% if not ob %}
+  <section class="card pad stack">
+    <h2>Offboard {{ c.name }}</h2>
+    <p class="muted" style="margin:0">For a client we're letting go. It starts a checklist — return passwords, remove our agents, final invoice, cancel services, export their data, close the account — and records who did each step and when. A red "Offboarding" flag goes on the client and its tickets.</p>
+    {% if can_manage %}<form method="post" action="/clients/{{ c.pk }}/offboarding/" class="stack" data-confirm="Start offboarding {{ c.name }}?">{% csrf_token %}<input type="hidden" name="action" value="start">
+      <div class="form-grid"><div class="field"><label for="ob-day">Last day of service</label><input id="ob-day" type="date" name="last_day" class="input"></div>
+        <div class="field wide"><label for="ob-why">Why we're parting ways (internal)</label><textarea id="ob-why" name="reason" class="textarea" rows="3"></textarea></div></div>
+      <div><button class="btn primary">Start offboarding</button></div></form>
+    {% else %}<p class="small muted" style="margin:0">Ask a manager to start it.</p>{% endif %}
+  </section>
+{% else %}
+  <section class="card pad stack">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><h2 style="flex:1">Offboarding checklist</h2><span class="pill {% if ob.left %}warn{% else %}good{% endif %}">{% if ob.left %}{{ ob.left }} step{{ ob.left|pluralize }} left{% else %}All steps done{% endif %}</span></div>
+    <div class="small muted">Started by {{ ob.started_by.name|default:"someone" }} on {{ ob.started_at|date:"M j, Y" }}{% if ob.last_day %} · last day of service <b style="color:var(--text)">{{ ob.last_day|date:"M j, Y" }}</b>{% endif %}{% if open_tickets %} · <a href="?tab=Tickets">{{ open_tickets }} ticket{{ open_tickets|pluralize }} still open</a>{% endif %}</div>
+    {% if ob.reason %}<p style="margin:0;white-space:pre-wrap" class="small">{{ ob.reason }}</p>{% endif %}
+  </section>
+  {% for s in steps %}
+  <section class="card pad stack ob-step{% if s.done %} done{% endif %}" style="gap:10px">
+    <div style="display:flex;gap:10px;align-items:baseline"><span class="ob-n">{% if s.done %}✓{% else %}{{ forloop.counter }}{% endif %}</span><div style="flex:1;min-width:0"><h3 style="margin:0">{{ s.title }}</h3>
+      <p class="small muted" style="margin:4px 0 0">{{ s.hint }}</p></div></div>
+    {% if s.key == "invoice" and billing %}<div class="ob-facts small">
+      {% if unbilled %}<div><b>{{ unbilled.total|dollars }}</b> not billed yet ({{ unbilled.hours|floatformat:2 }} h of ticket time{% if unbilled.miles %}, mileage{% endif %}{% if unbilled.parts %}, parts{% endif %}).
+        {% if can_bill and can_manage %}<form method="post" action="/clients/{{ c.pk }}/offboarding/" style="display:inline">{% csrf_token %}<input type="hidden" name="action" value="final_invoice"><button class="btn small">Create the final draft invoice</button></form>{% endif %}</div>
+      {% else %}<div>Nothing unbilled.</div>{% endif %}
+      {% for i in drafts %}<div>Draft <a href="/billing/invoice/{{ i.pk }}/">{{ i.number }}</a> · {{ i.total|dollars }} — not sent yet</div>{% endfor %}
+      <div>{% if open_invoices %}They owe <b>{{ owed|dollars }}</b> on {{ open_invoices|length }} invoice{{ open_invoices|length|pluralize }}: {% for i in open_invoices %}<a href="/billing/invoice/{{ i.pk }}/">{{ i.number }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}No open invoices.{% endif %}</div></div>{% endif %}
+    {% if s.key == "cancel" and billing %}<div class="ob-facts small">
+      <div>{{ recurring|length }} active recurring schedule{{ recurring|length|pluralize }}{% for r in recurring %}{% if forloop.first %}: {% endif %}{{ r.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+      <div>{{ contracts|length }} open contract{{ contracts|length|pluralize }}{% for k in contracts %}{% if forloop.first %}: {% endif %}{{ k.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+      <div>{{ renewals|length }} upcoming renewal{{ renewals|length|pluralize }}{% for r in renewals %}{% if forloop.first %}: {% endif %}{{ r.item }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+      <div>AutoPay: {% if c.autopay_enabled %}on ({{ c.autopay_label }}){% else %}off{% endif %}</div>
+      {% if can_bill and can_manage %}{% if recurring or contracts or renewals or c.autopay_enabled %}<form method="post" action="/clients/{{ c.pk }}/offboarding/" data-confirm="Pause recurring billing, cancel the contracts and renewals listed, and turn off AutoPay for {{ c.name }}?">{% csrf_token %}<input type="hidden" name="action" value="stop_billing">
+        <button class="btn small">Stop all of these</button></form>{% endif %}{% endif %}</div>{% endif %}
+    {% if s.key == "export" and can_manage %}<div><a class="btn small" href="/clients/{{ c.pk }}/offboarding/export/">{% icon "download" 14 %}Download their records (ZIP)</a>
+      <span class="small muted">Contacts, devices, network notes, tickets and replies, invoices, payments, files. No internal notes, saved passwords or payment-processor details.</span></div>{% endif %}
+    {% if s.key == "close" %}<div class="ob-facts small"><div>{{ portal_users }} active portal sign-in{{ portal_users|pluralize }} — turned off when you close the account.</div></div>{% endif %}
+    {% if can_manage %}<form method="post" action="/clients/{{ c.pk }}/offboarding/" class="row" style="gap:8px;align-items:flex-end;flex-wrap:wrap">{% csrf_token %}<input type="hidden" name="action" value="step"><input type="hidden" name="key" value="{{ s.key }}">
+      <div style="flex:1 1 320px"><label class="sr" for="ob-note-{{ s.key }}">Note</label><input id="ob-note-{{ s.key }}" name="note" class="input" value="{{ s.row.note }}" placeholder="Note: what was done, who received it, or why it doesn't apply"></div>
+      {% if s.done %}<button class="btn small" name="done" value="1">Save note</button><button class="btn small" name="done" value="0">Not done after all</button>
+      {% else %}<button class="btn small primary" name="done" value="1">Mark done</button>{% endif %}</form>{% elif s.row.note %}<p class="small" style="margin:0">{{ s.row.note }}</p>{% endif %}
+    {% if s.done %}<div class="small muted">Done by {{ s.who|default:"someone" }} · {{ s.row.done_at|date:"M j, Y g:i A" }}</div>{% endif %}
+  </section>
+  {% endfor %}
+  {% if can_manage %}<section class="card pad row" style="gap:10px;flex-wrap:wrap">
+    <form method="post" action="/clients/{{ c.pk }}/offboarding/" data-confirm="Close the account? {{ c.name }} is marked Former and its portal sign-ins are turned off.">{% csrf_token %}<input type="hidden" name="action" value="finish"><button class="btn primary">Finish: close the account</button></form>
+    <form method="post" action="/clients/{{ c.pk }}/offboarding/" data-confirm="Call off the offboarding? The checklist is kept in the history.">{% csrf_token %}<input type="hidden" name="action" value="cancel"><button class="btn">They're staying — call it off</button></form>
+  </section>{% endif %}
+{% endif %}
+{% if past %}<section class="card" style="overflow:hidden"><div class="dash-card-head"><h2>Earlier</h2></div>
+  {% for o in past %}<div class="flag-row"><div><b>{{ o.status }}</b> · started {{ o.started_at|date:"M j, Y" }} by {{ o.started_by.name|default:"someone" }}{% if o.finished_at %} · finished {{ o.finished_at|date:"M j, Y" }} by {{ o.finished_by.name|default:"someone" }}{% endif %}
+    {% if o.reason %}<div class="small muted">{{ o.reason|truncatechars:240 }}</div>{% endif %}</div></div>{% endfor %}</section>{% endif %}
+</div>

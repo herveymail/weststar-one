@@ -3,7 +3,7 @@
 <header class="bar"><a class="back" href="/tech/tickets/"><i class="bi bi-chevron-left"></i> Tickets</a>
   <div class="row" style="margin-top:6px"><span class="muted">{{ t.number }}</span><span class="pri pri-{{ t.priority|lower }}">{{ t.priority }}</span></div>
   <h1 class="t-subj">{{ t.subject }}</h1>
-  <p class="muted" style="margin:2px 0 0">{{ t.client.name|default:"No client" }}{% if t.contact_name or t.contact %} · {{ t.contact.name|default:t.contact_name }}{% endif %}{% if t.device %} · <i class="bi bi-pc-display"></i> {{ t.device }}{% endif %}</p>
+  <p class="muted" style="margin:2px 0 0">{{ t.client.name|default:"No client" }}{% if t.contact_name or t.contact %} · {{ t.contact.name|default:t.contact_name }}{% endif %}{% if t.device %} · <i class="bi bi-pc-display"></i> {{ t.device }}{% endif %}</p>{% if t.client %}{% include "crm/_flag_lines.html" with flags=t.client.active_flags %}{% endif %}
 </header>
 <main class="page">
 <div class="quick">

@@ -31,7 +31,7 @@ def check(f) -> str:
     return ""
 
 
-def save_uploads(request, files, *, kind, ticket=None, message=None, client=None, project=None) -> list[str]:
+def save_uploads(request, files, *, kind, ticket=None, message=None, client=None, project=None, text=None) -> list[str]:
     problems = []
     for f in files[:20]:
         p = check(f)
@@ -39,7 +39,7 @@ def save_uploads(request, files, *, kind, ticket=None, message=None, client=None
             problems.append(p)
             continue
         name = os.path.basename(f.name)[:255]
-        u = Upload(kind=kind, ticket=ticket, message=message, client=client, project=project, original_name=name,
+        u = Upload(kind=kind, ticket=ticket, message=message, client=client, project=project, text=text, original_name=name,
                    content_type=(mimetypes.guess_type(name)[0] or "application/octet-stream")[:100], size=f.size,
                    uploaded_by=request.user, notes=(request.POST.get("notes", "") or "")[:500])
         u.file.save(name, f, save=True)

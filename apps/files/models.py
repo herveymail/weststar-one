@@ -28,6 +28,7 @@ class Upload(models.Model):
     message = models.ForeignKey("helpdesk.TicketMessage", null=True, blank=True, on_delete=models.SET_NULL, related_name="uploads")
     client = models.ForeignKey("crm.Client", null=True, blank=True, on_delete=models.CASCADE, related_name="uploads")
     project = models.ForeignKey("crm.Project", null=True, blank=True, on_delete=models.CASCADE, related_name="uploads")
+    text = models.ForeignKey("crm.ClientText", null=True, blank=True, on_delete=models.CASCADE, related_name="uploads")  # screenshots of client texts
     file = models.FileField(upload_to=stored_path, max_length=255)
     original_name = models.CharField(max_length=255)
     content_type = models.CharField(max_length=100, blank=True)

@@ -7,4 +7,10 @@
     <button class="btn small primary">Add as contact</button>
     {% if sender_domain %}<label class="check small"><input type="checkbox" name="remember" value="1" checked> Future email from <b>@{{ sender_domain }}</b> goes to this client</label>{% endif %}
   </div>
-</form>{% endif %}
+</form>
+{% if can_block %}<form method="post" action="/tickets/{{ t.pk }}/block-sender/" class="new-sender" style="margin-top:6px" data-confirm="Block this sender? Their emails will stop making tickets, and their open tickets are closed."{% if sender_ctx == "panel" %} hx-post="/tickets/{{ t.pk }}/block-sender/" hx-target="#panel" hx-swap="outerHTML" hx-confirm="Block this sender? Their emails will stop making tickets, and their open tickets are closed."{% endif %}>{% csrf_token %}
+  <input type="hidden" name="ctx" value="{{ sender_ctx|default:'page' }}">
+  <div class="row" style="gap:8px;flex-wrap:wrap"><span>Junk or an old vendor?</span>
+    <button class="btn small danger" name="what" value="address">Block {{ t.contact_email }}</button>
+    {% if sender_domain %}<button class="btn small danger" name="what" value="domain">Block everything from @{{ sender_domain }}</button>{% endif %}</div>
+</form>{% endif %}{% endif %}

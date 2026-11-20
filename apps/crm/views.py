@@ -12,7 +12,8 @@ from .models import Client
 TABS = [
     ("Overview", None), ("Contacts", "contacts"), ("Tickets", None), ("Assets", "assets"), ("Network", "networks"),
     ("Contracts", "contracts"), ("Invoices", "invoices"), ("Quotes", "quotes"), ("Projects", "projects"), ("Notes", "client_notes"),
-    ("Domains", "domains"), ("Policies", "policies"), ("Training", "training"), ("Backups", None), ("Files", None), ("Checklists", None), ("Portal", None),
+    ("Domains", "domains"), ("Policies", "policies"), ("Training", "training"), ("Backups", None), ("Files", None), ("Texts", None), ("Flags", None),
+    ("Checklists", None), ("Portal", None), ("Offboarding", None),
 ]
 
 
@@ -52,6 +53,8 @@ def client_detail(request, pk):
         ctx.update(open_invoices=Invoice.objects.filter(client=client, archived_at__isnull=True, status__in=["Sent", "Viewed", "Partial", "Overdue"]).order_by("due_date"),
                    stripe_ok=stripe_api.configured(), can_billing_edit=can(request.user, "billing", "edit"), billing_to=", ".join(_billing_people(client)),
                    recent_payments=client.payments.filter(archived_at__isnull=True).select_related("invoice")[:5])
+    ctx["flags"] = client.active_flags
+    ctx["offboarding"] = client.offboardings.filter(status="Open").first()
     if tab == "Backups":
         from apps.integrations import msp360
         ctx["backups"] = msp360.for_client(client)

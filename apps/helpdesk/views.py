@@ -185,7 +185,7 @@ def _detail_ctx(request, t: Ticket, panel=False) -> dict:
         "approval_via": TicketApproval.VIA, "signoff_needed": t.is_open and completion_required(t),
         "conversation_count": sum(1 for m in msgs if m.kind != "event"),
         "history": [m for m in msgs if m.kind == "event"],
-        **_sender_ctx(t),
+        **_sender_ctx(t), "can_block": can(request.user, "tickets", "manage"),
         "minutes": time_rows["m"] or 0, "billable_minutes": time_rows["b"] or 0, "unbilled_minutes": time_rows["unbilled"] or 0,
         "value": round((time_rows["m"] or 0) / 60 * float(rate), 2) if rate else None,
         "timer": timer, "other_timer": other_timer,
@@ -235,6 +235,35 @@ def ticket_contact(request, pk):
         type(client).objects.filter(pk=client.pk).update(email_domains=client.email_domains)
         msg += f" Email from @{dom} will be filed under them."
     messages.success(request, msg)
+    t.refresh_from_db()
+    return _after_change(request, t)
+
+
+@login_required
+@require_POST
+def ticket_block_sender(request, pk):
+    """Stop a sender (one address or their whole domain) from making tickets, and close the open ones they already made."""
+    from . import inbound
+    if not can(request.user, "tickets", "manage"):
+        raise PermissionDenied
+    t = get_object_or_404(Ticket, pk=pk)
+    email = (t.contact_email or "").strip().lower()
+    if "@" not in email:
+        messages.error(request, "This ticket has no sender email address to block.")
+        return _after_change(request, t)
+    dom = email.rsplit("@", 1)[-1]
+    whole = request.POST.get("what") == "domain" and dom not in inbound.PUBLIC_DOMAINS
+    value = dom if whole else email
+    inbound.block_sender(value)
+    same = Ticket.objects.filter(status__in=OPEN_STATUSES, merged_into__isnull=True)
+    same = same.filter(Q(contact_email__iendswith="@" + dom) | Q(contact_email__iendswith="." + dom)) if whole else same.filter(contact_email__iexact=email)
+    n = 0
+    for x in same:
+        Ticket.objects.filter(pk=x.pk).update(status="Closed", closed_at=timezone.now(), resolved_at=x.resolved_at or timezone.now(), snoozed_until=None)
+        services.event(x, f"Closed: {request.user.name} blocked the sender {value}", request.user)   # no "ticket closed" email goes to a blocked sender
+        n += 1
+    audit(request, "block_sender", "ticket", t.pk, f"Blocked email sender {value}; closed {n} open ticket(s) from them", area="tickets")
+    messages.success(request, f"Blocked {value}: their emails won't make tickets any more. Closed {n} open ticket{'s' if n != 1 else ''} from them. Undo it in Settings › Email to ticket › Blocked senders.")
     t.refresh_from_db()
     return _after_change(request, t)
 

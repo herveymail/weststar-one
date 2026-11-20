@@ -2,6 +2,7 @@ from django.shortcuts import redirect
 from django.urls import path
 
 from apps.accounts import views as acc
+from apps.crm import account_views as cav
 from apps.crm import views as crm
 from apps.helpdesk import views as hd
 from apps.files import views as fv
@@ -57,6 +58,7 @@ urlpatterns = [
     path("tickets/<int:pk>/timer/", hd.ticket_timer, name="ticket_timer"),
     path("tickets/<int:pk>/contact/", hd.ticket_contact, name="ticket_contact"),
     path("tickets/<int:pk>/snooze/", hd.ticket_snooze, name="ticket_snooze"),
+    path("tickets/<int:pk>/block-sender/", hd.ticket_block_sender, name="ticket_block_sender"),
     path("tickets/<int:pk>/merge/", hd.ticket_merge, name="ticket_merge"),
     path("tickets/<int:pk>/resolve/", hd.ticket_resolve, name="ticket_resolve"),
     path("tickets/<int:pk>/ai/", hd.ticket_ai, name="ticket_ai"),
@@ -65,6 +67,11 @@ urlpatterns = [
     path("tickets/<int:pk>/delete/", hd.ticket_delete, name="ticket_delete"),
     path("clients/", crm.clients, name="clients"),
     path("clients/<int:pk>/", crm.client_detail, name="client"),
+    path("clients/<int:pk>/flags/", cav.flags, name="client_flags"),
+    path("clients/<int:pk>/texts/", cav.texts, name="client_texts"),
+    path("clients/<int:pk>/texts/<int:text_id>/delete/", cav.text_delete, name="client_text_delete"),
+    path("clients/<int:pk>/offboarding/", cav.offboarding, name="client_offboarding"),
+    path("clients/<int:pk>/offboarding/export/", cav.offboarding_export, name="client_offboarding_export"),
     path("my-hr/", hr.my_hr, name="my_hr"),
     path("clock/", hr.clock, name="clock"),
     path("files/<int:pk>/", fv.download, name="file_download"),

@@ -400,3 +400,14 @@ html.ws-busy, html.ws-busy * { cursor: progress; }
 .drawer:has(table.lines) { width: min(920px, 100%); }
 .lines td:first-child { min-width: 260px; }
 .lines .errorlist { margin: 4px 0 0; padding: 0; list-style: none; font-size: 12px; }
+/* Account flags, text-message log, offboarding */
+.acct-flag { padding: 9px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font-size: 14px; }
+.acct-flag.stop { background: var(--crit-bg); border-color: var(--crit); color: var(--crit); }
+.acct-flag.warn { background: var(--high-bg); border-color: var(--high); color: var(--high); }
+.acct-flag + .acct-flag { margin-top: 6px; }
+.flag-row { display: flex; gap: 12px; align-items: flex-start; padding: 12px 18px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.text-shots { display: flex; gap: 10px; flex-wrap: wrap; }
+.text-shots img { height: 220px; max-width: 100%; border-radius: 10px; border: 1px solid var(--line); display: block; }
+.ob-n { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; background: var(--tab); }
+.ob-step.done .ob-n { background: var(--good-bg); color: var(--good); }
+.ob-facts { display: grid; gap: 6px; padding: 10px 12px; border-radius: 10px; background: var(--surface2); }

@@ -1,0 +1,1 @@
+{% for f in flags %}<div class="acct-flag {{ f.level }}" role="alert"><b>{% if f.level == "stop" %}⛔{% elif f.level == "warn" %}⚠{% else %}ℹ{% endif %} {{ f.label }}</b>{% if f.note %} — {{ f.note }}{% endif %}{% if link %} <a href="/clients/{{ link }}/?tab=Flags" class="small">details</a>{% endif %}</div>{% endfor %}

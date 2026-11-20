@@ -1,0 +1,33 @@
+{% load ws %}
+<div class="stack">
+  <p class="muted" style="margin:0">Text messages this client sent to a staff member's own phone. File the screenshots here so the record isn't stuck on one phone.</p>
+  {% if error %}<div class="banner" role="alert">{{ error }}</div>{% endif %}
+  {% if can_edit %}
+  <form class="card pad stack" method="post" action="/clients/{{ c.pk }}/texts/" enctype="multipart/form-data">{% csrf_token %}
+    <h2>File text messages</h2>
+    <div class="form-grid">
+      <div class="field"><label for="tx-date">Date of the texts *</label><input id="tx-date" type="date" name="happened_on" class="input" required value="{{ post.happened_on|default:today|date:'Y-m-d' }}"></div>
+      <div class="field"><label for="tx-staff">Whose phone</label><select id="tx-staff" name="staff" class="select">{% for u in staff %}<option value="{{ u.pk }}"{% if u.pk == user.pk %} selected{% endif %}>{{ u.name }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="tx-who">Who texted</label><input id="tx-who" name="contact_name" class="input" list="tx-contacts" value="{{ post.contact_name }}" maxlength="200">
+        <datalist id="tx-contacts">{% for p in contacts %}<option value="{{ p.name }}">{% endfor %}</datalist></div>
+      <div class="field"><label for="tx-num">Their number</label><input id="tx-num" name="their_number" class="input" value="{{ post.their_number }}" maxlength="50" inputmode="tel"></div>
+      <div class="field wide"><label for="tx-sum">What it was about *</label><input id="tx-sum" name="summary" class="input" required maxlength="255" value="{{ post.summary }}" placeholder="e.g. Asked us to reset the front desk PC after hours"></div>
+      <div class="field wide"><label for="tx-files">Screenshots or exported texts</label><input id="tx-files" type="file" name="files" multiple class="input" accept=".png,.jpg,.jpeg,.heic,.webp,.gif,.pdf,.txt,.csv,.zip">
+        <span class="help">Pictures, PDF or text files, up to 20 at a time.</span></div>
+      <div class="field wide"><label for="tx-body">Or type / paste the messages</label><textarea id="tx-body" name="transcript" class="textarea" rows="4">{{ post.transcript }}</textarea></div>
+      <div class="field"><label for="tx-ticket">Ticket number (optional)</label><input id="tx-ticket" name="ticket" class="input" value="{{ post.ticket }}" placeholder="Links it to a ticket"></div>
+    </div>
+    <p class="data-note small muted" style="margin:0">Black out passwords, card numbers and health or other personal details before uploading a screenshot.</p>
+    <div><button class="btn primary">File it</button></div>
+  </form>
+  {% endif %}
+  {% for t in rows %}
+  <section class="card pad stack" style="gap:8px">
+    <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><b>{{ t.happened_on|date:"D, M j, Y" }}</b><span>{{ t.summary }}</span><span class="spacer" style="flex:1"></span>
+      {% if can_manage %}<form method="post" action="/clients/{{ c.pk }}/texts/{{ t.pk }}/delete/" data-confirm="Delete this text-message record and its files?">{% csrf_token %}<button class="btn small danger">Delete</button></form>{% endif %}</div>
+    <div class="small muted">{% if t.contact_name %}{{ t.contact_name }}{% else %}Client{% endif %}{% if t.their_number %} ({{ t.their_number }}){% endif %} → {{ t.staff.name|default:"staff" }}'s phone{% if t.ticket %} · ticket <a href="/tickets/{{ t.ticket.pk }}/">{{ t.ticket.number }}</a>{% endif %} · filed by {{ t.created_by.name|default:"someone" }} {{ t.created_at|date:"M j, Y" }}</div>
+    {% if t.transcript %}<pre class="block" style="white-space:pre-wrap;margin:0">{{ t.transcript }}</pre>{% endif %}
+    {% if t.uploads.all %}<div class="text-shots">{% for u in t.uploads.all %}{% if u.ext in "png jpg jpeg gif webp" %}<a href="/files/{{ u.pk }}/?view=1" target="_blank" rel="noopener"><img src="/files/{{ u.pk }}/?view=1" alt="{{ u.original_name }}" loading="lazy"></a>{% else %}<a class="file-chip" href="/files/{{ u.pk }}/">{{ u.original_name }}</a>{% endif %}{% endfor %}</div>{% endif %}
+  </section>
+  {% empty %}<div class="card"><div class="empty">No text messages filed for this client yet.</div></div>{% endfor %}
+</div>
