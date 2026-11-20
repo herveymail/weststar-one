@@ -318,19 +318,24 @@ def ticket_message(request, pk):
     if not body:
         messages.error(request, "Write a message first.")
         return _after_change(request, t)
-    try:
-        if request.POST.get("hours", "").strip():
-            minutes = round(float(request.POST["hours"]) * 60)  # the grid panel asks in hours, like the old app
-        else:
-            minutes = int(request.POST.get("minutes") or 0)
-        minutes = max(0, min(minutes, 1440))
-    except ValueError:
+    typed = request.POST.get("hours", "").strip() or request.POST.get("minutes", "").strip()
+    minutes = services.parse_minutes(typed, "hours" if request.POST.get("hours", "").strip() else "minutes")  # the grid panel asks in hours
+    if minutes is None:
+        messages.error(request, f"Time NOT logged: couldn't read \"{typed[:30]}\". Use a number like 1.5, or 1:30, or 90m — then log it with a Work log entry.")
         minutes = 0
+    if minutes > 1440:
+        messages.error(request, "Time NOT logged: that is more than 24 hours. Check the number and add it as a Work log entry.")
+        minutes = 0
+    minutes = max(0, minutes)
     work_type = request.POST.get("work_type") if request.POST.get("work_type") in WORK_TYPES else "Remote"
     status_after = request.POST.get("status_after", "") if request.POST.get("status_after") in STATUSES else ""
     msg = services.add_message(t, user=request.user, kind=kind, body=body, minutes=minutes, work_type=work_type,
                                billable=request.POST.get("billable") in ("1", "on", "true"), status_after=status_after,
                                cc=request.POST.get("cc", "")[:1000] if kind == "reply" else "", request=request)
+    if msg.not_emailed:
+        messages.error(request, f"Your reply was saved but NOT emailed to the client: {msg.not_emailed}.")
+    if msg.status_blocked and status_after:
+        messages.error(request, f"The status was not changed to {status_after}: this break/fix ticket needs the customer's sign-off first.")
     if files:
         from apps.files.services import save_uploads
         try:

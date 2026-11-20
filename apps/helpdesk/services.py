@@ -231,9 +231,34 @@ def add_message(ticket: Ticket, *, user, kind: str, body: str, minutes: int = 0,
         except SignoffRequired:
             event(t, f"Not closed: break/fix ticket needs the customer's sign-off first ({user.name} tried)", user)
     audit(request, kind, "ticket", t.pk, f"{ {'reply': 'Replied on', 'note': 'Added note to', 'work': 'Logged work on'}.get(kind, 'Updated') } {t.number}", area="tickets")
+    msg.not_emailed = ""   # why a reply did NOT go to the client by email (the screen warns the tech)
     if kind == "reply":
-        send_ticket_email(t, "reply", "email/ticket_reply", {"m": msg}, msg)  # queued: goes out right after this is saved
+        from apps.core import mail
+        if not send_ticket_email(t, "reply", "email/ticket_reply", {"m": msg}, msg):  # queued: goes out right after this is saved
+            msg.not_emailed = ("there is no email address on this ticket" if not _client_recipients(t)[0] else
+                               "email isn't set up (Settings › Email sending)" if not mail.configured() else "the address on the ticket isn't a usable email address")
+            event(t, f"Reply saved but NOT emailed: {msg.not_emailed}", user)
+    msg.status_blocked = bool(status_after) and status_after != Ticket.objects.filter(pk=t.pk).values_list("status", flat=True).first()
     return msg
+
+
+def parse_minutes(text: str, unit: str = "minutes") -> int | None:
+    """Time as people type it → minutes. "1.5" (in `unit`), "90m", "1h 30m", "1:30", "1.5 hrs". None = can't tell."""
+    import re
+    v = (text or "").strip().lower().replace(",", ".")
+    if not v:
+        return 0
+    m = re.fullmatch(r"(\d+):([0-5]?\d)", v)
+    if m:
+        return int(m.group(1)) * 60 + int(m.group(2))
+    m = re.fullmatch(r"(?:(\d+(?:\.\d+)?)\s*h(?:ours?|rs?)?)?\s*(?:(\d+(?:\.\d+)?)\s*m(?:in(?:ute)?s?)?)?", v)
+    if m and (m.group(1) or m.group(2)):
+        return round(float(m.group(1) or 0) * 60 + float(m.group(2) or 0))
+    try:
+        n = float(v)
+    except ValueError:
+        return None
+    return round(n * 60) if unit == "hours" else round(n)
 
 
 @transaction.atomic
