@@ -1,5 +1,4 @@
 """Ticket rules in one place, used by the staff screens, the client portal, the importer and the jobs."""
-from datetime import timedelta
 
 from django.conf import settings
 from django.db import transaction
@@ -77,24 +76,23 @@ def thread_refs(t: Ticket) -> list[str]:
 
 def after_hours(now=None) -> bool:
     """Outside Settings › Office hours (Opens/Closes/Open days)? False when the hours aren't set."""
-    import datetime as dt
-    now = timezone.localtime(now)
-    try:
-        tz = Setting.get("app.timezone", "")
-        if tz:
-            from zoneinfo import ZoneInfo
-            now = now.astimezone(ZoneInfo(tz))
-        opens = dt.time.fromisoformat(Setting.get("helpdesk.open", "") or "")
-        closes = dt.time.fromisoformat(Setting.get("helpdesk.close", "") or "")
-    except (ValueError, KeyError, ImportError):
-        return False
-    days = [d.strip()[:3].title() for d in (Setting.get("helpdesk.days", "") or "Mon,Tue,Wed,Thu,Fri").split(",") if d.strip()]
-    return now.strftime("%a") not in days or not (opens <= now.time() < closes)
+    from . import hours
+    h = hours.office()
+    return h.ok and not h.is_open(now)
+
+
+def sla_due(start, priority: str, client) -> tuple:
+    """(respond by, resolve by) for a ticket opened at `start`. Counts office hours only when that is switched on."""
+    from . import hours
+    return (hours.due(start, response_minutes(priority, client), priority), hours.due(start, resolve_hours(priority, client) * 60, priority))
 
 
 def send_ticket_email(t: Ticket, kind: str, template: str, ctx: dict, msg: TicketMessage | None = None, background: bool = True) -> bool:
     """Emails the client. background=True (the default for screens) queues it so nobody waits on the mail server."""
     from apps.core import mail
+    if kind == "new":
+        from . import hours
+        ctx = {**ctx, "office_hours": hours.office_label() if Setting.get("tickets.show_hours", "true") != "false" else ""}
     if kind == "new" and Setting.get("tickets.afterhours_enabled", "") == "true" and after_hours():
         ctx = {**ctx, "after_hours": Setting.get("tickets.afterhours_message", "") or "Our office is closed right now. We'll pick this up when we open."}
     to, cc_list = _client_recipients(t)
@@ -124,8 +122,15 @@ def _client_recipients(t: Ticket) -> tuple[list[str], list[str]]:
 @transaction.atomic
 def create_ticket(*, user=None, subject, details="", client=None, contact=None, priority="Medium", source="Manual",
                   assigned_to=None, queue=None, category="", cc="", portal_user=None, contact_name="", contact_email="",
-                  request=None, device="", due_date=None) -> Ticket:
+                  request=None, device="", due_date=None, site_hours="") -> Ticket:
     from apps.core.numbering import next_number
+
+    from . import hours
+    site_hours = " ".join((site_hours or "").split())[:255]
+    if site_hours:
+        hours.remember(client, site_hours)
+    else:
+        site_hours = hours.client_text(client)   # email, alert and recurring tickets take the hours saved on the client
     number = next_number("ticket")
     now = timezone.now()
     queue = queue or route_queue(subject, details)
@@ -134,9 +139,9 @@ def create_ticket(*, user=None, subject, details="", client=None, contact=None, 
         contact_name=contact_name or (contact.name if contact else (portal_user.name if portal_user else "")),
         contact_email=contact_email or (contact.email if contact else (portal_user.email if portal_user else "")),
         priority=priority, status="New", source=source, assigned_to=assigned_to, created_by=user, queue=queue,
-        category=category, cc=cc, device=device[:150], due_date=due_date,
-        response_due_at=now + timedelta(minutes=response_minutes(priority, client)) if (queue is None or queue.sla_enabled) else None,
-        resolve_due_at=now + timedelta(hours=resolve_hours(priority, client)) if (queue is None or queue.sla_enabled) else None,
+        category=category, cc=cc, device=device[:150], due_date=due_date, site_hours=site_hours,
+        response_due_at=sla_due(now, priority, client)[0] if (queue is None or queue.sla_enabled) else None,
+        resolve_due_at=sla_due(now, priority, client)[1] if (queue is None or queue.sla_enabled) else None,
     )
     who = user.name if user else (portal_user.name if portal_user else "someone")
     event(t, f"Created by {who}{' in the portal' if portal_user else ''}", user)
@@ -310,9 +315,9 @@ def update_ticket(ticket: Ticket, *, user, request=None, skip_signoff=False, **c
         notes.append(f"Priority {t.priority} → {changes['priority']}")
         t.priority = changes["priority"]
         if not t.first_response_at and t.response_due_at:
-            t.response_due_at = t.created_at + timedelta(minutes=response_minutes(t.priority, t.client))
+            t.response_due_at = sla_due(t.created_at, t.priority, t.client)[0]
         if t.resolve_due_at:
-            t.resolve_due_at = t.created_at + timedelta(hours=resolve_hours(t.priority, t.client))
+            t.resolve_due_at = sla_due(t.created_at, t.priority, t.client)[1]
     if "assigned_to" in changes and changes["assigned_to"] != t.assigned_to:
         a = changes["assigned_to"]
         notes.append(f"Assigned to {a.name}" if a else "Unassigned")

@@ -13,6 +13,8 @@
           {{ form.client }}{{ form.client.errors }}</div>
         <div class="field"><label for="{{ form.subject.id_for_label }}">Subject <span class="req">*</span></label>{{ form.subject }}{{ form.subject.errors }}</div>
         <div class="field"><label for="{{ form.details.id_for_label }}">Details</label>{{ form.details }}</div>
+        <div class="field"><label for="{{ form.site_hours.id_for_label }}">Client's business hours</label>{{ form.site_hours }}{{ form.site_hours.errors }}
+          <span class="help">Leave blank to use the hours saved on the client. If none are saved, type them here once and they're kept.</span></div>
         <div class="nt-grid">
           <div class="field"><label for="{{ form.priority.id_for_label }}">Priority</label>{{ form.priority }}</div>
           <div class="field"><label for="{{ form.queue.id_for_label }}">Queue</label>{{ form.queue }}</div>

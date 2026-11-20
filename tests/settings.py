@@ -15,3 +15,4 @@ MAIL_BACKGROUND = False  # send inline so tests can see the result; the outbox h
 LEGAL_GATES = False  # the sign-in agreement steps have their own tests (test_legal.py)
 
 PORTAL_SERVICE_ONLY = False  # most portal tests cover the optional sections; test_portal_service_only turns it on
+REQUIRE_TICKET_HOURS = False  # most ticket tests don't care about business hours; test_business_hours turns it on

@@ -241,6 +241,24 @@ def ticket_contact(request, pk):
 
 @login_required
 @require_POST
+def ticket_hours(request, pk):
+    """Set the business hours on a service call (and keep them on the client if it has none saved)."""
+    from . import hours
+    _need(request, "edit")
+    t = get_object_or_404(Ticket, pk=pk)
+    text = " ".join(request.POST.get("site_hours", "").split())[:255]
+    if not text:
+        messages.error(request, "Type the client's business hours.")
+        return _after_change(request, t)
+    Ticket.objects.filter(pk=t.pk).update(site_hours=text)
+    hours.remember(t.client, text)
+    services.event(t, f"Business hours set: {text}", request.user)
+    t.refresh_from_db()
+    return _after_change(request, t)
+
+
+@login_required
+@require_POST
 def ticket_block_sender(request, pk):
     """Stop a sender (one address or their whole domain) from making tickets, and close the open ones they already made."""
     from . import inbound
@@ -501,6 +519,7 @@ class NewTicketForm(forms.Form):
     device = forms.CharField(required=False, max_length=150, widget=forms.TextInput(attrs={"class": "input", "placeholder": "PC-07, ACME-DC01…"}))
     category = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "select"}))
     due_date = forms.DateField(required=False, label="Due date", widget=forms.DateInput(attrs={"class": "input", "type": "date"}))
+    site_hours = forms.CharField(required=False, max_length=255, label="Client's business hours", widget=forms.TextInput(attrs={"class": "input", "placeholder": "e.g. Mon–Fri 8–5, closed for lunch 12–1"}))
 
     def __init__(self, *a, **kw):
         super().__init__(*a, **kw)
@@ -514,6 +533,9 @@ class NewTicketForm(forms.Form):
         data = super().clean()
         if not data.get("client"):
             self.add_error("client", "Pick the client.")
+        from . import hours
+        if data.get("client") and not (data.get("site_hours") or "").strip() and hours.required() and not hours.client_text(data["client"]):
+            self.add_error("site_hours", "Add the client's business hours. They're saved on the client, so you only type them once.")
         # Link the requester to a saved contact when the email matches one at this client.
         data["contact"] = None
         c, em = data.get("client"), (data.get("contact_email") or "").strip().lower()
@@ -542,7 +564,7 @@ def ticket_new(request):
         t = services.create_ticket(user=request.user, subject=d["subject"], details=d["details"], client=d["client"], contact=d["contact"],
                                    priority=d["priority"], queue=d["queue"], assigned_to=d["assigned_to"], category=d["category"] or "",
                                    contact_name=d["contact_name"], contact_email=(d["contact_email"] or "").lower(), device=d["device"],
-                                   due_date=d["due_date"], request=request)
+                                   due_date=d["due_date"], site_hours=d.get("site_hours") or "", request=request)
         if tpl and not tpl.billable:
             Ticket.objects.filter(pk=t.pk).update(billable=False)
         messages.success(request, f"Created {t.number}.")

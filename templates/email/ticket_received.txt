@@ -3,7 +3,8 @@
 We received your request and created ticket {{ t.number }}: {{ t.subject }}.
 {% if after_hours %}{{ after_hours }}
 
-{% endif %}{% if t.response_due_at %}We aim to respond by {{ t.response_due_at|date:"M j, g:i A" }}.{% endif %}
+{% endif %}{% if t.response_due_at %}We aim to respond by {{ t.response_due_at|date:"M j, g:i A" }}.{% endif %}{% if office_hours %}
+Our office hours: {{ office_hours }}.{% endif %}
 
 Follow it or add details here: {{ link }}
 

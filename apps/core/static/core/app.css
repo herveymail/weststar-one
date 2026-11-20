@@ -411,3 +411,6 @@ html.ws-busy, html.ws-busy * { cursor: progress; }
 .ob-n { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; background: var(--tab); }
 .ob-step.done .ob-n { background: var(--good-bg); color: var(--good); }
 .ob-facts { display: grid; gap: 6px; padding: 10px 12px; border-radius: 10px; background: var(--surface2); }
+.tk-hours { padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font-size: 14px; margin-top: 6px; }
+.tk-hours.missing { background: var(--high-bg); border-color: var(--high); }
+.new-sender .btn { white-space: normal; text-align: left; overflow-wrap: anywhere; }

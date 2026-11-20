@@ -23,9 +23,12 @@
       <div class="field"><label for="subject">Subject</label><input id="subject" name="subject" class="input" maxlength="255" required placeholder="Short summary"></div>
       <div class="field"><label for="priority">How urgent is it?</label><select id="priority" name="priority" class="select">{% for k, l in priorities %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select></div>
       <div class="field"><label for="details">Details</label><textarea id="details" name="details" class="textarea" placeholder="What happened? Any error message? Which computer?"></textarea></div>
+      <div class="field"><label for="site_hours">Your business hours{% if hours_required %} *{% endif %}</label><input id="site_hours" name="site_hours" class="input" maxlength="255" value="{{ my_hours }}"{% if hours_required %} required{% endif %} placeholder="e.g. Mon–Fri 8 AM – 5 PM, closed for lunch 12–1">
+        <span class="help">When can we call or come by? Change it if this request is different from your usual hours.</span></div>
       <div class="field"><label for="files">Screenshots or files</label><input id="files" name="files" type="file" multiple><span class="help">Up to 10 files, 25 MB each.</span></div>
       {% if coworkers %}<div class="field"><label for="notify">Also notify (coworkers)</label><select id="notify" name="notify" class="select" multiple size="3">{% for c in coworkers %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}</select><span class="help">Hold Ctrl (Cmd on Mac) to pick more than one.</span></div>{% endif %}
       <button class="btn primary">Submit ticket</button>
+      {% if office_hours %}<p class="small muted" style="margin:0"><i class="bi bi-clock" aria-hidden="true"></i> Our office hours: {{ office_hours }}. Requests sent outside these hours are picked up when we open.</p>{% endif %}
       {% if company_phone %}<p class="small muted" style="margin:0">For an emergency, call {{ company_phone }}.</p>{% endif %}
     </form>
   </section>

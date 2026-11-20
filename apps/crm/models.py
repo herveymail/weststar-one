@@ -27,6 +27,14 @@ class Client(Record):
     late_fee_exempt = models.BooleanField("No late fees", default=False, help_text="Never add late fees to this client's invoices.")
     sla_response_hours = models.PositiveIntegerField("SLA response (hours)", default=4)
     sla_resolution_hours = models.PositiveIntegerField("SLA resolution (hours)", default=24)
+    # The client's own business hours: shown on its tickets so techs know when they can call or go onsite.
+    hours_open = models.TimeField("Opens", null=True, blank=True, help_text="When the client's office opens, their local time.")
+    hours_close = models.TimeField("Closes", null=True, blank=True)
+    hours_days = models.CharField("Open days", max_length=40, blank=True, default="Mon,Tue,Wed,Thu,Fri", help_text="e.g. Mon,Tue,Wed,Thu,Fri")
+    hours_timezone = models.CharField("Their time zone", max_length=40, blank=True, choices=[
+        ("", "Same as ours"), ("America/Phoenix", "Arizona (Phoenix)"), ("America/Denver", "Mountain (El Paso, Denver)"), ("America/Chicago", "Central"),
+        ("America/Los_Angeles", "Pacific"), ("America/New_York", "Eastern")])
+    hours_note = models.CharField("Hours note", max_length=255, blank=True, help_text="e.g. Closed for lunch 12–1. Call the office manager before going onsite.")
     account_alert = models.CharField(max_length=255, blank=True, help_text="Shown in red on every ticket for this client.")
     notes = models.TextField("Internal notes", blank=True)
     # Stripe / AutoPay (the card or bank account itself stays at Stripe; only its ids and last 4 are kept here)

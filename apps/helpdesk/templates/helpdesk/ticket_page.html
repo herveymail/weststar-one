@@ -5,7 +5,7 @@
 <div class="hd hd-3col">
   {% include "helpdesk/_rail.html" %}
   <div class="hd-main">
-    {% if t.client.account_alert %}<div class="hd-alert" role="alert">⚠ {{ t.client.account_alert }}</div>{% endif %}{% if t.client %}{% include "crm/_flag_lines.html" with flags=t.client.active_flags link=t.client.pk %}{% endif %}
+    {% if t.client.account_alert %}<div class="hd-alert" role="alert">⚠ {{ t.client.account_alert }}</div>{% endif %}{% if t.client %}{% include "crm/_flag_lines.html" with flags=t.client.active_flags link=t.client.pk %}{% endif %}{% ticket_hours t "page" %}
     {% if t.merged_into %}<div class="hd-alert info">This ticket was merged into {{ t.merged_into.number }}. <a href="/tickets/{{ t.merged_into.pk }}/">Open {{ t.merged_into.number }}</a></div>{% endif %}
     {% if t.is_snoozed %}<div class="hd-alert warn row">Snoozed until {{ t.snoozed_until|date:"M j, g:i A" }}<span class="spacer"></span>{% if can_edit %}<button class="btn small" hx-post="/tickets/{{ t.pk }}/snooze/" hx-vals='{"until":"wake"}' hx-swap="none">Wake now</button>{% endif %}</div>{% endif %}
 

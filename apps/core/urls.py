@@ -59,6 +59,7 @@ urlpatterns = [
     path("tickets/<int:pk>/contact/", hd.ticket_contact, name="ticket_contact"),
     path("tickets/<int:pk>/snooze/", hd.ticket_snooze, name="ticket_snooze"),
     path("tickets/<int:pk>/block-sender/", hd.ticket_block_sender, name="ticket_block_sender"),
+    path("tickets/<int:pk>/hours/", hd.ticket_hours, name="ticket_hours"),
     path("tickets/<int:pk>/merge/", hd.ticket_merge, name="ticket_merge"),
     path("tickets/<int:pk>/resolve/", hd.ticket_resolve, name="ticket_resolve"),
     path("tickets/<int:pk>/ai/", hd.ticket_ai, name="ticket_ai"),

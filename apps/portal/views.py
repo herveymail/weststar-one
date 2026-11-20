@@ -232,19 +232,27 @@ def tickets(request):
         priority = request.POST.get("priority") if request.POST.get("priority") in dict(PRIORITY_CHOICES) else "Low"
         queue = Queue.objects.filter(pk=request.POST.get("queue") or 0, active=True).exclude(portal_label="").first()
         notify = [c.email for c in Contact.objects.filter(client=pu.client, pk__in=request.POST.getlist("notify")[:20]) if c.email and c.email != pu.email]
+        from apps.helpdesk import hours
+        site_hours = " ".join(request.POST.get("site_hours", "").split())[:255]
         if not subject:
             error = "Add a short subject."
+        elif hours.required() and not site_hours and not hours.client_text(pu.client):
+            error = "Tell us your business hours so we know when we can reach you."
         elif not _rate_ok(f"pticket:{pu.pk}", 20, 3600):
             error = "That's a lot of tickets in an hour. Please call us if it's urgent."
         else:
             t = services.create_ticket(subject=subject, details=details, client=pu.client, contact=pu.contact, priority=priority,
-                                       source="Portal", queue=queue, cc=", ".join(notify), portal_user=pu)
+                                       source="Portal", queue=queue, cc=", ".join(notify), portal_user=pu, site_hours=site_hours)
             files = request.FILES.getlist("files")
             if files:
                 _save_files(request, files, t)
             _notify_staff(f"New portal ticket {t.number}: {t.subject}", f"From {pu.name} ({pu.client.name})\n\n{details}", f"/tickets/{t.pk}/")
             return redirect(f"/client-portal/tickets/{t.pk}/?new=1")
+    from apps.core.models import Setting as _S
+    from apps.helpdesk import hours as _h
     ctx = _ctx(request, rows=qs.order_by("-updated_at")[:200], f=flt, error=error, priorities=PRIORITY_CHOICES,
+               my_hours=request.POST.get("site_hours") or _h.client_text(pu.client), hours_required=_h.required(),
+               office_hours=_h.office_label() if _S.get("tickets.show_hours", "true") != "false" else "",
                queues=Queue.objects.filter(active=True).exclude(portal_label=""),
                coworkers=Contact.objects.filter(client=pu.client, archived_at__isnull=True).exclude(email="").exclude(email__iexact=pu.email))
     return render(request, "portal/tickets.html", ctx, status=400 if error else 200)

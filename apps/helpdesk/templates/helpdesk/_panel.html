@@ -26,7 +26,7 @@
     {% endif %}
     <button type="button" class="close" title="Close panel" aria-label="Close panel" style="margin-left:0" data-close-panel>×</button>
   </div>
-  {% if t.client.account_alert %}<div class="warn">⚠ {{ t.client.account_alert }}</div>{% endif %}{% if t.client %}{% include "crm/_flag_lines.html" with flags=t.client.active_flags link=t.client.pk %}{% endif %}
+  {% if t.client.account_alert %}<div class="warn">⚠ {{ t.client.account_alert }}</div>{% endif %}{% if t.client %}{% include "crm/_flag_lines.html" with flags=t.client.active_flags link=t.client.pk %}{% endif %}{% ticket_hours t "panel" %}
   <h2>{{ t.subject }}</h2>
   {% include "helpdesk/_new_sender.html" with sender_ctx="panel" %}
   <div class="meta">

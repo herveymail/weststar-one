@@ -233,3 +233,12 @@ def tkg_pri(priority):
 @register.filter
 def first_name(name):
     return (str(name or "").split() or [""])[0]
+
+
+@register.inclusion_tag("helpdesk/_hours.html", takes_context=True)
+def ticket_hours(context, t, where="page"):
+    """The business-hours line on a ticket (client's hours for this call, open/closed now, or a prompt when missing)."""
+    from apps.helpdesk import hours
+    line = hours.client_line(t.client) if t.client_id else None
+    return {"t": t, "where": where, "open": line["open"] if line else None, "can_edit": context.get("can_edit") and where != "tech",
+            "missing": not t.site_hours and t.source != "Alert" and hours.required(), "csrf_token": context.get("csrf_token")}

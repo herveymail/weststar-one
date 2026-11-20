@@ -47,6 +47,8 @@ def build_form_class(module: Module, user):
     for f in model._meta.get_fields():
         if f.name in fields and f.get_internal_type() == "DateField":
             widgets[f.name] = forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")
+        if f.name in fields and f.get_internal_type() == "TimeField":
+            widgets[f.name] = forms.TimeInput(attrs={"type": "time"}, format="%H:%M")
         if f.name in fields and f.get_internal_type() == "DateTimeField":
             widgets[f.name] = forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M")
     base = modelform_factory(model, fields=fields, widgets=widgets)

@@ -67,6 +67,7 @@ class Ticket(models.Model):
     billable = models.BooleanField(default=True)
     due_date = models.DateField(null=True, blank=True)
     device = models.CharField(max_length=150, blank=True, help_text="Computer or device the ticket is about (e.g. PC-07).")
+    site_hours = models.CharField("Business hours", max_length=255, blank=True, help_text="When the client is open for this call (so we know when to call or go onsite).")
     response_due_at = models.DateTimeField(null=True, blank=True)
     first_response_at = models.DateTimeField(null=True, blank=True)
     resolve_due_at = models.DateTimeField(null=True, blank=True)
