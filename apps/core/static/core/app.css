@@ -396,3 +396,7 @@ html.ws-busy, html.ws-busy * { cursor: progress; }
 .notice { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .notice b { display: block; } .notice .small { color: var(--muted); }
 .notice.na { opacity: .55; }
+/* Invoices, quotes, recurring: a wider drawer so the line descriptions are readable */
+.drawer:has(table.lines) { width: min(920px, 100%); }
+.lines td:first-child { min-width: 260px; }
+.lines .errorlist { margin: 4px 0 0; padding: 0; list-style: none; font-size: 12px; }

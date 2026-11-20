@@ -5,8 +5,9 @@
       <h2 id="drawer-title" style="flex:1;min-width:0">{% if obj %}{{ m.singular }} {{ obj }}{% else %}New {{ m.singular|lower }}{% endif %}</h2>
       <button type="button" class="icon-btn" aria-label="Close" data-close>{% icon "close" 16 %}</button>
     </div>
-    <form class="drawer-body" hx-post="{% if obj %}/m/{{ m.slug }}/{{ obj.pk }}/{% else %}/m/{{ m.slug }}/new/?{{ request.GET.urlencode }}{% endif %}" hx-target="#modal" id="module-form">
+    <form class="drawer-body" hx-post="{% if obj %}/m/{{ m.slug }}/{{ obj.pk }}/{% else %}/m/{{ m.slug }}/new/?{{ request.GET.urlencode }}{% endif %}" hx-target="#modal" hx-disabled-elt="#drawer-save" id="module-form">
       {% if obj.archived_at %}<p class="banner info">This record is archived.</p>{% elif locked %}<p class="banner info">This has been {{ obj.status|lower }}. Ask H/R if it needs to change.</p>{% endif %}
+      {% if form.errors or lines.total_error_count %}<div class="banner" role="alert"><b>Not saved yet.</b> Fix what is marked below, then save again.</div>{% endif %}
       {% if form.non_field_errors %}<div class="banner">{{ form.non_field_errors|join:" " }}</div>{% endif %}
       {% if readonly_values %}<div class="kv">{% for label, c in readonly_values %}<div><div class="label">{{ label }}</div><div>{{ c.text }}</div></div>{% endfor %}</div>{% endif %}
       <fieldset class="form-grid" style="border:0;padding:0;margin:0"{% if locked %} disabled{% endif %}>
@@ -37,8 +38,8 @@
             <tbody id="lines-body">
               {% for lf in lines %}<tr>{% for h in lf.hidden_fields %}{{ h }}{% endfor %}
                 <td><label class="sr" for="{{ lf.description.id_for_label }}">Description</label>{{ lf.description }}{{ lf.description.errors }}</td>
-                <td><label class="sr" for="{{ lf.qty.id_for_label }}">Qty</label>{{ lf.qty }}</td>
-                <td><label class="sr" for="{{ lf.rate.id_for_label }}">Rate</label>{{ lf.rate }}</td>
+                <td><label class="sr" for="{{ lf.qty.id_for_label }}">Qty</label>{{ lf.qty }}{{ lf.qty.errors }}</td>
+                <td><label class="sr" for="{{ lf.rate.id_for_label }}">Rate</label>{{ lf.rate }}{{ lf.rate.errors }}{{ lf.non_field_errors }}</td>
                 <td><label class="check">{{ lf.taxable }}<span class="sr">Taxable</span></label></td>
                 <td class="num" data-line-total>{% if lf.instance.pk %}{{ lf.instance.line_total|dollars }}{% else %}<span class="muted">—</span>{% endif %}</td>
                 <td>{% if lf.instance.pk %}<label class="check">{{ lf.DELETE }}<span class="sr">Remove</span></label>{% endif %}</td>
@@ -62,7 +63,7 @@
       <a class="btn small" href="/billing/contract/{{ obj.pk }}/send/">{% icon "send" 14 %}{% if obj.status == "Draft" %}Send for signature{% else %}Email signing link again{% endif %}</a></div>{% endif %}
     {% if obj and m.slug == "projects" %}<div class="drawer-files"><h3>Files</h3><div hx-get="/files/project/{{ obj.pk }}/" hx-trigger="load" hx-swap="outerHTML"><div class="empty">Loading…</div></div></div>{% endif %}
     <div class="drawer-foot">
-      {% if not locked %}<button class="btn primary" type="submit" form="module-form">{% if obj %}Save changes{% else %}Create {{ m.singular|lower }}{% endif %}</button>{% endif %}
+      {% if not locked %}<button class="btn primary" type="submit" form="module-form" id="drawer-save">{% if obj %}Save changes{% else %}Create {{ m.singular|lower }}{% endif %}</button>{% endif %}
       <button type="button" class="btn" data-close>Cancel</button>
       <div class="spacer"></div>
       {% if obj and can_manage %}

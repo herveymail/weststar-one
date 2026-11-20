@@ -1,4 +1,6 @@
 """Builds the add/edit form for any registered module straight from its model."""
+from decimal import Decimal
+
 from django import forms
 from django.forms import inlineformset_factory, modelform_factory
 
@@ -71,7 +73,13 @@ def build_form_class(module: Module, user):
                     f.queryset = qs.filter(archived_at__isnull=True) | qs.filter(pk=current) if current else qs.filter(archived_at__isnull=True)
                 if qs is not None and qs.model.__name__ == "User":
                     f.queryset = qs.filter(is_active=True)
+            if hasattr(model, "tune_form"):
+                model.tune_form(self)
             self.style()
+
+        def clean(self):
+            data = super().clean()
+            return model.check_form(self, data) if hasattr(model, "check_form") else data
 
         def save(self, commit=True):
             obj = super().save(commit=False)
@@ -87,6 +95,24 @@ def build_form_class(module: Module, user):
     return ModuleForm
 
 
+class Amount(forms.DecimalField):
+    """A number as people type it: "$1,200.50", " 2.5 ", or blank (which means the default)."""
+    widget = forms.TextInput
+
+    def __init__(self, *a, blank=0, **kw):
+        self.blank = blank
+        super().__init__(*a, **{**kw, "required": False})
+
+    def to_python(self, value):
+        if isinstance(value, str):
+            value = value.replace("$", "").replace(",", "").replace(" ", "")
+        v = super().to_python(value)
+        return Decimal(self.blank) if v is None else v
+
+    def widget_attrs(self, widget):
+        return {"inputmode": "decimal", "autocomplete": "off"}
+
+
 def build_line_formset(module: Module):
     if not module.lines:
         return None
@@ -96,9 +122,12 @@ def build_line_formset(module: Module):
         class Meta:
             model = line_model
             fields = ["description", "qty", "rate", "taxable"]
+            field_classes = {"qty": Amount, "rate": Amount}
 
         def __init__(self, *a, **kw):
             super().__init__(*a, **kw)
+            self.fields["qty"].blank = 1  # a line with no quantity typed means one
+            self.fields["qty"].label, self.fields["rate"].label = "Qty", "Rate"
             self.style()
 
     return inlineformset_factory(module.model, line_model, form=LineForm, fk_name=fk, extra=1, can_delete=True, max_num=500, validate_max=True)

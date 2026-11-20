@@ -175,7 +175,8 @@
     const body = $('#lines-body'); if (!body) return;
     let sub = 0, taxable = 0;
     $$('tr', body).forEach((tr) => {
-      const q = parseFloat($('input[name$="-qty"]', tr)?.value || '0') || 0, r = parseFloat($('input[name$="-rate"]', tr)?.value || '0') || 0;
+      const num = (sel, blank) => { const v = ($(sel, tr)?.value || '').replace(/[$,\s]/g, ''); return v === '' ? blank : (parseFloat(v) || 0); };
+      const q = num('input[name$="-qty"]', 1), r = num('input[name$="-rate"]', 0);
       const del = $('input[name$="-DELETE"]', tr)?.checked, tax = $('input[name$="-taxable"]', tr)?.checked;
       const total = Math.round(q * r * 100) / 100, cell = $('[data-line-total]', tr);
       if (cell && ($('input[name$="-description"]', tr)?.value || r)) cell.textContent = money(total);

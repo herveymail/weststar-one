@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
@@ -111,6 +112,11 @@ def _defaults_from_query(request, m: Module) -> dict:
             except Exception:  # noqa: BLE001
                 pass
     initial.update(_date_defaults(m))
+    if m.slug == "payments" and initial.get("invoice"):  # Record payment from an invoice: start with what is still owed
+        from apps.billing.models import Invoice
+        inv = Invoice.objects.filter(pk=initial["invoice"]).first()
+        if inv and inv.balance > 0:
+            initial["amount"] = inv.balance
     return initial
 
 
@@ -187,7 +193,16 @@ def module_edit(request, slug, pk=None):
                 if lines is not None:
                     lines.instance = new
                     lines.save()
+                    # New lines go to the bottom, in the order they were typed (not mixed in above older ones).
+                    if lines.new_objects:
+                        fresh = {ln.pk for ln in lines.new_objects}
+                        last = max([ln.sort_order for ln in type(lines.new_objects[0]).objects.filter(**{lines.fk.name: new}) if ln.pk not in fresh], default=-1)
+                        for i, ln in enumerate(lines.new_objects, 1):
+                            type(ln).objects.filter(pk=ln.pk).update(sort_order=last + i)
                     new.recalc()
+                note = new.after_edit() if hasattr(new, "after_edit") else ""
+                if note:
+                    messages.info(request, note)
                 secrets = set(encrypted_fields(m.model))
                 changes = {f: {"from": None if f in secrets else _plain(before.get(f)), "to": "[changed]" if f in secrets else _plain(form.cleaned_data.get(f))} for f in form.changed_data}
                 audit(request, "update" if obj else "create", slug, new.pk, f"{'Updated' if obj else 'Created'} {m.singular.lower()} {new}", changes=changes, area=m.area)
@@ -232,6 +247,9 @@ def module_archive(request, slug, pk):
     restoring = request.POST.get("restore") == "1"
     obj.archived_at = None if restoring else timezone.now()
     obj.save(update_fields=["archived_at", "updated_at"])
+    note = obj.after_edit() if hasattr(obj, "after_edit") else ""
+    if note:
+        messages.info(request, note)
     audit(request, "restore" if restoring else "archive", slug, pk, f"{'Restored' if restoring else 'Archived'} {m.singular.lower()} {obj}", area=m.area)
     return refresh()
 

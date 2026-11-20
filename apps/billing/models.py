@@ -91,20 +91,67 @@ class Invoice(LinedDocument):
     def balance(self):
         return (self.total or Decimal(0)) - (self.amount_paid or Decimal(0))
 
-    def apply_payments(self):
-        """Paid amount and status from the payments recorded against this invoice."""
+    COMPUTED = ("Sent", "Viewed", "Partial", "Paid", "Overdue")  # set by the system from payments and the due date
+
+    def sync(self):
+        """Paid amount and status from the facts: the payments recorded, the total and the due date.
+        Draft and Void are choices a person makes and are left alone (a draft that gets paid stops being a draft)."""
         from django.db.models import Sum
+        from django.utils import timezone
         paid = (self.payments.filter(archived_at__isnull=True, status="Succeeded").aggregate(s=Sum("amount"))["s"] or Decimal(0)) + (self.paid_outside or 0)
-        status = self.status
-        if self.status not in ("Draft", "Void"):
-            if paid >= (self.total or 0) and (self.total or 0) > 0:
+        total, status = self.total or Decimal(0), self.status
+        if status == "Draft" and paid > 0:
+            status = "Sent"
+        if status not in ("Draft", "Void"):
+            if paid >= total and total > 0:
                 status = "Paid"
+            elif self.due_date and self.due_date < timezone.localdate() and total > paid:
+                status = "Overdue"
             elif paid > 0:
                 status = "Partial"
-            elif self.status in ("Paid", "Partial"):
+            elif status in ("Paid", "Partial", "Overdue"):
                 status = "Sent"
         Invoice.objects.filter(pk=self.pk).update(amount_paid=paid, status=status)
         self.amount_paid, self.status = paid, status
+
+    apply_payments = sync
+
+    def release_work(self) -> int:
+        """A void or archived invoice bills nothing: its ticket time, mileage and parts go back to Ready to bill."""
+        from apps.helpdesk.models import TicketSignoff, TimeEntry
+        from apps.tools.models import MileageTrip
+        return sum(m.objects.filter(invoice=self).update(invoice=None) for m in (TimeEntry, MileageTrip, TicketSignoff))
+
+    def after_edit(self) -> str:
+        """Run after the invoice (or its lines) is saved, voided, archived or restored. Returns a note for the person, if any."""
+        self.sync()
+        Payment.objects.filter(invoice=self).exclude(client_id=self.client_id).update(client_id=self.client_id)
+        if self.status == "Void" or self.archived_at:
+            n = self.release_work()
+            if n:
+                return f"{n} item{'s' if n != 1 else ''} of ticket time, mileage or parts went back to Ready to bill."
+        return ""
+
+    # ── the edit form ──
+    @classmethod
+    def tune_form(cls, form):
+        cur = form.instance.status if form.instance.pk else "Draft"
+        is_open = cur in cls.COMPUTED
+        f = form.fields["status"]
+        f.choices = [("Draft", "Draft"), ("Sent", f"Open ({cur})" if is_open else "Open (sent to the client)"), ("Void", "Void")]
+        f.help_text = "Partial, Paid and Overdue set themselves from the payments and the due date. To mark it paid, use Record payment."
+        if is_open:
+            form.initial["status"] = "Sent"
+
+    @classmethod
+    def check_form(cls, form, data):
+        if data.get("invoice_date") and data.get("due_date") and data["due_date"] < data["invoice_date"]:
+            form.add_error("due_date", "The due date is before the invoice date.")
+        if data.get("status") == "Sent" and form.instance.pk:
+            was = cls.objects.filter(pk=form.instance.pk).values_list("status", flat=True).first()
+            if was in cls.COMPUTED:
+                data["status"] = was  # "Open" keeps what it was; sync() then works out the right one
+        return data
 
 
 class Payment(Record):
@@ -130,8 +177,20 @@ class Payment(Record):
     def save(self, *args, **kwargs):
         if self.invoice_id:
             self.client_id = self.invoice.client_id
+        was = Payment.objects.filter(pk=self.pk).values_list("invoice_id", flat=True).first() if self.pk else None
         super().save(*args, **kwargs)
-        self.invoice.apply_payments()
+        self.invoice.sync()
+        if was and was != self.invoice_id:  # moved to another invoice: the one it left needs its balance back
+            Invoice.objects.get(pk=was).sync()
+
+    @classmethod
+    def check_form(cls, form, data):
+        inv, amount = data.get("invoice"), data.get("amount")
+        if amount is not None and amount <= 0:
+            form.add_error("amount", "Enter an amount above zero. To take a payment back, set its status to Refunded.")
+        if inv and inv.status == "Void":
+            form.add_error("invoice", f"{inv} is void. Pick another invoice.")
+        return data
 
 
 class StripeEvent(models.Model):

@@ -7,9 +7,11 @@ import json
 from datetime import date, timedelta
 
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 
-from .models import Counter, JobRun, Setting
+from .models import JobRun, Setting
+from .numbering import next_number
 
 
 def sla_watch():
@@ -38,7 +40,7 @@ def recurring_invoices():
             if not s:
                 continue
             inv = Invoice.objects.create(
-                number=f"INV-{Counter.next('invoices', 1001)}", client=s.client, status="Draft", invoice_date=s.next_run,
+                number=next_number("invoice"), client=s.client, status="Draft", invoice_date=s.next_run,
                 due_date=s.next_run + timedelta(days=s.client.net_terms or 30), tax_rate=s.tax_rate, scope=f"{s.name} — {s.next_run}", notes=s.notes,
             )
             for i, ln in enumerate(s.lines.all()):
@@ -52,7 +54,8 @@ def recurring_invoices():
 
 def overdue_invoices():
     from apps.billing.models import Invoice
-    n = Invoice.objects.filter(status__in=["Sent", "Viewed", "Partial"], due_date__lt=timezone.localdate(), archived_at__isnull=True).update(status="Overdue")
+    n = Invoice.objects.filter(status__in=["Sent", "Viewed", "Partial"], due_date__lt=timezone.localdate(), archived_at__isnull=True,
+                               total__gt=F("amount_paid")).update(status="Overdue")
     return {"overdue": n}
 
 

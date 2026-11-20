@@ -5,7 +5,7 @@ from .models import (BankTransaction, Payment, Contract, Expense, Invoice, Invoi
 
 register(Module("invoices", Invoice, "Invoices", "Invoice", "billing", "Bill clients and track what is owed.",
                 ["number", "client", "status", "invoice_date", "due_date", "total"], ["number", "scope"], "status",
-                number=("number", "INV-", 1001), lines=(InvoiceLine, "invoice"), primary_action="New invoice", ordering=["-invoice_date", "-id"]))
+                number=("number", "INV-", 1001), lines=(InvoiceLine, "invoice"), form_exclude=["amount_paid"], primary_action="New invoice", ordering=["-invoice_date", "-id"]))
 register(Module("recurring", RecurringInvoice, "Recurring", "Recurring schedule", "billing", "Invoices that go out on a schedule.",
                 ["name", "client", "frequency", "next_run", "status", "total"], ["name"], "status", lines=(RecurringLine, "schedule"), primary_action="New schedule"))
 register(Module("banking", BankTransaction, "Banking", "Transaction", "billing", "Bank transactions, matched to invoices and expenses.",
