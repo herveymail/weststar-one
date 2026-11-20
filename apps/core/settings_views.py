@@ -234,7 +234,8 @@ def settings_page(request, page):
         ctx.update(gmail_connected=gmail.connected(), gmail_address=gmail.address(), gmail_redirect=gmail.redirect_uri(),
                    diag=request.session.pop("mail_diag", None))
         from .models import OutboxEmail
-        ctx["outbox"] = OutboxEmail.objects.only("status", "to", "subject", "tries", "last_error", "created_at", "sent_at")[:20]
+        ctx["outbox"] = OutboxEmail.objects.only("status", "to", "subject", "tries", "last_error", "created_at", "sent_at").order_by("-created_at")[:30]
+        ctx["outbox_failed"] = OutboxEmail.objects.filter(status="failed").count()
     if item[0] == "payments":
         ctx.update(_stripe_guide(request))
     if item[0] == "signin":
@@ -330,6 +331,13 @@ def email_test(request):
         from . import mail
         request.session["mail_diag"] = mail.diagnose()
         return redirect("/settings/email/#diag")
+    if request.POST.get("what") == "retry":
+        from . import mail
+        n = mail.retry_failed()
+        if n:
+            mail.deliver_outbox()
+        messages.success(request, f"Tried {n} failed email{'s' if n != 1 else ''} again. The list below shows how each one went." if n else "No failed emails from the last 7 days.")
+        return redirect("/settings/email/")
     if request.POST.get("what") == "inbox":
         from apps.helpdesk.inbound import test_connection
         problem = test_connection()

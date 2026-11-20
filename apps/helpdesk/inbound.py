@@ -222,8 +222,10 @@ def process_message(raw: bytes, uid: int | None = None) -> InboundEmail:
     """Files one email. Safe to call twice with the same email (the Message-ID is remembered)."""
     from apps.helpdesk import services
     msg = email.message_from_bytes(raw, policy=policy.default)
-    mid = (msg.get("Message-ID") or "").strip()[:255] or f"<no-id-{uid}-{hash(raw) & 0xffffffff:x}@local>"
-    seen = InboundEmail.objects.filter(message_id=mid).first()
+    from apps.core.mail import clean_ids
+    # Long Message-IDs arrive folded over two lines; keep just the <id@host> token so replies can carry it back.
+    mid = ((clean_ids([msg.get("Message-ID")]) or [" ".join(str(msg.get("Message-ID") or "").split())])[0])[:255] or f"<no-id-{uid}-{hash(raw) & 0xffffffff:x}@local>"
+    seen = InboundEmail.objects.filter(message_id__in={mid, (msg.get("Message-ID") or "").strip()[:255]}).first()
     if seen:
         return seen
     name, sender = parseaddr(str(msg.get("Reply-To") or msg.get("From") or ""))

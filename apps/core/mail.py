@@ -6,6 +6,7 @@ the caller carries on (a ticket reply is still saved even when its email can't b
 """
 import json
 import logging
+import re
 import secrets
 import smtplib
 import socket
@@ -21,6 +22,8 @@ from django.template.loader import render_to_string
 from .models import Setting
 
 log = logging.getLogger("weststar.mail")
+_ADDR = re.compile(r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$")
+_MSGID = re.compile(r"<[^<>\s]+@[^<>\s]+>")
 
 
 GMAIL_API = "Google Workspace (Gmail API)"
@@ -92,15 +95,68 @@ def _deliver(msg: EmailMultiAlternatives) -> None:
         msg.connection = _connection()
         msg.send()
         return
-    html = next((c for c, mime in getattr(msg, "alternatives", []) if mime == "text/html"), None)
-    headers = [{"header": k, "value": v} for k, v in msg.extra_headers.items()]
-    if msg.reply_to:
-        headers.append({"header": "Reply-To", "value": ", ".join(msg.reply_to)})
+    _smtp2go(msg)
+
+
+def clean_address(a: str) -> str:
+    """One usable address ('Name <a@b.com>' or 'a@b.com') or '' — strips stray spaces, commas, angle junk and line breaks."""
+    from email.utils import parseaddr
+    name, addr = parseaddr(" ".join(str(a or "").split()).strip(" ,;"))
+    addr = addr.strip(" .,;<>\"'")
+    if not _ADDR.match(addr):
+        return ""
+    name = " ".join(name.replace('"', "").split())
+    return formataddr((name, addr)) if name else addr
+
+
+def clean_ids(values) -> list[str]:
+    """Message-IDs as mail servers want them: '<id@host>', one token each, no line breaks; our own placeholders dropped."""
+    out = []
+    for v in values or []:
+        for tok in _MSGID.findall(str(v or "")):
+            if not tok.endswith("@local>") and tok not in out:
+                out.append(tok)
+    return out
+
+
+def _header_value(v) -> str:
+    return " ".join(str(v or "").split())[:900]
+
+
+def _smtp2go(msg: EmailMultiAlternatives) -> None:
     import base64
-    files = [{"filename": a[0], "fileblob": base64.b64encode(a[1] if isinstance(a[1], bytes) else a[1].encode()).decode(), "mimetype": a[2]}
-             for a in msg.attachments if isinstance(a, tuple)]
-    body = {"sender": msg.from_email, "to": msg.to, "cc": msg.cc or None, "subject": msg.subject, "text_body": msg.body,
-            "html_body": html, "custom_headers": headers or None, "attachments": files or None}
+    import mimetypes
+    html = next((c for c, mime in getattr(msg, "alternatives", []) if mime == "text/html"), None)
+    headers = [{"header": k, "value": _header_value(v)} for k, v in msg.extra_headers.items() if _header_value(v)]
+    reply = [a for a in (clean_address(x) for x in (msg.reply_to or [])) if a]
+    if reply:
+        headers.append({"header": "Reply-To", "value": ", ".join(reply)})
+    files = [{"filename": (a[0] or "attachment")[:200], "fileblob": base64.b64encode(a[1] if isinstance(a[1], bytes) else a[1].encode()).decode(),
+              "mimetype": a[2] or mimetypes.guess_type(a[0] or "")[0] or "application/octet-stream"}
+             for a in msg.attachments if isinstance(a, tuple) and a[1]]
+    to = list(dict.fromkeys(a for a in (clean_address(x) for x in msg.to) if a))
+    cc = list(dict.fromkeys(a for a in (clean_address(x) for x in (msg.cc or [])) if a and a not in to))
+    if not to:
+        raise RuntimeError(f"No usable email address in: {', '.join(msg.to) or '(nothing)'}")
+    body = {"sender": clean_address(msg.from_email) or msg.from_email, "to": to, "cc": cc or None, "subject": " ".join((msg.subject or "").split()) or "(no subject)",
+            "text_body": msg.body or " ", "html_body": html, "custom_headers": headers or None, "attachments": files or None}
+    try:
+        _smtp2go_post(body)
+    except Smtp2goRejected:
+        # SMTP2GO refused the request itself (not the mailbox). The usual cause is a header it won't take, so send the
+        # email without the conversation-threading headers rather than not at all.
+        keep = [h for h in headers if h["header"] == "Reply-To"]
+        if keep == headers:
+            raise
+        log.warning("SMTP2GO refused the headers on %r; sending without them", msg.subject)
+        _smtp2go_post({**body, "custom_headers": keep or None})
+
+
+class Smtp2goRejected(RuntimeError):
+    """SMTP2GO said the request was malformed (as opposed to a bad key, a blocked sender, a bounced address…)."""
+
+
+def _smtp2go_post(body: dict) -> None:
     req = urllib.request.Request("https://api.smtp2go.com/v3/email/send", data=json.dumps({k: v for k, v in body.items() if v}).encode(),
                                  headers={"Content-Type": "application/json", "X-Smtp2go-Api-Key": Setting.get("email.smtp2go_api_key"),
                                           "Accept": "application/json"})
@@ -112,9 +168,16 @@ def _deliver(msg: EmailMultiAlternatives) -> None:
             data = json.loads(e.read() or b"{}").get("data", {})
         except ValueError:
             data = {}
-        raise RuntimeError(data.get("error") or f"HTTP {e.code}") from e
+        text = data.get("error") or f"HTTP {e.code}"
+        detail = data.get("field_validation_errors")
+        if detail:  # which field SMTP2GO didn't like, in its words
+            d = detail if isinstance(detail, dict) else {"message": str(detail)}
+            text = f"{d.get('fieldname', 'request')}: {d.get('message', '')} — {text}"[:600]
+        if detail or "json data" in text or "NON_VALIDATING" in str(data.get("error_code", "")):
+            raise Smtp2goRejected(text) from e
+        raise RuntimeError(text) from e
     if not data.get("succeeded"):
-        raise RuntimeError(data.get("error") or (data.get("failures") or ["not accepted"])[0])
+        raise RuntimeError(data.get("error") or str((data.get("failures") or ["not accepted"])[0]))
 
 
 def _ipv4_first(host, port, timeout):
@@ -249,8 +312,8 @@ def new_message_id(ticket_pk: int | None = None) -> str:
 
 
 def _build(to, subject, template, context, cc=None, reply_to=None, message_id=None, references=None, attachments=None, headers=None):
-    to = [a for a in ([to] if isinstance(to, str) else list(to or [])) if a and "@" in a]
-    cc = [a for a in (cc or []) if a and "@" in a and a not in to]
+    to = list(dict.fromkeys(a for a in (clean_address(x) for x in ([to] if isinstance(to, str) else list(to or []))) if a))
+    cc = list(dict.fromkeys(a for a in (clean_address(x) for x in (cc or [])) if a and a not in to))
     if not to:
         return None
     ctx = {"company": Setting.get("company.name") or "Weststar MSP", **context}
@@ -260,10 +323,10 @@ def _build(to, subject, template, context, cc=None, reply_to=None, message_id=No
     msg = EmailMultiAlternatives(subject=subject.replace("\n", " ")[:200], body=text, from_email=from_address(), to=to, cc=cc,
                                  reply_to=[reply_to or support] if (reply_to or support) else None)
     if message_id:
-        msg.extra_headers["Message-ID"] = message_id
+        msg.extra_headers["Message-ID"] = (clean_ids([message_id]) or [message_id])[0]
     for k, v in (headers or {}).items():
-        msg.extra_headers[k] = v
-    refs = [r for r in (references or []) if r]
+        msg.extra_headers[k] = _header_value(v)
+    refs = clean_ids(references)
     if refs:
         msg.extra_headers["In-Reply-To"] = refs[-1]
         msg.extra_headers["References"] = " ".join(refs[-10:])
@@ -377,6 +440,16 @@ def deliver_outbox(ids=None) -> dict:
         _after_sent(row)
         sent += 1
     return {"sent": sent, "failed": failed}
+
+
+def retry_failed(days=7) -> int:
+    """Settings › Email sending › Try failed emails again: put recent failed emails back in the queue."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from .models import OutboxEmail
+    return OutboxEmail.objects.filter(status="failed", created_at__gte=timezone.now() - timedelta(days=days)).update(status="pending", tries=0, next_try_at=None)
 
 
 def _after_sent(row):
