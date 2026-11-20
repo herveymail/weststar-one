@@ -235,6 +235,7 @@ def settings_page(request, page):
                    diag=request.session.pop("mail_diag", None))
         from .models import OutboxEmail
         ctx["outbox"] = OutboxEmail.objects.only("status", "to", "subject", "tries", "last_error", "created_at", "sent_at").order_by("-created_at")[:30]
+        ctx["smtp2go_refused"] = Setting.get("email.smtp2go_refused", "")
         ctx["outbox_failed"] = OutboxEmail.objects.filter(status="failed").count()
     if item[0] == "payments":
         ctx.update(_stripe_guide(request))

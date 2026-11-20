@@ -72,3 +72,26 @@ def test_profile_choice(client, team):
     page = client.get("/profile/")
     assert b"Email me about new tickets" in page.content
     assert Ticket.objects.count() == 0
+
+
+def test_client_reply_emails_the_assigned_tech_or_the_team(team, sent):
+    t = services.create_ticket(subject="Printer", contact_email="jo@client.test", contact_name="Jo", source="Email", assigned_to=team["tech"])
+    sent.clear()
+    services.client_reply(t, body="Still broken", name="Jo", via="email")
+    hit = [s for s in sent if s["tpl"] == "email/staff_client_reply"]
+    assert len(hit) == 1 and hit[0]["to"] == ["tech@weststar.test"] and hit[0]["subject"].startswith("[Client replied]")
+    # nobody assigned: everyone who gets new-ticket alerts
+    u = services.create_ticket(subject="Wifi", contact_email="jo@client.test", source="Email")
+    sent.clear()
+    services.client_reply(u, body="Any news?", name="Jo", via="email")
+    to = [s for s in sent if s["tpl"] == "email/staff_client_reply"][0]["to"]
+    assert "tech@weststar.test" in to and "desk@weststar.test" in to and "quiet@weststar.test" not in to
+    Setting.put("tickets.staff_alert_replies", "false")
+    sent.clear()
+    services.client_reply(u, body="Hello?", name="Jo", via="email")
+    assert not [s for s in sent if s["tpl"] == "email/staff_client_reply"]
+
+
+def test_cc_names_with_commas_stay_one_address():
+    t = Ticket(cc='"Smith, John" <js@client.test>; amy@client.test, js@client.test', contact_email="jo@client.test")
+    assert services._client_recipients(t) == (["jo@client.test"], ["js@client.test", "amy@client.test"])

@@ -142,13 +142,18 @@ def _smtp2go(msg: EmailMultiAlternatives) -> None:
             "text_body": msg.body or " ", "html_body": html, "custom_headers": headers or None, "attachments": files or None}
     try:
         _smtp2go_post(body)
-    except Smtp2goRejected:
+    except Smtp2goRejected as e:
         # SMTP2GO refused the request itself (not the mailbox). The usual cause is a header it won't take, so send the
         # email without the conversation-threading headers rather than not at all.
         keep = [h for h in headers if h["header"] == "Reply-To"]
         if keep == headers:
             raise
         log.warning("SMTP2GO refused the headers on %r; sending without them", msg.subject)
+        try:  # shown in Settings › Email sending, so the cause can be fixed for good
+            from django.utils import timezone
+            Setting.put("email.smtp2go_refused", f"{timezone.localtime():%b %-d, %-I:%M %p}: {str(e)[:300]}")
+        except Exception:  # noqa: BLE001, S110
+            pass
         _smtp2go_post({**body, "custom_headers": keep or None})
 
 
@@ -257,7 +262,7 @@ CTA = {  # button on the branded HTML version
     "email/portal_secure_notice": "Read the message", "email/portal_staff_notice": "Open in Weststar One", "email/invoice": "View & pay invoice", "email/late_fee": "Pay now",
     "email/quote": "Review & approve quote", "email/contract": "Review & sign",
     "email/payment_reminder": "View & pay invoice", "email/statement": "Pay the oldest invoice",
-    "email/morning_summary": "Open Weststar ONE", "email/staff_new_ticket": "Open the ticket", "email/renewals": "See renewals",
+    "email/morning_summary": "Open Weststar ONE", "email/staff_new_ticket": "Open the ticket", "email/staff_client_reply": "Open the ticket", "email/renewals": "See renewals",
 }
 
 

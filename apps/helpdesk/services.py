@@ -115,7 +115,9 @@ def send_ticket_email(t: Ticket, kind: str, template: str, ctx: dict, msg: Ticke
 
 def _client_recipients(t: Ticket) -> tuple[list[str], list[str]]:
     to = [t.contact_email or (t.contact.email if t.contact_id else "")]
-    cc = [a.strip() for a in (t.cc or "").replace(";", ",").split(",") if a.strip()]
+    from email.utils import getaddresses
+    # getaddresses copes with names that contain commas ("Smith, John" <js@x.com>), which a plain split breaks in two
+    cc = list(dict.fromkeys(addr for _name, addr in getaddresses([(t.cc or "").replace(";", ",")]) if "@" in addr))
     return [a for a in to if a], cc
 
 
@@ -246,7 +248,33 @@ def client_reply(ticket: Ticket, *, portal_user=None, body: str, name: str = "",
         event(t, f"{'Reopened' if old in DONE_STATUSES else 'Status Waiting on client → Open'} by the client's reply")
     t.snoozed_until = None
     t.save()
+    reopened = t.status == "Open" and "old" in locals() and old in DONE_STATUSES
+    transaction.on_commit(lambda: alert_staff_client_reply(t, msg, reopened))
     return msg
+
+
+def alert_staff_client_reply(t: Ticket, msg: TicketMessage, reopened=False) -> bool:
+    """The client answered: email the assigned tech (or, if nobody has it, the people who get new-ticket alerts)."""
+    from django.conf import settings as dj
+
+    from apps.core import mail
+    try:
+        if Setting.get("tickets.staff_alert_replies", "true") == "false":
+            return False
+        t = Ticket.objects.select_related("client", "assigned_to").get(pk=t.pk)
+        to = staff_alert_recipients(t)
+        if not to:
+            return False
+        who = msg.author_name or t.contact_name or t.contact_email or "The client"
+        where = t.client.name if t.client else (t.contact_name or t.contact_email or "No client")
+        return mail.send(to, f"[Client replied] {t.number} · {where} · {t.subject}"[:200], "email/staff_client_reply", {
+            "t": t, "who": who, "where": where, "body": (msg.body or "").strip()[:1500], "reopened": reopened,
+            "link": f"{dj.APP_URL}/tickets/{t.pk}/", "meta": f"Ticket {t.number}"},
+            reply_to=mail.from_address(), background=True, headers={"Auto-Submitted": "auto-generated", "X-Auto-Response-Suppress": "All"})
+    except Exception:  # noqa: BLE001 — an alert problem must never stop the reply from being saved
+        import logging
+        logging.getLogger(__name__).exception("Client-reply alert for %s failed", t.pk)
+        return False
 
 
 @transaction.atomic

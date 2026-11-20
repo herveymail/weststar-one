@@ -1,0 +1,13 @@
+{% autoescape off %}{{ who }} replied on {{ t.number }}{% if reopened %} — this reopened the ticket{% endif %}.
+
+{{ t.number }} · {{ t.subject }}
+Client: {{ where }}
+{% if t.assigned_to %}Assigned to: {{ t.assigned_to.name }}{% else %}Nobody is assigned yet.{% endif %}
+
+{{ body }}
+
+Open it: {{ link }}
+
+This is an automatic alert — don't reply to this email; open the ticket and reply there.
+Change these emails in your Profile.
+{% endautoescape %}

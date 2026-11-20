@@ -127,6 +127,7 @@
 <section class="card pad stack set-extra">
   <h2>Recent ticket emails</h2>
   <p class="small muted" style="margin:0">Ticket emails (new, replies, closed) are sent in the background a moment after you click, so the screen doesn't wait on the mail server. If one can't be sent it's tried again after 1, 5, 15 and 60 minutes, then noted on the ticket.</p>
+  {% if smtp2go_refused %}<p class="banner info" style="margin:0">SMTP2GO would not take the conversation headers on an email, so it was sent without them (it still arrives; replies still find the ticket by its number). Last time — {{ smtp2go_refused }}</p>{% endif %}
   {% if outbox_failed and can_manage %}<form method="post" action="/settings/email/test/">{% csrf_token %}<input type="hidden" name="what" value="retry"><button class="btn">Try failed emails again</button>
     <span class="small muted">Sends the failed ones from the last 7 days once more.</span></form>{% endif %}
   {% if outbox %}<div class="table-wrap"><table class="grid"><thead><tr><th>When</th><th>To</th><th>Subject</th><th>Status</th></tr></thead><tbody>
