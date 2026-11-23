@@ -128,7 +128,7 @@ This Schedule is between {company} and {client} and describes the managed IT ser
 {increase_line}
 
 ## 2. What is covered
-The following services are included for the monthly fee ("Covered Services"), for the users, devices and locations counted in Section 4:
+{covered_intro}
 
 {services}
 
@@ -156,7 +156,7 @@ The following are outside the monthly fee and, when you ask for them, are quoted
 
 # key: (short name, what the client is told). Order is the order they print in.
 SERVICES = [
-    ("help_desk", "Help desk", "Unlimited remote help desk support for covered users during support hours, by phone, email and the client portal."),
+    ("help_desk", "Help desk", "{unlimited}emote help desk support for covered users during support hours, by phone, email and the client portal."),
     ("onsite", "Onsite support", "Onsite visits to your covered locations when a problem cannot be fixed remotely."),
     ("monitoring", "Monitoring and patching", "24/7 monitoring of covered computers and servers, with operating system and common application updates applied on a regular schedule."),
     ("security", "Endpoint security", "Managed antivirus / endpoint protection on covered computers and servers, with alerts reviewed and acted on."),

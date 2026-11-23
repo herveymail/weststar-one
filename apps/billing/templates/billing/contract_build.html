@@ -57,7 +57,7 @@
     <div class="form-grid"><div class="field"><label for="{{ form.setup_fee.id_for_label }}">One-time onboarding fee ($)</label>{{ form.setup_fee }}{{ form.setup_fee.errors }}</div></div>
     </div>
     <div class="form-grid">
-      <div class="field"><label for="{{ form.included_hours.id_for_label }}"><span data-only="Managed">Hours included per month</span><span data-only="Break/fix">Minimum hours per onsite visit</span></label>{{ form.included_hours }}<span class="help" data-only="Managed">Blank = covered work is unlimited.</span><span class="help" data-only="Break/fix">Blank = no minimum.</span></div>
+      <div class="field"><label for="{{ form.included_hours.id_for_label }}"><span data-only="Managed">Hours included per month</span><span data-only="Break/fix">Minimum hours per onsite visit</span></label>{{ form.included_hours }}<span class="help" data-only="Managed">Blank = covered work is unlimited. With a number here, the contract says the services are included up to that many hours a month and never says "unlimited".</span><span class="help" data-only="Break/fix">Blank = no minimum.</span></div>
       <div class="field"><label for="{{ form.overage_rate.id_for_label }}"><span data-only="Managed">Hourly rate for work not covered ($)</span><span data-only="Break/fix">Hourly rate ($) *</span></label>{{ form.overage_rate }}{{ form.overage_rate.errors }}</div>
       <div class="field"><label for="{{ form.after_hours_rate.id_for_label }}">After-hours hourly rate ($)</label>{{ form.after_hours_rate }}{{ form.after_hours_rate.errors }}</div>
       <div class="field"><label for="{{ form.trip_fee.id_for_label }}">Onsite trip charge ($)</label>{{ form.trip_fee }}{{ form.trip_fee.errors }}</div>

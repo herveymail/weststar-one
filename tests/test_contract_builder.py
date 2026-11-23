@@ -155,3 +155,17 @@ def test_recurring_billing_from_a_signed_contract(acct, acme):
     c.refresh_from_db()
     page = acct.get(f"/billing/contract/{c.pk}/").content.decode()
     assert c.recurring == r and c.setup_invoice == inv and inv.number in page and "Create recurring billing" not in page
+
+
+def test_included_hours_never_say_unlimited(acct, acme):
+    acct.post("/billing/contract/build/", {**MSP, "client": acme.pk, "included_hours": "10"})
+    s = Contract.objects.get().scope
+    assert "nlimited" not in s and "not metered" not in s
+    for want in ("up to a combined total of 10 hours of our time per month", "Help desk: Remote help desk support", "includes up to 10 hours of Covered Services per month",
+                 "Work that is not covered or beyond the included hours: $150 per hour"):
+        assert want in s, want
+    # without included hours it is still the unlimited plan
+    c = Contract.objects.get()
+    acct.post(f"/billing/contract/{c.pk}/build/", {**MSP, "client": acme.pk})
+    c.refresh_from_db()
+    assert "Help desk: Unlimited remote help desk support" in c.scope and "not metered" in c.scope and "{" not in c.scope

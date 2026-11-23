@@ -136,7 +136,10 @@ def schedule_text(c) -> str:
     v = base_values(c)
     picked = [k for k in (c.services or [])]
     names = dict((k, (n, d)) for k, n, d in T.SERVICES)
-    svc = [f"- {names[k][0]}: {names[k][1]}" for k, _n, _d in T.SERVICES if k in picked]
+    capped = bool(c.included_hours)
+    hrs = f"{c.included_hours.normalize():f} hour{'s' if c.included_hours != 1 else ''}" if capped else ""
+    # Never promise "unlimited" on a contract that includes a set number of hours.
+    svc = [f"- {names[k][0]}: {names[k][1].replace('{unlimited}', 'R' if capped else 'Unlimited r')}" for k, _n, _d in T.SERVICES if k in picked]
     svc += [f"- {ln.strip().lstrip('-').strip()}" for ln in (c.service_notes or "").splitlines() if ln.strip()]
     sup = _support_lines(v, True, "after_hours" in picked, c.after_hours_rate)
     # pricing
@@ -146,7 +149,7 @@ def schedule_text(c) -> str:
     if c.setup_fee:
         pr.append(f"- One-time onboarding fee: {_money(c.setup_fee)}, due when this Schedule is signed.")
     if c.included_hours:
-        pr.append(f"- The monthly fee includes up to {c.included_hours.normalize():f} hours of Covered Services per month. Unused hours do not carry over.")
+        pr.append(f"- The monthly fee includes up to {hrs} of Covered Services per month, counted across all the services in Section 2. Unused hours do not carry over.")
     else:
         pr.append("- Covered Services are not metered: there is no hourly charge for them.")
     if c.overage_rate:
@@ -162,6 +165,9 @@ def schedule_text(c) -> str:
     msa_line = _msa_line(c, v)
     renew = c.renewal_months or c.term_months or 12
     v.update({
+        "covered_intro": (f'The following services ("Covered Services") are included for the monthly fee, up to a combined total of {hrs} of our time per month, '
+                          "for the users, devices and locations counted in Section 4. Time beyond that is billed at the hourly rate in Section 4:" if capped else
+                          'The following services are included for the monthly fee ("Covered Services"), for the users, devices and locations counted in Section 4:'),
         "msa_line": msa_line, "services": "\n".join(svc) or "- (no services picked yet)", "support": "\n".join(sup), "pricing": "\n".join(pr), "exclusions": "\n".join(ex),
         "start_text": f"{c.start_date:%B %-d, %Y}" if c.start_date else "the date this Schedule is signed",
         "term_text": _months(c.term_months),

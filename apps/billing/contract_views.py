@@ -115,8 +115,7 @@ def build(request, pk=None):
         if not c and request.GET.get("kind") in KIND_NAMES:
             init["kind"] = request.GET["kind"]
         form = BuildForm(instance=c, initial=init, user=request.user)
-    return render(request, "billing/contract_build.html", {"form": form, "c": c, "service_help": {k: d for k, _n, d in T.SERVICES},
-                                                           "services": [(k, n, d) for k, n, d in T.SERVICES], "exclusions": T.EXCLUSIONS},
+    return render(request, "billing/contract_build.html", {"form": form, "c": c,                                                            "services": [(k, n, d.replace("{unlimited}", "Unlimited r")) for k, n, d in T.SERVICES], "exclusions": T.EXCLUSIONS},
                   status=422 if request.method == "POST" else 200)
 
 
