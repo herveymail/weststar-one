@@ -41,6 +41,7 @@
     <div class="cb-services">{% for k, n, d in services %}
       <label class="cb-svc"><input type="checkbox" name="services" value="{{ k }}"{% if k in form.services.value %} checked{% endif %}><span><b>{{ n }}</b><small>{{ d }}</small></span></label>{% endfor %}</div>
     <div class="field"><label for="{{ form.service_notes.id_for_label }}">Anything else that is covered (one per line)</label>{{ form.service_notes }}</div>
+    <p class="help" style="margin:0">Need another option in this list every time? Add it in Settings › Contract defaults › Extra services.</p>
   </section>
 
   <section class="card pad stack" data-only="Managed Break/fix">
@@ -54,6 +55,8 @@
       <tr data-flat><td>Base monthly fee</td><td></td><td>{{ form.flat_fee }}</td><td class="num" data-sub>—</td></tr>
     </tbody><tfoot><tr><td colspan="3" class="num"><b>Monthly total</b></td><td class="num"><b id="cb-total">$0.00</b></td></tr></tfoot></table>
     <p class="help" style="margin:0">Use any mix: per user, per computer, per server, a flat fee, or all of them.</p>
+    <div class="field"><label for="{{ form.extra_charges.id_for_label }}">Other monthly charges (one per line: what it is, then the amount)</label>{{ form.extra_charges }}{{ form.extra_charges.errors }}
+      <span class="help">For things priced on their own, like a backup server, VoIP phones or alarm monitoring. They are added to the monthly total and become their own lines on the recurring invoice.</span></div>
     <div class="form-grid"><div class="field"><label for="{{ form.setup_fee.id_for_label }}">One-time onboarding fee ($)</label>{{ form.setup_fee }}{{ form.setup_fee.errors }}</div></div>
     </div>
     <div class="form-grid">

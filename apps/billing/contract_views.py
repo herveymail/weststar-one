@@ -31,13 +31,13 @@ KIND_NAMES = {"MSA": "Master Services Agreement", "Managed": "Managed Services A
 class BuildForm(forms.ModelForm):
     kind = forms.ChoiceField(choices=[("Managed", "Managed services (MSP) contract"), ("Break/fix", "Hourly services (break/fix) contract"),
                                       ("MSA", "Master Services Agreement (MSA) only"), ("BAA", "Business Associate Agreement (BAA, for HIPAA clients)")])
-    services = forms.MultipleChoiceField(choices=[(k, n) for k, n, _d in T.SERVICES], required=False, widget=forms.CheckboxSelectMultiple)
+    services = forms.MultipleChoiceField(choices=[], required=False, widget=forms.CheckboxSelectMultiple)
 
     class Meta:
         model = Contract
         fields = ["client", "name", "start_date", "term_months", "renewal_months", "auto_renew", "notice_days", "increase_pct", "include_msa", "msa",
                   "users", "user_rate", "workstations", "workstation_rate", "servers", "server_rate", "flat_fee", "setup_fee", "included_hours",
-                  "overage_rate", "after_hours_rate", "trip_fee", "service_notes", "exclusions", "our_signer", "our_title"]
+                  "overage_rate", "after_hours_rate", "trip_fee", "service_notes", "extra_charges", "exclusions", "our_signer", "our_title"]
         widgets = {"start_date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"), "service_notes": forms.Textarea(attrs={"rows": 3}),
                    "exclusions": forms.Textarea(attrs={"rows": 3})}
 
@@ -45,6 +45,8 @@ class BuildForm(forms.ModelForm):
         super().__init__(*a, **kw)
         self.fields["client"].queryset = Client.objects.filter(archived_at__isnull=True).order_by("name")
         self.fields["name"].required = False
+        self.fields["services"].choices = [(k, n) for k, n, _d in T.all_services()]
+        self.fields["extra_charges"].widget = forms.Textarea(attrs={"rows": 3, "placeholder": "VoIP phones (8): 240\nAlarm monitoring: 45"})
         cid = (self.data.get("client") or self.initial.get("client") or (self.instance.client_id if self.instance.pk else None)) or 0
         self.fields["msa"].queryset = Contract.objects.filter(client_id=cid, type="MSA", archived_at__isnull=True).exclude(status__in=["Cancelled", "Expired"]).exclude(pk=self.instance.pk or 0)
         self.fields["msa"].empty_label = "— none —"
@@ -61,7 +63,10 @@ class BuildForm(forms.ModelForm):
         if d.get("kind") == "Managed":
             if not (d.get("services") or (d.get("service_notes") or "").strip()):
                 self.add_error("services", "Pick at least one service that is covered.")
-            priced = any((d.get(q) and d.get(r)) for q, r in (("users", "user_rate"), ("workstations", "workstation_rate"), ("servers", "server_rate"))) or d.get("flat_fee")
+            bad = builder.bad_charge_lines(d.get("extra_charges"))
+            if bad:
+                self.add_error("extra_charges", f"Couldn't read the amount on: “{bad[0][:60]}”. Write what it is, a colon, then the monthly amount — e.g. VoIP phones (8): 240")
+            priced = bool(builder._CHARGE and [1 for ln in (d.get("extra_charges") or "").splitlines() if builder._CHARGE.match(ln.strip())]) or any((d.get(q) and d.get(r)) for q, r in (("users", "user_rate"), ("workstations", "workstation_rate"), ("servers", "server_rate"))) or d.get("flat_fee")
             if not priced:
                 self.add_error("flat_fee", "Add a price: a count and a rate (users, computers or servers), or a base monthly fee.")
         if d.get("kind") == "Break/fix" and not d.get("overage_rate"):
@@ -115,7 +120,7 @@ def build(request, pk=None):
         if not c and request.GET.get("kind") in KIND_NAMES:
             init["kind"] = request.GET["kind"]
         form = BuildForm(instance=c, initial=init, user=request.user)
-    return render(request, "billing/contract_build.html", {"form": form, "c": c,                                                            "services": [(k, n, d.replace("{unlimited}", "Unlimited r")) for k, n, d in T.SERVICES], "exclusions": T.EXCLUSIONS},
+    return render(request, "billing/contract_build.html", {"form": form, "c": c,                                                            "services": [(k, n, d.replace("{unlimited}", "Unlimited r")) for k, n, d in T.all_services()], "exclusions": T.EXCLUSIONS},
                   status=422 if request.method == "POST" else 200)
 
 

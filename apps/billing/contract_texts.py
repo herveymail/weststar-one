@@ -184,6 +184,14 @@ SERVICES = [
     ("documentation", "Documentation and inventory", "An up-to-date record of your network, devices, accounts and licenses, available to you on request."),
     ("reviews", "Technology reviews", "A regular review meeting covering the health of your systems, recurring issues, upcoming renewals and budget planning."),
     ("after_hours", "After-hours emergency support", "Emergency support outside support hours for issues that stop your business from operating."),
+    ("backup_server", "Backup server", "A backup server (onsite, cloud or both) that we provide and manage for the systems listed in this Schedule, with copies kept offsite, daily monitoring and periodic test restores."),
+    ("cyber", "Cybersecurity", "Layered security for your network and accounts: managed firewall protection, web and DNS filtering, multi-factor sign-in, security alert review and regular vulnerability checks, with recommendations reported to you."),
+    ("email_security", "Email security", "Spam, phishing and malware filtering for your mailboxes, with quarantine review and help with suspicious messages."),
+    ("voip", "VoIP phone system", "A hosted phone system: phones, numbers, call routing, voicemail and auto-attendant, with changes and support included. Phone service depends on your internet connection and power, and you must keep the address for each phone current for 911 calls."),
+    ("alarm", "Alarm system", "Installation, programming and support of your alarm system, including user codes and schedule changes. Alarm monitoring and dispatch are provided by the monitoring company; an alarm system reduces risk but cannot prevent every loss."),
+    ("cameras", "Security cameras", "Installation and support of your camera system and recorder, including remote viewing, user access and firmware updates."),
+    ("internet", "Internet and connectivity", "Management of your internet service and backup connection: we work with the provider on outages and changes and monitor the connection."),
+    ("website", "Website and domain hosting", "Hosting of your website, domain names and DNS, with renewals tracked and routine updates applied."),
 ]
 SERVICE_DEFAULTS = ["help_desk", "monitoring", "security", "email_admin", "network", "vendor", "users", "documentation"]
 
@@ -277,3 +285,20 @@ This Business Associate Agreement (the "BAA") is between {client} ("Covered Enti
 - This BAA is governed by federal law and, where federal law does not apply, by the laws of the State of {state}.
 - The parties agree that this BAA may be signed electronically and that a typed name entered on the signing page is that person's signature.
 """
+
+
+def all_services() -> list[tuple[str, str, str]]:
+    """The built-in services plus the ones added in Settings › Contract defaults (one per line, "Name: what the client is told")."""
+    import re
+
+    from apps.core.models import Setting
+    out = list(SERVICES)
+    seen = {k for k, _n, _d in out}
+    for ln in (Setting.get("billing.contract_services", "") or "").splitlines():
+        name, _, desc = ln.strip().lstrip("-").strip().partition(":")
+        name, desc = name.strip()[:80], desc.strip()
+        key = "x_" + re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")[:40]
+        if name and key not in seen:
+            out.append((key, name, desc or f"{name}, as agreed with you."))
+            seen.add(key)
+    return out

@@ -307,6 +307,7 @@ class Contract(Record):
     trip_fee = money()
     services = models.JSONField(default=list, blank=True)
     service_notes = models.TextField("Extra services or details", blank=True)
+    extra_charges = models.TextField("Other monthly charges", blank=True, help_text="One per line: what it is, then the monthly amount. e.g. VoIP phones (8): 240")
     exclusions = models.TextField("Extra exclusions", blank=True)
     our_signer = models.CharField(max_length=200, blank=True)
     our_title = models.CharField(max_length=200, blank=True)
@@ -315,7 +316,7 @@ class Contract(Record):
     setup_invoice = models.ForeignKey("Invoice", null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False)
 
     BUILDER_FIELDS = ["include_msa", "msa", "term_months", "renewal_months", "notice_days", "increase_pct", "users", "user_rate", "workstations",
-                      "workstation_rate", "servers", "server_rate", "flat_fee", "setup_fee", "after_hours_rate", "trip_fee", "services", "service_notes",
+                      "workstation_rate", "servers", "server_rate", "flat_fee", "setup_fee", "after_hours_rate", "trip_fee", "services", "service_notes", "extra_charges",
                       "exclusions", "our_signer", "our_title"]
 
     def __str__(self):

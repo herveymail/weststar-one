@@ -201,3 +201,29 @@ def test_msa_cancellation_and_security_terms(acct, acme):
     Setting.put("billing.hourly_rate", "150")
     t = builder.msa_text(Contract.objects.get())
     assert "$200 per hour" in t and "our standard hourly rate ($150 per hour at the time of this Agreement) for any IT support" in t
+
+
+def test_more_services_other_charges_and_your_own_options(acct, acme):
+    Setting.put("billing.contract_services", "Printer support: Support of your printers and copiers.\nDoor access")
+    page = acct.get("/billing/contract/build/").content.decode()
+    for want in ("Backup server", "Cybersecurity", "VoIP phone system", "Alarm system", "Security cameras", "Printer support", "Door access", "Other monthly charges"):
+        assert want in page, want
+    r = acct.post("/billing/contract/build/", {**MSP, "client": acme.pk, "services": ["help_desk", "backup_server", "cyber", "voip", "alarm", "x_printer_support", "x_door_access"],
+                                               "extra_charges": "VoIP phones (8): 240\nAlarm monitoring - $45/mo\nBackup server = 1,250.50"})
+    assert r.status_code == 302, r.content[:300]
+    c = Contract.objects.get()
+    assert c.monthly_rate == D("1540.00") + D("240") + D("45") + D("1250.50")
+    for want in ("Backup server: A backup server", "Cybersecurity: Layered security", "VoIP phone system: A hosted phone system", "911 calls", "Alarm system: Installation",
+                 "cannot prevent every loss", "Printer support: Support of your printers and copiers.", "Door access: Door access, as agreed with you.",
+                 "VoIP phones (8): $240 per month.", "Alarm monitoring: $45 per month.", "Backup server: $1,250.50 per month.", "Monthly fee: $3,075.50"):
+        assert want in c.scope, want
+    r = acct.post(f"/billing/contract/{c.pk}/build/", {**MSP, "client": acme.pk, "extra_charges": "VoIP phones, ask Casey"})
+    assert r.status_code == 422 and "Couldn&#x27;t read the amount" in r.content.decode()
+    # the recurring invoice gets a line for each
+    from apps.billing.models import RecurringInvoice
+    from apps.portal.models import ContractSignature
+    ContractSignature.objects.create(contract=c, signed_name="Dana Lee", content_hash="x")
+    Contract.objects.filter(pk=c.pk).update(status="Active")
+    acct.post(f"/billing/contract/{c.pk}/billing/")
+    r = RecurringInvoice.objects.get()
+    assert r.total == D("3075.50") and ("VoIP phones (8)", D("240.00")) in [(ln.description, ln.rate) for ln in r.lines.all()]

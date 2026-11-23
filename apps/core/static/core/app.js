@@ -424,6 +424,8 @@ document.addEventListener('submit', (e) => {
     });
     const flat = form.querySelector('tr[data-flat]');
     if (flat) { const f = num(flat.querySelector('input')); flat.querySelector('[data-sub]').textContent = f ? money(f) : '—'; total += f; }
+    const extra = form.querySelector('[name=extra_charges]');
+    if (extra) extra.value.split('\n').forEach(ln => { const m = ln.trim().match(/[:=|–—-]+\s*\$?\s*([\d,]+(?:\.\d{1,2})?)\s*(?:\/\s*mo(?:nth)?\.?|per month|a month|monthly)?\s*$/i); if (m) total += parseFloat(m[1].replace(/,/g, '')) || 0; });
     const out = document.getElementById('cb-total'); if (out) out.textContent = money(total);
   }
   // The hourly contract's "other rate details" box writes into the same field the managed contract uses for extra services.

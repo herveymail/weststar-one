@@ -52,7 +52,25 @@ def price_lines(c) -> list[tuple[str, Decimal]]:
             out.append((f"{qty} {one if qty == 1 else many} × {_money(rate)} per {one} per month", Decimal(qty) * rate))
     if c.flat_fee:
         out.append(("Base monthly fee", c.flat_fee))
+    out += extra_charges(c)
     return out
+
+
+_CHARGE = re.compile(r"^(?P<label>.*?\S)\s*[:=|–—-]+\s*\$?\s*(?P<amt>[\d,]+(?:\.\d{1,2})?)\s*(?:/\s*mo(?:nth)?\.?|per month|a month|monthly)?\s*$", re.I)
+
+
+def extra_charges(c) -> list[tuple[str, Decimal]]:
+    """Other monthly charges typed one per line, e.g. "VoIP phones (8): 240" or "Alarm monitoring - $45/mo"."""
+    out = []
+    for ln in (c.extra_charges or "").splitlines():
+        m = _CHARGE.match(ln.strip().lstrip("-•").strip())
+        if m:
+            out.append((m.group("label").strip()[:200], Decimal(m.group("amt").replace(",", ""))))
+    return out
+
+
+def bad_charge_lines(text: str) -> list[str]:
+    return [ln.strip() for ln in (text or "").splitlines() if ln.strip() and not _CHARGE.match(ln.strip().lstrip("-•").strip())]
 
 
 def monthly_total(c) -> Decimal:
@@ -156,16 +174,17 @@ def hourly_text(c) -> str:
 def schedule_text(c) -> str:
     v = base_values(c)
     picked = [k for k in (c.services or [])]
-    names = dict((k, (n, d)) for k, n, d in T.SERVICES)
+    catalog = T.all_services()
+    names = dict((k, (n, d)) for k, n, d in catalog)
     capped = bool(c.included_hours)
     hrs = f"{c.included_hours.normalize():f} hour{'s' if c.included_hours != 1 else ''}" if capped else ""
     # Never promise "unlimited" on a contract that includes a set number of hours.
-    svc = [f"- {names[k][0]}: {names[k][1].replace('{unlimited}', 'R' if capped else 'Unlimited r')}" for k, _n, _d in T.SERVICES if k in picked]
+    svc = [f"- {names[k][0]}: {names[k][1].replace('{unlimited}', 'R' if capped else 'Unlimited r')}" for k, _n, _d in catalog if k in picked]
     svc += [f"- {ln.strip().lstrip('-').strip()}" for ln in (c.service_notes or "").splitlines() if ln.strip()]
     sup = _support_lines(v, True, "after_hours" in picked, c.after_hours_rate)
     # pricing
     lines, total = price_lines(c), monthly_total(c)
-    pr = [f"- {label}: {_money(amt)} per month." for label, amt in lines] if len(lines) > 1 else []
+    pr = [f"- {label}: {_money(amt)} per month." for label, amt in lines] if len(lines) > 1 or (lines and c.extra_charges) else []
     pr.append(f"- Monthly fee: {_money(total)}, billed in advance each month.")
     if c.setup_fee:
         pr.append(f"- One-time onboarding fee: {_money(c.setup_fee)}, due when this Schedule is signed.")
@@ -261,6 +280,7 @@ def create_billing(c, user=None) -> dict:
                     rows.append((f"Managed services — {what}", qty, rate))
             if c.flat_fee:
                 rows.append(("Managed services — base monthly fee", 1, c.flat_fee))
+            rows += [(label, 1, amt) for label, amt in extra_charges(c)]
             if not rows:
                 rows.append(("Managed services — monthly fee", 1, c.monthly_rate))
             for i, (desc, qty, rate) in enumerate(rows):
