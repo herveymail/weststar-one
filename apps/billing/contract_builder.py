@@ -68,12 +68,18 @@ def base_values(c) -> dict:
     v = legal.values(c.client, "msa")
     net = c.client.net_terms if c.client_id and c.client.net_terms is not None else int(Setting.get("billing.net_terms", "30") or 30)
     start = c.start_date
+    ents = (Setting.get("legal.entities", "Weststar MSP Arizona and Weststar MSP Texas") or "").strip()
     v.update({
         "client": c.client.name, "company_short": v["company"], "notice_days": c.notice_days or 30,
         "effective_date": f"{start:%B %-d, %Y}" if start else "the date it is signed by both parties",
         "net_terms_text": f"within {net} days of the invoice date" if net else "when you receive them",
         "liability_months": Setting.get("legal.liability_months", "") or "12",
         "breach_days": Setting.get("legal.baa_breach_days", "") or "10",
+        "help_phone": f" at {v['company_phone']}" if v.get("company_phone") else "",
+        "after_hours_phone": f" at {Setting.get('company.after_hours_phone', '')}" if Setting.get("company.after_hours_phone", "") else "",
+        "portal_name": Setting.get("brand.app_name", "") or "Weststar ONE",
+        "entities_line": (f" In this Agreement, {v['company']} means {ents}, each of which may provide the services and enforce this Agreement." if ents else ""),
+        "company_entities_cap": ents or v["company"],
         "late_policy": v.get("late_policy") or "Balances not paid by the due date may be charged a late fee.",
     })
     return v

@@ -62,7 +62,7 @@ def test_price_is_required_and_an_msa_alone_needs_none(acct, acme):
     assert r.status_code == 422 and b"Add a price" in r.content and not Contract.objects.exists()
     r = acct.post("/billing/contract/build/", {"kind": "MSA", "client": acme.pk, "notice_days": "30", "our_signer": "Casey Hervey"})
     msa = Contract.objects.get()
-    assert r.status_code == 302 and (msa.type, msa.scope, msa.monthly_rate) == ("MSA", "", None) and "## 13. Limitation of liability" in msa.terms
+    assert r.status_code == 302 and (msa.type, msa.scope, msa.monthly_rate) == ("MSA", "", None) and "## 14. Limitation of liability" in msa.terms
     # a managed contract under that MSA refers to it instead of repeating the terms
     acct.post("/billing/contract/build/", {**MSP, "client": acme.pk, "msa": msa.pk})
     sched = Contract.objects.exclude(pk=msa.pk).get()
@@ -169,3 +169,19 @@ def test_included_hours_never_say_unlimited(acct, acme):
     acct.post(f"/billing/contract/{c.pk}/build/", {**MSP, "client": acme.pk})
     c.refresh_from_db()
     assert "Help desk: Unlimited remote help desk support" in c.scope and "not metered" in c.scope and "{" not in c.scope
+
+
+def test_msa_has_the_service_request_rules_and_our_right_to_cancel(acct, acme):
+    Setting.put("company.phone", "(602) 555-0100")
+    Setting.put("company.email", "support@weststarmsp.com")
+    Setting.put("company.after_hours_phone", "(602) 555-0199")
+    acct.post("/billing/contract/build/", {"kind": "MSA", "client": acme.pk, "notice_days": "30"})
+    t = Contract.objects.get().terms
+    for want in ("Weststar MSP means Weststar MSP Arizona and Weststar MSP Texas", "## 4. How to ask for service", "calling our help desk at (602) 555-0100",
+                 "email to support@weststarmsp.com", "Weststar ONE help desk system", "do not take service requests by text message",
+                 "will not text or call our technicians' cell phones", "usernames, passwords", "protected by HIPAA", "after-hours number at (602) 555-0199",
+                 "There is a charge for using this number", "call you back", "up to 24 hours to fix any Level 1 ticket",
+                 "Weststar MSP Arizona and Weststar MSP Texas may stop all services and cancel this Agreement", "abusive", "unwilling to resolve problems",
+                 "do not follow Weststar MSP's policies", "## 5. Fees and payment", "## 22. Electronic signatures", "price changes under Section 5"):
+        assert want in t, want
+    assert "{" not in t

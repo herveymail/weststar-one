@@ -8,7 +8,7 @@ These are starting drafts for your business, not legal advice — have an attorn
 """
 
 MSA = """## Master Services Agreement
-This Master Services Agreement (the "Agreement") is between {company} ("{company_short}", "we", "us") and {client} ("Client", "you"). It takes effect on {effective_date} (the "Effective Date") and sets the terms for all services we provide to you.
+This Master Services Agreement (the "Agreement") is between {company} ("{company_short}", "we", "us") and {client} ("Client", "you"). It takes effect on {effective_date} (the "Effective Date") and sets the terms for all services we provide to you.{entities_line}
 
 ## 1. How this Agreement works
 - This Agreement contains the general terms. The specific services, prices and term are described in one or more service schedules, statements of work, or accepted quotes (each a "Schedule").
@@ -28,7 +28,15 @@ This Master Services Agreement (the "Agreement") is between {company} ("{company
 - Tell us promptly about any suspected security incident, and about changes to your staff, locations or systems that affect the services.
 - Do not send us passwords, payment card numbers, health records or other sensitive personal information by email or in service requests. Use the secure method we give you.
 
-## 4. Fees and payment
+## 4. How to ask for service
+- Every service request must come to us in one of three ways: (1) by calling our help desk{help_phone}; (2) by email to {support_email}; or (3) by opening a service ticket in the {portal_name} help desk system.
+- We do not take service requests by text message. You agree that you and your staff will not text or call our technicians' cell phones for service. A request made that way is not a service request: it is not tracked, and no response time applies to it.
+- Do not put usernames, passwords, or any personal, financial or health information (including personally identifiable information and information protected by HIPAA) in a ticket, an email or an attachment. We are not responsible for information sent to us in a way this section prohibits, or for the consequences of a client not following this section.
+- For emergencies outside support hours, such as a server being down, call our after-hours number{after_hours_phone}. There is a charge for using this number: calls to it are billed at our after-hours rates unless a Schedule says otherwise.
+- When you call the help desk we try to fix the problem before the call ends. Sometimes we will need to call you back to finish the work.
+- Level 1 tickets are routine issues that do not stop your business from operating. We try to fix them by the end of the business day they come in, and we have up to 24 hours to fix any Level 1 ticket that does not affect your ability to do business.
+
+## 5. Fees and payment
 - You will pay the fees shown in each Schedule and on our invoices. Recurring fees are billed in advance; hourly work, projects, hardware and software are billed as delivered or as quoted.
 - Invoices are due {net_terms_text}. {late_policy}
 - If an account is referred for collection, you agree to pay the reasonable costs of collecting it, including collection agency fees, court costs and reasonable attorneys' fees, to the extent allowed by law.
@@ -37,82 +45,83 @@ This Master Services Agreement (the "Agreement") is between {company} ("{company
 - Prices do not include sales or other taxes unless shown. You are responsible for taxes on what you buy, other than taxes on our income.
 - We may change recurring fees at the start of any renewal term by giving you at least 30 days' written notice, and during a term if your number of users, devices or locations changes or a vendor raises the price of a product we resell to you.
 
-## 5. Term and ending this Agreement
+## 6. Term and ending this Agreement
 - This Agreement starts on the Effective Date and continues until every Schedule has ended and either party ends this Agreement with {notice_days} days' written notice.
 - Each Schedule has its own term and renewal, stated in that Schedule.
 - Either party may end this Agreement or a Schedule if the other materially breaches it and does not fix the breach within 30 days after written notice (10 days for non-payment).
+- {company_entities_cap} may stop all services and cancel this Agreement and every Schedule immediately, by written notice, if you or your staff are abusive, threatening or harassing toward our people; if you are unwilling to resolve problems we have identified in your systems; or if you do not follow {company}'s policies, including the rules in Section 4. Fees for services provided up to that date remain due.
 - If you end a Schedule early without cause, or we end it because of your breach, the fees for the rest of its current term become due, unless the Schedule says otherwise.
 - Ending this Agreement does not cancel amounts already owed.
 
-## 6. Transition when services end
+## 7. Transition when services end
 - When services end and your account is paid in full, we will give you the administrator passwords and account access we hold for your systems, remove our monitoring and management software and our own access, and give you a copy of the records we keep about your environment.
 - Reasonable transition help is included. Extended work to move you to another provider is billed at our standard rates.
 - Software, licenses and security tools that we provide as part of our services stop when the services end unless you arrange to take them over with the vendor.
 
-## 7. Third-party products and services
+## 8. Third-party products and services
 - Hardware, software and cloud services made by others are provided under the maker's own terms and warranty. We pass those through to you and will help you use them, but we do not add to them.
 - You authorize us to act as your agent in dealing with your vendors for the services, and to accept routine license terms and updates on your behalf where needed to keep your systems working.
 - We are not responsible for outages, defects, price changes or the discontinuation of third-party products and services.
 
-## 8. Security, backups and data
+## 9. Security, backups and data
 - No security measure can prevent every attack. We do not guarantee that your systems will be free of viruses, ransomware, intrusion, data loss or downtime, and we are not liable for a security incident unless it was directly caused by our gross negligence or willful misconduct.
 - Unless a Schedule includes a managed backup service, you are responsible for backing up your data. Where we do manage backups, we monitor them and act on failures, but we cannot guarantee that every file can be restored.
 - Responding to and recovering from a security incident, a disaster, or a problem caused by something outside the covered services is not included in recurring fees and is billed at our standard rates unless a Schedule says otherwise.
 - Your data remains yours. We access it only as needed to provide the services.
 - If you are subject to HIPAA or similar rules and we may have access to protected information, the parties will sign a separate Business Associate Agreement. Meeting the regulatory requirements that apply to your business remains your responsibility.
 
-## 9. Confidentiality
+## 10. Confidentiality
 - Each party will keep the other's non-public business, technical and financial information confidential, use it only to perform this Agreement, and protect it with at least reasonable care.
 - This does not apply to information that is public, was already known, is independently developed, or must be disclosed by law (after notice to the other party where allowed).
 - These duties continue for three years after this Agreement ends, and for as long as the information remains a trade secret.
 
-## 10. Ownership
+## 11. Ownership
 - You own your data and the systems and licenses you pay for.
 - We own our tools, scripts, methods, documentation templates and know-how, including improvements made while serving you. You may use the documentation we prepare about your environment for your own internal purposes.
 
-## 11. Our people
+## 12. Our people
 - During this Agreement and for 12 months after it ends, neither party will hire or solicit for hire an employee of the other who was involved in the services, without the other's written consent. General job postings not aimed at those employees are not a breach.
 - If a party breaches this section, it will pay the other an amount equal to 50% of the employee's first-year compensation as a reasonable estimate of the cost of replacing that person, not as a penalty.
 
-## 12. Warranty disclaimer
+## 13. Warranty disclaimer
 EXCEPT AS STATED IN THIS AGREEMENT, {company_upper} MAKES NO OTHER WARRANTIES, EXPRESS OR IMPLIED, INCLUDING ANY IMPLIED WARRANTY OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICES OR YOUR SYSTEMS WILL BE UNINTERRUPTED, ERROR-FREE OR COMPLETELY SECURE.
 
-## 13. Limitation of liability
+## 14. Limitation of liability
 - TO THE EXTENT ALLOWED BY LAW, NEITHER PARTY IS LIABLE TO THE OTHER FOR INDIRECT, INCIDENTAL, SPECIAL, PUNITIVE OR CONSEQUENTIAL DAMAGES, OR FOR LOST PROFITS, LOST REVENUE, LOST OR CORRUPTED DATA, OR BUSINESS INTERRUPTION, EVEN IF TOLD THEY WERE POSSIBLE.
 - TO THE EXTENT ALLOWED BY LAW, {company_upper}'S TOTAL LIABILITY ARISING OUT OF THIS AGREEMENT WILL NOT EXCEED THE FEES YOU PAID US FOR THE SERVICES THAT GAVE RISE TO THE CLAIM IN THE {liability_months} MONTHS BEFORE THE EVENT THAT CAUSED IT.
 - These limits do not apply to your obligation to pay fees, to a party's breach of its confidentiality duties, or to damages caused by a party's willful misconduct.
 - Any claim must be brought within one year after the party knew, or reasonably should have known, of the facts behind it.
 
-## 14. Indemnification
+## 15. Indemnification
 - You will defend and indemnify us against third-party claims arising from your data, your unlicensed or illegal use of software or systems, or your violation of law.
 - We will defend and indemnify you against third-party claims that our own work product infringes that party's intellectual property rights.
 - The party seeking protection must give prompt notice of the claim, allow the other to control the defense, and cooperate reasonably.
 
-## 15. Insurance
+## 16. Insurance
 Each party will carry insurance appropriate to its business. We carry commercial general liability and technology errors and omissions coverage and will provide a certificate on request. We recommend that you carry cyber liability insurance; this Agreement is not a substitute for it.
 
-## 16. Events outside our control
+## 17. Events outside our control
 Neither party is responsible for a delay or failure caused by events beyond its reasonable control, such as natural disasters, power or internet outages, failures of third-party services, cyberattacks on third parties, labor disputes, or government action. This does not excuse payment for services already delivered.
 
-## 17. Independent contractor
+## 18. Independent contractor
 We are an independent contractor. Nothing in this Agreement creates a partnership, joint venture or employment relationship between the parties.
 
-## 18. Notices
+## 19. Notices
 Notices under this Agreement must be in writing and sent by email to the other party's primary business contact, with a copy by mail for a notice of breach or termination. Our address for notices is {company_address}; email {support_email}.
 
-## 19. Governing law and disputes
+## 20. Governing law and disputes
 - This Agreement is governed by the laws of the State of {state}, without regard to its conflict-of-law rules.
 - The parties will first try in good faith to resolve any dispute by talking between people with authority to settle it.
 - Any lawsuit will be brought in the state or federal courts located in {county} County, {state}, and each party consents to those courts. The prevailing party in a lawsuit to enforce this Agreement is entitled to its reasonable attorneys' fees and costs.
 
-## 20. General
+## 21. General
 - This Agreement, together with its Schedules, is the entire agreement between the parties about its subject and replaces earlier discussions and proposals.
-- Changes must be in writing and accepted by both parties. Our routine notices of price changes under Section 4 take effect as stated there.
+- Changes must be in writing and accepted by both parties. Our routine notices of price changes under Section 5 take effect as stated there.
 - Neither party may assign this Agreement without the other's consent, except to a successor to its business.
 - If part of this Agreement is found unenforceable, the rest stays in effect. Not enforcing a right is not a waiver of it.
 - Sections that by their nature should continue after this Agreement ends (including fees owed, confidentiality, ownership, limits of liability and governing law) do continue.
 
-## 21. Electronic signatures
+## 22. Electronic signatures
 The parties agree that this Agreement and its Schedules may be signed electronically, that a typed name entered on our signing page is that person's signature, and that an electronic copy is an original. The person signing for each party confirms they have authority to bind that party.
 """
 
