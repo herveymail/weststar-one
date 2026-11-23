@@ -14,7 +14,7 @@ register(Module("quotes", Quote, "Quotes", "Quote", "billing", "Estimates for cl
                 ["number", "client", "status", "quote_date", "total"], ["number", "scope"], "status",
                 number=("number", "QT-", 1001), lines=(QuoteLine, "quote"), primary_action="New quote", ordering=["-quote_date", "-id"]))
 register(Module("contracts", Contract, "Contracts", "Contract", "billing", "Service agreements and their renewal dates.",
-                ["name", "client", "type", "status", "end_date", "monthly_rate"], ["name", "number"], "status", number=("number", "CT-", 1001), primary_action="New contract"))
+                ["name", "client", "type", "status", "end_date", "monthly_rate"], ["name", "number"], "status", number=("number", "CT-", 1001), form_exclude=Contract.BUILDER_FIELDS, primary_action="New contract"))
 register(Module("policies", Policy, "Policies", "Policy", "billing", "IT and security policies clients review and acknowledge.",
                 ["name", "client", "version", "status", "next_review"], ["name"], "status", primary_action="New policy"))
 register(Module("training", TrainingAssignment, "Security Training", "Training assignment", "billing", "Security courses assigned to client staff, with completion.",

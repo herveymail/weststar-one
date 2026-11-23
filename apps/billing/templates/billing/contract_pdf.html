@@ -1,0 +1,31 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>{{ c.name }}</title>
+<style>
+@page { size: Letter; margin: 0.9in 0.9in 1in; @bottom-center { content: "{{ company }} · {{ c.number|default:c.name }} · Page " counter(page) " of " counter(pages); font: 8.5pt Helvetica, Arial, sans-serif; color: #6b7280; } }
+body { font: 10.5pt/1.5 Georgia, "Times New Roman", serif; color: #111827; }
+.head { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid {{ lb_color|default:"#1e4f8f" }}; padding-bottom: 10px; margin-bottom: 16px; font-family: Helvetica, Arial, sans-serif; }
+.head img { max-height: 46px; max-width: 180px; } .head b { font-size: 13pt; } .head span { color: #6b7280; font-size: 9pt; display: block; }
+h3 { font: bold 11.5pt Helvetica, Arial, sans-serif; margin: 16px 0 4px; page-break-after: avoid; }
+.doc > h3:first-child { font-size: 17pt; margin: 0 0 8px; }
+p { margin: 0 0 7px; } ul { margin: 0 0 8px; padding-left: 18px; } li { margin-bottom: 3px; }
+hr { border: 0; border-top: 1px solid #d1d5db; margin: 18px 0; } .break { page-break-before: always; }
+.sig { display: flex; gap: 40px; margin-top: 28px; page-break-inside: avoid; font-family: Helvetica, Arial, sans-serif; } .sig > div { flex: 1; }
+.sig .line { border-bottom: 1px solid #111827; min-height: 30px; font: italic 16pt Georgia, serif; padding: 2px 0; } .sig small { color: #4b5563; font-size: 8.5pt; display: block; margin-top: 3px; }
+.record { margin-top: 22px; border: 1px solid #d1d5db; border-radius: 6px; padding: 10px 12px; font: 8.5pt/1.5 Helvetica, Arial, sans-serif; color: #374151; page-break-inside: avoid; }
+.record b { color: #111827; } .mono { font-family: "Courier New", monospace; word-break: break-all; } .draft { color: #b45309; font: bold 10pt Helvetica, Arial, sans-serif; }
+</style></head><body>
+<div class="head">{% if logo_url %}<img src="{{ logo_url }}" alt="">{% endif %}<div><b>{{ company }}</b><span>{{ c.number|default:"" }}{% if c.number %} · {% endif %}Agreement with {{ client.name }}</span></div></div>
+{% if not signature %}<p class="draft">{% if c.status == "Draft" %}DRAFT — not sent{% else %}NOT YET SIGNED BY THE CLIENT{% endif %}</p>{% endif %}
+{% if c.scope %}<div class="doc">{{ scope_html }}</div>{% endif %}
+{% if c.terms %}<div class="doc{% if c.scope %} break{% endif %}">{{ terms_html }}</div>{% endif %}
+{% if law %}<p>{{ law }}</p>{% endif %}
+<div class="sig">
+  <div><small>For {{ company }}</small><div class="line">{% if c.our_signed_at %}{{ c.our_signer }}{% endif %}</div><small>{{ c.our_signer }}{% if c.our_title %}, {{ c.our_title }}{% endif %}{% if c.our_signed_at %} · {{ c.our_signed_at|date:"F j, Y" }}{% endif %}</small></div>
+  <div><small>For {{ client.name }}</small><div class="line">{% if signature %}{{ signature.signed_name }}{% endif %}</div><small>{% if signature %}{{ signature.signed_name }}{% if signature.signed_title %}, {{ signature.signed_title }}{% endif %} · {{ signature.created_at|date:"F j, Y" }}{% else %}Name, title, date{% endif %}</small></div>
+</div>
+{% if signature %}<div class="record"><b>Electronic signature record</b><br>
+  Signed by <b>{{ signature.signed_name }}</b>{% if signature.signed_title %}, {{ signature.signed_title }}{% endif %}, for {{ client.name }}<br>
+  When: {{ signature.created_at|date:"F j, Y, g:i:s A T" }}{% if signature.ip %} · From IP address {{ signature.ip }}{% endif %}<br>
+  How: {% if signature.portal_user %}signed in to the client portal as {{ signature.portal_user.email }}{% else %}private signing link emailed by {{ company }}{% endif %}; the signer typed their name and confirmed they had read the agreement and were authorized to sign<br>
+  Fingerprint of the signed text (SHA-256): <span class="mono">{{ signature.content_hash }}</span><br>
+  {% if intact %}This document matches the text that was signed.{% else %}<b>Warning: this document's text differs from the text that was signed.</b>{% endif %}</div>{% endif %}
+</body></html>

@@ -113,3 +113,9 @@ table.t { width: 100%; border-collapse: collapse; } .t th { text-align: left; co
 .legal-box { max-height: 340px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: #fff; }
 .data-notice { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 8px; background: #fffaeb; border: 1px solid #fedf89; color: #7a2e0e; font-size: 13px; line-height: 1.45; }
 .data-notice i { margin-top: 2px; }
+.agreement h3 { margin: 18px 0 6px; font-size: 16px; } .agreement > h3:first-child { font-size: 21px; margin-top: 0; }
+.agreement p { margin: 0 0 8px; line-height: 1.55; } .agreement ul { margin: 0 0 10px; padding-left: 20px; } .agreement li { margin-bottom: 4px; line-height: 1.5; }
+.sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 8px; }
+@media (max-width: 640px) { .sig-grid { grid-template-columns: 1fr; } }
+.sig-name { border-bottom: 1px solid currentColor; min-height: 36px; font: italic 21px Georgia, 'Times New Roman', serif; padding: 4px 0; }
+.doc.agreement { max-height: none; overflow: visible; white-space: normal; }

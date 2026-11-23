@@ -407,3 +407,24 @@ document.addEventListener('submit', (e) => {
   const f = e.target;
   if (f instanceof HTMLFormElement && f.dataset.confirm && !window.confirm(f.dataset.confirm)) { e.preventDefault(); e.stopImmediatePropagation(); }
 }, true);
+
+/* Contract builder: show the MSP sections only for a managed services contract, and total the price as you type. */
+(function () {
+  const form = document.getElementById('cb-form');
+  if (!form) return;
+  const kind = form.querySelector('[name=kind]');
+  const num = el => { const v = (el && el.value || '').replace(/[$,\s]/g, ''); return parseFloat(v) || 0; };
+  const money = n => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function sync() {
+    form.querySelectorAll('[data-only]').forEach(el => { el.hidden = el.dataset.only !== kind.value; });
+    let total = 0;
+    form.querySelectorAll('tr[data-row]').forEach(tr => {
+      const ins = tr.querySelectorAll('input'); const sub = num(ins[0]) * num(ins[1]);
+      tr.querySelector('[data-sub]').textContent = sub ? money(sub) : '—'; total += sub;
+    });
+    const flat = form.querySelector('tr[data-flat]');
+    if (flat) { const f = num(flat.querySelector('input')); flat.querySelector('[data-sub]').textContent = f ? money(f) : '—'; total += f; }
+    const out = document.getElementById('cb-total'); if (out) out.textContent = money(total);
+  }
+  form.addEventListener('input', sync); form.addEventListener('change', sync); sync();
+})();

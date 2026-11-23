@@ -161,9 +161,15 @@ def contract_page(request, token):
             _notify(f"Contract signed: {c} ({c.client.name})", f"Signed by {name}{', ' + ttl if ttl else ''}", f"/m/contracts/{c.pk}/")
             return redirect(f"/sign/{token}/?done=1")
     c.refresh_from_db()
-    from apps.core import legal
-    state, county = legal.jurisdiction(c.client)
+    from .contract_views import doc_context
     return _private(render(request, "billing/contract_public.html", {
-        **_brand(), "c": c, "client": c.client, "signature": c.signatures.order_by("-created_at").first(), "error": error,
-        "done": request.GET.get("done"), "is_draft": c.status == "Draft", "staff": request.user.is_authenticated,
-        "law": f"This agreement is governed by the laws of the State of {state}" + (f"; any dispute will be heard in {county} County, {state}." if county else ".")}))
+        **_brand(), **doc_context(c), "error": error, "done": request.GET.get("done"), "is_draft": c.status == "Draft",
+        "staff": request.user.is_authenticated, "token": token}))
+
+
+def contract_pdf(request, token):
+    from .contract_views import pdf_response
+    c = _obj(request, Contract, token)
+    if c is None:
+        return _unavailable(request)
+    return _private(pdf_response(c))

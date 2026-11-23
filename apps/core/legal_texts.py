@@ -204,3 +204,11 @@ DOCS = {
     "staff_confidentiality": ("Staff confidentiality & acceptable use", STAFF_CONFIDENTIALITY, "Staff agree at sign-in, once a year and after you change it."),
     "handbook_ack": ("Employee handbook acknowledgment", HANDBOOK_ACK, "Staff acknowledge at sign-in, and again after you change it or the handbook link."),
 }
+
+
+def _client_agreements():
+    from apps.billing.contract_texts import MSA
+    DOCS["msa"] = ("Master Services Agreement (MSA)", MSA, "The base agreement used by the contract builder (Billing › Contracts › New agreement).")
+
+
+_client_agreements()

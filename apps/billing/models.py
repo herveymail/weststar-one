@@ -275,7 +275,7 @@ class Contract(Record):
     number = models.CharField("Contract #", max_length=50, unique=True, null=True, blank=True, editable=False)
     name = models.CharField("Contract", max_length=255)
     client = models.ForeignKey(Client, on_delete=models.PROTECT, related_name="contracts")
-    type = models.CharField(max_length=20, choices=C("Managed", "Break/fix", "Project", "BAA", "NDA", "Other"), default="Managed")
+    type = models.CharField(max_length=20, choices=C("MSA", "Managed", "Break/fix", "Project", "BAA", "NDA", "Other"), default="Managed")
     status = models.CharField(max_length=20, choices=C("Draft", "Sent", "Active", "Expired", "Cancelled"), default="Draft")
     start_date = models.DateField("Starts", null=True, blank=True)
     end_date = models.DateField("Ends", null=True, blank=True)
@@ -287,9 +287,50 @@ class Contract(Record):
     terms = models.TextField(blank=True)
     public_token = models.CharField(max_length=48, blank=True, default="", editable=False, db_index=True,
                                     help_text="Secret part of the review-and-sign link in contract emails (no sign-in needed).")
+    # ── Filled in by the contract builder (Billing › Contracts › New agreement); the wording above is built from these ──
+    built = models.BooleanField(default=False, editable=False)
+    include_msa = models.BooleanField("Include the MSA terms in this contract", default=True)
+    msa = models.ForeignKey("self", null=True, blank=True, on_delete=models.SET_NULL, related_name="schedules", verbose_name="Under MSA")
+    term_months = models.PositiveIntegerField("Initial term (months)", null=True, blank=True)
+    renewal_months = models.PositiveIntegerField("Renewal term (months)", null=True, blank=True)
+    notice_days = models.PositiveIntegerField("Notice to cancel (days)", default=30)
+    increase_pct = models.DecimalField("Increase at renewal (%)", max_digits=5, decimal_places=2, null=True, blank=True)
+    users = models.PositiveIntegerField(null=True, blank=True)
+    user_rate = money()
+    workstations = models.PositiveIntegerField(null=True, blank=True)
+    workstation_rate = money()
+    servers = models.PositiveIntegerField(null=True, blank=True)
+    server_rate = money()
+    flat_fee = money()
+    setup_fee = money()
+    after_hours_rate = money()
+    trip_fee = money()
+    services = models.JSONField(default=list, blank=True)
+    service_notes = models.TextField("Extra services or details", blank=True)
+    exclusions = models.TextField("Extra exclusions", blank=True)
+    our_signer = models.CharField(max_length=200, blank=True)
+    our_title = models.CharField(max_length=200, blank=True)
+    our_signed_at = models.DateTimeField(null=True, blank=True, editable=False)
+
+    BUILDER_FIELDS = ["include_msa", "msa", "term_months", "renewal_months", "notice_days", "increase_pct", "users", "user_rate", "workstations",
+                      "workstation_rate", "servers", "server_rate", "flat_fee", "setup_fee", "after_hours_rate", "trip_fee", "services", "service_notes",
+                      "exclusions", "our_signer", "our_title"]
 
     def __str__(self):
         return self.name
+
+    @property
+    def signed(self):
+        return self.signatures.exists()
+
+    @classmethod
+    def check_form(cls, form, data):
+        """A signed agreement is a record of what was agreed: its wording and prices can't be edited afterwards."""
+        if form.instance.pk and form.instance.signatures.exists():
+            locked = [f for f in ("scope", "terms", "monthly_rate", "included_hours", "overage_rate", "start_date", "client", "type") if f in form.changed_data]
+            if locked:
+                form.add_error(None, "This agreement is signed, so its wording, prices and dates can't be changed. Make a new agreement (or an amendment) instead.")
+        return data
 
 
 class Policy(Record):

@@ -414,3 +414,18 @@ html.ws-busy, html.ws-busy * { cursor: progress; }
 .tk-hours { padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font-size: 14px; margin-top: 6px; }
 .tk-hours.missing { background: var(--high-bg); border-color: var(--high); }
 .new-sender .btn { white-space: normal; text-align: left; overflow-wrap: anywhere; }
+/* Agreements: builder, agreement page, signature block */
+.cb-services { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
+.cb-svc { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
+.cb-svc:has(input:checked) { border-color: var(--accent); background: var(--sel); }
+.cb-svc small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.cb-price input { width: 120px; text-align: right; } .cb-price td { vertical-align: middle; }
+.contract-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
+@media (max-width: 1100px) { .contract-layout { grid-template-columns: 1fr; } }
+.agreement-paper { max-width: 900px; }
+.agreement h3 { margin: 18px 0 6px; font-size: 16px; } .agreement > h3:first-child { font-size: 22px; margin-top: 4px; }
+.agreement p { margin: 0 0 8px; line-height: 1.55; } .agreement ul { margin: 0 0 10px; padding-left: 20px; } .agreement li { margin-bottom: 4px; line-height: 1.5; }
+.sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 22px; }
+@media (max-width: 640px) { .sig-grid { grid-template-columns: 1fr; } }
+.sig-name { border-bottom: 1px solid var(--text); min-height: 38px; font: italic 22px Georgia, 'Times New Roman', serif; padding: 4px 0; }
+.kv-list { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0; font-size: 14px; } .kv-list dt { color: var(--muted); } .kv-list dd { margin: 0; }

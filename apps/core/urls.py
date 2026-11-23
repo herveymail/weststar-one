@@ -17,6 +17,7 @@ from apps.core import backup_views
 from apps.accounts.agreements import agreements as agreements_view
 
 from . import legal_views
+from apps.billing import contract_views as cbv
 from apps.billing import views as bv
 from apps.integrations import views as iv
 
@@ -103,9 +104,14 @@ urlpatterns = [
     path("quote/<str:token>/", sign_views.quote_page, name="quote_public"),
     path("quote/<str:token>/pdf/", sign_views.quote_pdf, name="quote_public_pdf"),
     path("sign/<str:token>/", sign_views.contract_page, name="contract_public"),
+    path("sign/<str:token>/pdf/", sign_views.contract_pdf, name="contract_public_pdf"),
     path("billing/ready/", ready_views.ready_page, name="ready_to_bill"),
     path("billing/ar/", ar_views.ar_page, name="receivables"),
     path("billing/ar/statement/<int:client_id>/", ar_views.statement, name="statement"),
+    path("billing/contract/build/", cbv.build, name="contract_build"),
+    path("billing/contract/<int:pk>/build/", cbv.build, name="contract_rebuild"),
+    path("billing/contract/<int:pk>/", cbv.page, name="contract_page"),
+    path("billing/contract/<int:pk>/pdf/", cbv.pdf, name="contract_pdf"),
     path("billing/contract/<int:pk>/send/", bv.contract_send, name="contract_send"),
     path("billing/renewal/<int:pk>/quote/", bv.renewal_quote, name="renewal_quote"),
     path("billing/<slug:kind>/<int:pk>/", bv.document, name="document"),

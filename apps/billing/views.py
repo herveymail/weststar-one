@@ -199,7 +199,7 @@ def contract_send(request, pk):
     c = get_object_or_404(Contract.objects.select_related("client"), pk=pk, archived_at__isnull=True)
     if c.status in ("Cancelled", "Expired"):
         messages.error(request, f"This contract is {c.status.lower()}.")
-        return redirect(f"/m/contracts/?open_form=/m/contracts/{pk}/")
+        return redirect(f"/billing/contract/{pk}/")
     link = contract_link(c)
     company = Setting.get("company.name") or "Weststar MSP"
     people = c.client.contacts.filter(archived_at__isnull=True, is_primary=True).values_list("email", flat=True)
@@ -226,6 +226,9 @@ def contract_send(request, pk):
             if mail.send(to, form["subject"], "email/contract", ctx, cc=cc):
                 if c.status == "Draft":
                     Contract.objects.filter(pk=c.pk).update(status="Sent", updated_at=timezone.now())
+                if not c.our_signed_at:  # sending it is us signing it
+                    Contract.objects.filter(pk=c.pk).update(our_signed_at=timezone.now(), our_signer=c.our_signer or request.user.name,
+                                                            our_title=c.our_title or getattr(request.user, "title", "") or "")
                 audit(request, "send", "contracts", c.pk, f"Emailed contract {c} for signature to {', '.join(to + cc)}", area="billing")
                 messages.success(request, f"Sent {c.name} to {', '.join(to)} for signature.")
                 return redirect(f"/billing/contract/{pk}/send/")

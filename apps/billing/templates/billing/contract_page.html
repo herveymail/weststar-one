@@ -1,0 +1,50 @@
+{% extends "base.html" %}{% load ws %}
+{% block title %}{{ c.name }} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="doc-bar">
+  <a href="/m/contracts/" class="link-btn">{% icon "back" 16 %}Contracts</a>
+  <h1>{{ c.name }}</h1>
+  <span class="pill {% if c.status == 'Active' %}good{% elif c.status == 'Sent' %}warn{% elif c.status == 'Cancelled' or c.status == 'Expired' %}bad{% endif %}">{% if c.status == "Sent" %}Waiting for signature{% elif c.status == "Active" and signature %}Signed{% else %}{{ c.status }}{% endif %}</span>
+  <span class="spacer"></span>
+  {% if can_edit and editable %}{% if c.built %}<a class="btn" href="/billing/contract/{{ c.pk }}/build/">Change details</a>{% endif %}
+    <button type="button" class="btn" hx-get="/m/contracts/{{ c.pk }}/" hx-target="#modal">Edit wording</button>{% endif %}
+  <a class="btn" href="/billing/contract/{{ c.pk }}/pdf/">{% icon "download" 16 %}PDF</a>
+  {% if link %}<a class="btn" href="{{ link }}" target="_blank" rel="noopener">Client's view</a>{% endif %}
+  {% if can_edit and c.status != "Cancelled" and c.status != "Expired" and not signature %}<a class="btn primary" href="/billing/contract/{{ c.pk }}/send/">{% icon "send" 16 %}{% if c.status == "Draft" %}Send for e-signature{% else %}Send again{% endif %}</a>{% endif %}
+</div>
+{% if signature %}<div class="banner info" role="status"><b>Signed by {{ signature.signed_name }}</b>{% if signature.signed_title %}, {{ signature.signed_title }}{% endif %} on {{ signature.created_at|date:"M j, Y g:i A" }}{% if signature.ip %} from {{ signature.ip }}{% endif %}. The wording is locked.</div>
+{% elif c.status == "Sent" %}<div class="banner info" role="status">Sent — waiting for {{ client.name }} to sign.{% if editable %} If you change it now, tell them: they sign whatever the page shows when they sign.{% endif %}</div>
+{% elif c.status == "Draft" %}<div class="banner info" role="status">Draft. Read it through; nothing has gone to the client yet.</div>{% endif %}
+<div class="contract-layout">
+  <article class="card pad agreement-paper">
+    <div class="small muted">{{ company }} · {% if c.number %}{{ c.number }} · {% endif %}{{ client.name }}</div>
+    {% if c.scope %}<div class="doc agreement">{{ scope_html }}</div>{% endif %}
+    {% if c.terms %}{% if c.scope %}<hr>{% endif %}<div class="doc agreement">{{ terms_html }}</div>{% endif %}
+    {% if not c.scope and not c.terms %}<p class="muted">This contract has no wording yet. Use Edit wording, or make a new one with New agreement.</p>{% endif %}
+    {% if law %}<p class="small muted">{{ law }}</p>{% endif %}
+    <div class="sig-grid">
+      <div><span class="small muted">For {{ company }}</span><div class="sig-name">{% if c.our_signed_at %}{{ c.our_signer }}{% else %}<span class="muted" style="font-family:inherit;font-size:14px">{{ c.our_signer|default:"—" }}</span>{% endif %}</div>
+        <span class="small muted">{{ c.our_title|default:"Authorized representative" }}{% if c.our_signed_at %} · signed {{ c.our_signed_at|date:"M j, Y" }}{% else %} · signs when sent{% endif %}</span></div>
+      <div><span class="small muted">For {{ client.name }}</span><div class="sig-name">{% if signature %}{{ signature.signed_name }}{% else %}&nbsp;{% endif %}</div>
+        <span class="small muted">{% if signature %}{{ signature.signed_title|default:"Authorized representative" }} · signed {{ signature.created_at|date:"M j, Y g:i A" }}{% else %}Not signed yet{% endif %}</span></div>
+    </div>
+  </article>
+  <aside class="stack">
+    <section class="card pad stack" style="gap:8px"><h2>At a glance</h2>
+      <dl class="kv-list">
+        <dt>Client</dt><dd><a href="/clients/{{ client.pk }}/?tab=Contracts">{{ client.name }}</a></dd>
+        <dt>Kind</dt><dd>{% if c.type == "MSA" %}Master Services Agreement{% elif c.type == "Managed" %}Managed services{% else %}{{ c.type }}{% endif %}</dd>
+        {% if c.type != "MSA" %}<dt>Term</dt><dd>{{ c.start_date|date:"M j, Y"|default:"On signing" }} – {{ c.end_date|date:"M j, Y"|default:"ongoing" }}{% if c.auto_renew %} · auto-renews{% endif %}</dd>{% endif %}
+        {% if c.monthly_rate %}<dt>Monthly</dt><dd><b>{{ c.monthly_rate|dollars }}</b></dd>{% endif %}
+        {% if c.setup_fee %}<dt>Onboarding</dt><dd>{{ c.setup_fee|dollars }}</dd>{% endif %}
+        {% if c.msa %}<dt>Under MSA</dt><dd><a href="/billing/contract/{{ c.msa.pk }}/">{{ c.msa.number|default:c.msa.name }}</a> ({{ c.msa.status }})</dd>{% elif c.type == "Managed" and c.built %}<dt>MSA</dt><dd>{% if c.include_msa %}Attached — one signature{% else %}Not attached{% endif %}</dd>{% endif %}
+      </dl>
+      {% for label, amt in price_lines %}{% if forloop.first %}<div class="small muted" style="margin-top:4px">Price breakdown</div>{% endif %}<div class="small" style="display:flex;gap:8px"><span style="flex:1">{{ label }}</span><span>{{ amt|dollars }}</span></div>{% endfor %}
+    </section>
+    {% if schedules %}<section class="card pad stack" style="gap:6px"><h2>Contracts under this MSA</h2>{% for s in schedules %}<a href="/billing/contract/{{ s.pk }}/">{{ s.name }}</a><span class="small muted">{{ s.status }}{% if s.monthly_rate %} · {{ s.monthly_rate|dollars }}/mo{% endif %}</span>{% endfor %}</section>{% endif %}
+    <section class="card pad stack" style="gap:6px"><h2>How signing works</h2>
+      <p class="small muted" style="margin:0">The client gets an email with a private link, reads the agreement and signs by typing their name — no account needed. We keep their name, title, the time, their IP address and a fingerprint of the exact text they signed. Once signed, the wording is locked and the PDF carries a signature page.</p>
+      <p class="small muted" style="margin:0">This wording is a starting draft. Have your attorney review it before you rely on it.</p></section>
+  </aside>
+</div>
+{% endblock %}

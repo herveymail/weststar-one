@@ -2,7 +2,7 @@
 {% block title %}Send for signature · {{ c.name }} · {{ app_name }}{% endblock %}
 {% block content %}
 <div class="doc-bar">
-  <a href="/m/contracts/?open_form=/m/contracts/{{ c.pk }}/" class="link-btn">{% icon "back" 16 %}{{ c.name }}</a>
+  <a href="/billing/contract/{{ c.pk }}/" class="link-btn">{% icon "back" 16 %}{{ c.name }}</a>
   <h1>Send for signature</h1>
 </div>
 {% if not mail_ok %}<div class="banner">Email sending isn't set up yet — Settings › Email sending.</div>{% endif %}

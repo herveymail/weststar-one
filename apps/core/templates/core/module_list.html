@@ -12,7 +12,9 @@
     <h1>{{ page_title|default:m.label }}</h1>
     <p class="desc">{{ m.description }}</p>
   </div>
-  {% if can_add %}<button type="button" class="btn primary" hx-get="/m/{{ m.slug }}/new/" hx-target="#modal">{% icon "plus" 16 %}{{ m.primary_action|default:"Add" }}</button>{% endif %}
+  {% if can_add and m.slug == "contracts" %}<a class="btn primary" href="/billing/contract/build/">{% icon "plus" 16 %}New agreement</a>
+  <button type="button" class="btn" hx-get="/m/{{ m.slug }}/new/" hx-target="#modal" title="A contract you write yourself (BAA, NDA, anything else)">Blank contract</button>
+  {% elif can_add %}<button type="button" class="btn primary" hx-get="/m/{{ m.slug }}/new/" hx-target="#modal">{% icon "plus" 16 %}{{ m.primary_action|default:"Add" }}</button>{% endif %}
 </div>
 <form class="row" method="get" role="search">
   {% if page_tab %}<input type="hidden" name="tab" value="{{ page_tab }}">{% endif %}

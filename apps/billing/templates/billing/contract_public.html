@@ -15,9 +15,16 @@
     {% if c.monthly_rate %}<span>Monthly</span><span>{{ c.monthly_rate|dollars }}</span>{% endif %}
     {% if c.included_hours %}<span>Included hours</span><span>{{ c.included_hours|floatformat:"-2" }} / month</span>{% endif %}
     {% if c.overage_rate %}<span>Extra hours</span><span>{{ c.overage_rate|dollars }}/h</span>{% endif %}</div>
-  {% if c.scope %}<h3 style="margin:0">Scope</h3><div class="doc" style="white-space:pre-wrap">{{ c.scope }}</div>{% endif %}
-  {% if c.terms %}<h3 style="margin:0">Terms</h3><div class="doc" style="white-space:pre-wrap">{{ c.terms }}</div>{% endif %}
-  <p class="small muted" style="margin:0">{{ law }}</p>
+  {% if c.scope %}<div class="doc agreement">{{ scope_html }}</div>{% endif %}
+  {% if c.terms %}{% if c.scope %}<hr style="border:0;border-top:1px solid var(--line);margin:6px 0">{% endif %}<div class="doc agreement">{{ terms_html }}</div>{% endif %}
+  {% if law %}<p class="small muted" style="margin:0">{{ law }}</p>{% endif %}
+  <div class="sig-grid">
+    <div><span class="small muted">For {{ company }}</span><div class="sig-name">{% if c.our_signed_at %}{{ c.our_signer }}{% else %}&nbsp;{% endif %}</div>
+      <span class="small muted">{% if c.our_signed_at %}{{ c.our_title|default:"Authorized representative" }} · signed {{ c.our_signed_at|date:"M j, Y" }}{% else %}Signs when the agreement is sent{% endif %}</span></div>
+    <div><span class="small muted">For {{ client.name }}</span><div class="sig-name">{% if signature %}{{ signature.signed_name }}{% else %}&nbsp;{% endif %}</div>
+      <span class="small muted">{% if signature %}{{ signature.signed_title|default:"Authorized representative" }} · signed {{ signature.created_at|date:"M j, Y g:i A" }}{% else %}Waiting for signature{% endif %}</span></div>
+  </div>
+  {% if token %}<div><a class="btn" href="/sign/{{ token }}/pdf/">Download PDF</a></div>{% endif %}
 </section>
 {% if signature %}<div class="banner ok">Signed by {{ signature.signed_name }}{% if signature.signed_title %}, {{ signature.signed_title }}{% endif %} on {{ signature.created_at|date:"M j, Y g:i A" }}.</div>{% endif %}
 {% if c.status == "Sent" %}

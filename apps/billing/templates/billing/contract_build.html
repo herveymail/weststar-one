@@ -1,0 +1,84 @@
+{% extends "base.html" %}{% load ws %}
+{% block title %}{% if c %}Edit agreement{% else %}New agreement{% endif %} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="doc-bar"><a href="{% if c %}/billing/contract/{{ c.pk }}/{% else %}/m/contracts/{% endif %}" class="link-btn">{% icon "back" 16 %}{% if c %}{{ c.name }}{% else %}Contracts{% endif %}</a>
+  <h1>{% if c %}Edit agreement{% else %}New agreement{% endif %}</h1></div>
+<p class="muted" style="margin:0">Fill this in and the agreement is written for you. You read it through on the next screen before anything is sent.</p>
+{% if form.errors %}<div class="banner" role="alert"><b>Not built yet.</b> Fix what is marked below.{% if form.non_field_errors %} {{ form.non_field_errors|join:" " }}{% endif %}</div>{% endif %}
+<form method="post" class="stack cb" id="cb-form">{% csrf_token %}
+  <section class="card pad stack">
+    <h2>1 · What and who</h2>
+    <div class="form-grid">
+      <div class="field"><label for="{{ form.kind.id_for_label }}">Kind of agreement</label>{{ form.kind }}
+        <span class="help">MSA = the general terms, signed once per client. A managed services contract lists the services, prices and term.</span></div>
+      <div class="field"><label for="{{ form.client.id_for_label }}">Client *</label>{{ form.client }}{{ form.client.errors }}</div>
+      <div class="field wide"><label for="{{ form.name.id_for_label }}">Name</label>{{ form.name }}<span class="help">Leave blank and it's named for you.</span></div>
+      <div class="field"><label for="{{ form.start_date.id_for_label }}">Start date</label>{{ form.start_date }}<span class="help">Blank = the day it is signed.</span></div>
+      <div class="field"><label for="{{ form.notice_days.id_for_label }}">Notice to cancel (days)</label>{{ form.notice_days }}{{ form.notice_days.errors }}</div>
+    </div>
+  </section>
+
+  <div data-only="Managed" class="stack">
+  <section class="card pad stack">
+    <h2>2 · The MSA</h2>
+    <label class="check">{{ form.include_msa }}<span><b>Attach the MSA terms to this contract</b> — the client signs once and it covers both. Best for a new client.</span></label>
+    <div class="field" style="max-width:520px"><label for="{{ form.msa.id_for_label }}">Or put it under an MSA this client already has</label>{{ form.msa }}
+      <span class="help">Only MSAs for the client picked above are listed. Save once to refresh the list after changing the client.</span></div>
+  </section>
+
+  <section class="card pad stack">
+    <h2>3 · Term</h2>
+    <div class="form-grid">
+      <div class="field"><label for="{{ form.term_months.id_for_label }}">Initial term (months)</label>{{ form.term_months }}<span class="help">Blank or 0 = month to month.</span></div>
+      <div class="field"><label for="{{ form.renewal_months.id_for_label }}">Renewal term (months)</label>{{ form.renewal_months }}<span class="help">Blank = same as the initial term.</span></div>
+      <div class="field"><label for="{{ form.increase_pct.id_for_label }}">Price increase at renewal (%)</label>{{ form.increase_pct }}{{ form.increase_pct.errors }}</div>
+      <div class="field"><label class="check" style="margin-top:22px">{{ form.auto_renew }}<span>Renews automatically</span></label></div>
+    </div>
+  </section>
+
+  <section class="card pad stack">
+    <h2>4 · What is covered</h2>
+    {{ form.services.errors }}
+    <div class="cb-services">{% for k, n, d in services %}
+      <label class="cb-svc"><input type="checkbox" name="services" value="{{ k }}"{% if k in form.services.value %} checked{% endif %}><span><b>{{ n }}</b><small>{{ d }}</small></span></label>{% endfor %}</div>
+    <div class="field"><label for="{{ form.service_notes.id_for_label }}">Anything else that is covered (one per line)</label>{{ form.service_notes }}</div>
+  </section>
+
+  <section class="card pad stack">
+    <h2>5 · Price</h2>
+    {{ form.flat_fee.errors }}
+    <table class="grid cb-price"><thead><tr><th>Per month</th><th class="num">How many</th><th class="num">Each ($)</th><th class="num">Monthly</th></tr></thead><tbody>
+      <tr data-row><td>Users</td><td>{{ form.users }}</td><td>{{ form.user_rate }}{{ form.user_rate.errors }}</td><td class="num" data-sub>—</td></tr>
+      <tr data-row><td>Computers</td><td>{{ form.workstations }}</td><td>{{ form.workstation_rate }}{{ form.workstation_rate.errors }}</td><td class="num" data-sub>—</td></tr>
+      <tr data-row><td>Servers</td><td>{{ form.servers }}</td><td>{{ form.server_rate }}{{ form.server_rate.errors }}</td><td class="num" data-sub>—</td></tr>
+      <tr data-flat><td>Base monthly fee</td><td></td><td>{{ form.flat_fee }}</td><td class="num" data-sub>—</td></tr>
+    </tbody><tfoot><tr><td colspan="3" class="num"><b>Monthly total</b></td><td class="num"><b id="cb-total">$0.00</b></td></tr></tfoot></table>
+    <p class="help" style="margin:0">Use any mix: per user, per computer, per server, a flat fee, or all of them.</p>
+    <div class="form-grid">
+      <div class="field"><label for="{{ form.setup_fee.id_for_label }}">One-time onboarding fee ($)</label>{{ form.setup_fee }}{{ form.setup_fee.errors }}</div>
+      <div class="field"><label for="{{ form.included_hours.id_for_label }}">Hours included per month</label>{{ form.included_hours }}<span class="help">Blank = covered work is unlimited.</span></div>
+      <div class="field"><label for="{{ form.overage_rate.id_for_label }}">Hourly rate for work not covered ($)</label>{{ form.overage_rate }}{{ form.overage_rate.errors }}</div>
+      <div class="field"><label for="{{ form.after_hours_rate.id_for_label }}">After-hours hourly rate ($)</label>{{ form.after_hours_rate }}{{ form.after_hours_rate.errors }}</div>
+      <div class="field"><label for="{{ form.trip_fee.id_for_label }}">Onsite trip charge ($)</label>{{ form.trip_fee }}{{ form.trip_fee.errors }}</div>
+    </div>
+  </section>
+
+  <section class="card pad stack">
+    <h2>6 · What is not covered</h2>
+    <ul class="small muted" style="margin:0;padding-left:18px">{% for x in exclusions %}<li>{{ x }}</li>{% endfor %}</ul>
+    <div class="field"><label for="{{ form.exclusions.id_for_label }}">Add more exclusions (one per line)</label>{{ form.exclusions }}</div>
+  </section>
+  </div>
+
+  <section class="card pad stack">
+    <h2>Who signs for us</h2>
+    <div class="form-grid">
+      <div class="field"><label for="{{ form.our_signer.id_for_label }}">Name</label>{{ form.our_signer }}</div>
+      <div class="field"><label for="{{ form.our_title.id_for_label }}">Title</label>{{ form.our_title }}</div>
+    </div>
+    <p class="help" style="margin:0">Our signature is applied when the agreement is sent to the client.</p>
+  </section>
+  <div class="row" style="gap:10px"><button class="btn primary">{% if c %}Rebuild the agreement{% else %}Build the agreement{% endif %}</button>
+    <a class="btn" href="{% if c %}/billing/contract/{{ c.pk }}/{% else %}/m/contracts/{% endif %}">Cancel</a></div>
+</form>
+{% endblock %}

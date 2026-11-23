@@ -1,0 +1,184 @@
+"""Standard wording for client agreements: the Master Services Agreement (MSA) and the Managed Services schedule.
+
+Same simple format as the other legal texts: "## " heading, "- " bullet, blank line = new paragraph, {placeholders}
+filled in when the agreement is built. The MSA wording can be changed in Settings › Legal & terms; the service
+descriptions below are picked per contract in the contract builder.
+
+These are starting drafts for your business, not legal advice — have an attorney review them before relying on them.
+"""
+
+MSA = """## Master Services Agreement
+This Master Services Agreement (the "Agreement") is between {company} ("{company_short}", "we", "us") and {client} ("Client", "you"). It takes effect on {effective_date} (the "Effective Date") and sets the terms for all services we provide to you.
+
+## 1. How this Agreement works
+- This Agreement contains the general terms. The specific services, prices and term are described in one or more service schedules, statements of work, or accepted quotes (each a "Schedule").
+- Each Schedule becomes part of this Agreement when both parties sign or accept it. If a Schedule and this Agreement disagree, the Schedule controls for the services it covers, but only where it says it is changing this Agreement.
+- Work you ask for that is not covered by a Schedule is billed at our standard rates in effect at the time.
+
+## 2. Our services
+- We will perform the services in a professional and workmanlike manner, using people with the skills the work requires.
+- We may use subcontractors and third-party tools to deliver the services. We remain responsible for work performed by our subcontractors.
+- Response and resolution times in a Schedule are targets, not guarantees, unless the Schedule says otherwise.
+
+## 3. Your responsibilities
+- Give us timely access to your premises, systems, staff and information as reasonably needed to do the work.
+- Name a primary contact who can make decisions and approve work and charges for you.
+- Keep your systems in a supportable state: hardware under warranty or reasonably current, operating systems and software supported by their makers, and properly licensed.
+- Follow reasonable security recommendations we make. If you decline a recommendation, you accept the risk that results from that choice, and we are not responsible for problems the recommendation would have prevented.
+- Tell us promptly about any suspected security incident, and about changes to your staff, locations or systems that affect the services.
+- Do not send us passwords, payment card numbers, health records or other sensitive personal information by email or in service requests. Use the secure method we give you.
+
+## 4. Fees and payment
+- You will pay the fees shown in each Schedule and on our invoices. Recurring fees are billed in advance; hourly work, projects, hardware and software are billed as delivered or as quoted.
+- Invoices are due {net_terms_text}. {late_policy}
+- If an account is referred for collection, you agree to pay the reasonable costs of collecting it, including collection agency fees, court costs and reasonable attorneys' fees, to the extent allowed by law.
+- Tell us in writing (email {billing_email}) about any billing question within {dispute_days} days of the invoice date. Any part of an invoice that is not in question remains due on time.
+- We may pause non-emergency services on an account that is more than {suspend_days} days past due, after giving you notice. Fees continue to accrue during a suspension.
+- Prices do not include sales or other taxes unless shown. You are responsible for taxes on what you buy, other than taxes on our income.
+- We may change recurring fees at the start of any renewal term by giving you at least 30 days' written notice, and during a term if your number of users, devices or locations changes or a vendor raises the price of a product we resell to you.
+
+## 5. Term and ending this Agreement
+- This Agreement starts on the Effective Date and continues until every Schedule has ended and either party ends this Agreement with {notice_days} days' written notice.
+- Each Schedule has its own term and renewal, stated in that Schedule.
+- Either party may end this Agreement or a Schedule if the other materially breaches it and does not fix the breach within 30 days after written notice (10 days for non-payment).
+- If you end a Schedule early without cause, or we end it because of your breach, the fees for the rest of its current term become due, unless the Schedule says otherwise.
+- Ending this Agreement does not cancel amounts already owed.
+
+## 6. Transition when services end
+- When services end and your account is paid in full, we will give you the administrator passwords and account access we hold for your systems, remove our monitoring and management software and our own access, and give you a copy of the records we keep about your environment.
+- Reasonable transition help is included. Extended work to move you to another provider is billed at our standard rates.
+- Software, licenses and security tools that we provide as part of our services stop when the services end unless you arrange to take them over with the vendor.
+
+## 7. Third-party products and services
+- Hardware, software and cloud services made by others are provided under the maker's own terms and warranty. We pass those through to you and will help you use them, but we do not add to them.
+- You authorize us to act as your agent in dealing with your vendors for the services, and to accept routine license terms and updates on your behalf where needed to keep your systems working.
+- We are not responsible for outages, defects, price changes or the discontinuation of third-party products and services.
+
+## 8. Security, backups and data
+- No security measure can prevent every attack. We do not guarantee that your systems will be free of viruses, ransomware, intrusion, data loss or downtime, and we are not liable for a security incident unless it was directly caused by our gross negligence or willful misconduct.
+- Unless a Schedule includes a managed backup service, you are responsible for backing up your data. Where we do manage backups, we monitor them and act on failures, but we cannot guarantee that every file can be restored.
+- Responding to and recovering from a security incident, a disaster, or a problem caused by something outside the covered services is not included in recurring fees and is billed at our standard rates unless a Schedule says otherwise.
+- Your data remains yours. We access it only as needed to provide the services.
+- If you are subject to HIPAA or similar rules and we may have access to protected information, the parties will sign a separate Business Associate Agreement. Meeting the regulatory requirements that apply to your business remains your responsibility.
+
+## 9. Confidentiality
+- Each party will keep the other's non-public business, technical and financial information confidential, use it only to perform this Agreement, and protect it with at least reasonable care.
+- This does not apply to information that is public, was already known, is independently developed, or must be disclosed by law (after notice to the other party where allowed).
+- These duties continue for three years after this Agreement ends, and for as long as the information remains a trade secret.
+
+## 10. Ownership
+- You own your data and the systems and licenses you pay for.
+- We own our tools, scripts, methods, documentation templates and know-how, including improvements made while serving you. You may use the documentation we prepare about your environment for your own internal purposes.
+
+## 11. Our people
+- During this Agreement and for 12 months after it ends, neither party will hire or solicit for hire an employee of the other who was involved in the services, without the other's written consent. General job postings not aimed at those employees are not a breach.
+- If a party breaches this section, it will pay the other an amount equal to 50% of the employee's first-year compensation as a reasonable estimate of the cost of replacing that person, not as a penalty.
+
+## 12. Warranty disclaimer
+EXCEPT AS STATED IN THIS AGREEMENT, {company_upper} MAKES NO OTHER WARRANTIES, EXPRESS OR IMPLIED, INCLUDING ANY IMPLIED WARRANTY OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICES OR YOUR SYSTEMS WILL BE UNINTERRUPTED, ERROR-FREE OR COMPLETELY SECURE.
+
+## 13. Limitation of liability
+- TO THE EXTENT ALLOWED BY LAW, NEITHER PARTY IS LIABLE TO THE OTHER FOR INDIRECT, INCIDENTAL, SPECIAL, PUNITIVE OR CONSEQUENTIAL DAMAGES, OR FOR LOST PROFITS, LOST REVENUE, LOST OR CORRUPTED DATA, OR BUSINESS INTERRUPTION, EVEN IF TOLD THEY WERE POSSIBLE.
+- TO THE EXTENT ALLOWED BY LAW, {company_upper}'S TOTAL LIABILITY ARISING OUT OF THIS AGREEMENT WILL NOT EXCEED THE FEES YOU PAID US FOR THE SERVICES THAT GAVE RISE TO THE CLAIM IN THE {liability_months} MONTHS BEFORE THE EVENT THAT CAUSED IT.
+- These limits do not apply to your obligation to pay fees, to a party's breach of its confidentiality duties, or to damages caused by a party's willful misconduct.
+- Any claim must be brought within one year after the party knew, or reasonably should have known, of the facts behind it.
+
+## 14. Indemnification
+- You will defend and indemnify us against third-party claims arising from your data, your unlicensed or illegal use of software or systems, or your violation of law.
+- We will defend and indemnify you against third-party claims that our own work product infringes that party's intellectual property rights.
+- The party seeking protection must give prompt notice of the claim, allow the other to control the defense, and cooperate reasonably.
+
+## 15. Insurance
+Each party will carry insurance appropriate to its business. We carry commercial general liability and technology errors and omissions coverage and will provide a certificate on request. We recommend that you carry cyber liability insurance; this Agreement is not a substitute for it.
+
+## 16. Events outside our control
+Neither party is responsible for a delay or failure caused by events beyond its reasonable control, such as natural disasters, power or internet outages, failures of third-party services, cyberattacks on third parties, labor disputes, or government action. This does not excuse payment for services already delivered.
+
+## 17. Independent contractor
+We are an independent contractor. Nothing in this Agreement creates a partnership, joint venture or employment relationship between the parties.
+
+## 18. Notices
+Notices under this Agreement must be in writing and sent by email to the other party's primary business contact, with a copy by mail for a notice of breach or termination. Our address for notices is {company_address}; email {support_email}.
+
+## 19. Governing law and disputes
+- This Agreement is governed by the laws of the State of {state}, without regard to its conflict-of-law rules.
+- The parties will first try in good faith to resolve any dispute by talking between people with authority to settle it.
+- Any lawsuit will be brought in the state or federal courts located in {county} County, {state}, and each party consents to those courts. The prevailing party in a lawsuit to enforce this Agreement is entitled to its reasonable attorneys' fees and costs.
+
+## 20. General
+- This Agreement, together with its Schedules, is the entire agreement between the parties about its subject and replaces earlier discussions and proposals.
+- Changes must be in writing and accepted by both parties. Our routine notices of price changes under Section 4 take effect as stated there.
+- Neither party may assign this Agreement without the other's consent, except to a successor to its business.
+- If part of this Agreement is found unenforceable, the rest stays in effect. Not enforcing a right is not a waiver of it.
+- Sections that by their nature should continue after this Agreement ends (including fees owed, confidentiality, ownership, limits of liability and governing law) do continue.
+
+## 21. Electronic signatures
+The parties agree that this Agreement and its Schedules may be signed electronically, that a typed name entered on our signing page is that person's signature, and that an electronic copy is an original. The person signing for each party confirms they have authority to bind that party.
+"""
+
+# The Managed Services schedule. {services}, {pricing}, {support}, {exclusions} are built from what was picked in the builder.
+MSP_SCHEDULE = """## Managed Services Schedule
+This Schedule is between {company} and {client} and describes the managed IT services we will provide. {msa_line}
+
+## 1. Term
+- Start date: {start_text}.
+- Initial term: {term_text}.
+- Renewal: {renewal_text}
+- To stop a renewal, either party gives written notice at least {notice_days} days before the current term ends.
+{increase_line}
+
+## 2. What is covered
+The following services are included for the monthly fee ("Covered Services"), for the users, devices and locations counted in Section 4:
+
+{services}
+
+## 3. Support hours and response targets
+{support}
+
+## 4. Fees
+{pricing}
+
+## 5. What is not covered
+The following are outside the monthly fee and, when you ask for them, are quoted or billed at the rates in Section 4:
+
+{exclusions}
+
+## 6. Changes in your environment
+- We review the number of users, devices and locations regularly. When they change, the monthly fee changes with them from the next invoice, at the unit prices in Section 4.
+- Bringing a new user, computer or location onto the service may carry a one-time setup charge, which we will quote first.
+- Systems that do not meet the minimum standards in the Agreement are supported on a best-effort basis, and work on them may be billed hourly, until they are brought up to standard.
+
+## 7. Ending this Schedule
+- Either party may end this Schedule as described in the Agreement.
+- {early_line}
+- When this Schedule ends we will carry out the transition steps in the Agreement.
+"""
+
+# key: (short name, what the client is told). Order is the order they print in.
+SERVICES = [
+    ("help_desk", "Help desk", "Unlimited remote help desk support for covered users during support hours, by phone, email and the client portal."),
+    ("onsite", "Onsite support", "Onsite visits to your covered locations when a problem cannot be fixed remotely."),
+    ("monitoring", "Monitoring and patching", "24/7 monitoring of covered computers and servers, with operating system and common application updates applied on a regular schedule."),
+    ("security", "Endpoint security", "Managed antivirus / endpoint protection on covered computers and servers, with alerts reviewed and acted on."),
+    ("backup", "Managed backup", "Backup of the servers and data listed in this Schedule, monitored daily, with failed backups investigated and test restores performed periodically."),
+    ("email_admin", "Microsoft 365 / Google Workspace administration", "Adding, changing and removing user accounts, mailboxes, licenses, groups and security settings in your tenant."),
+    ("network", "Network management", "Management of your firewall, switches and Wi-Fi: configuration, firmware updates and troubleshooting."),
+    ("vendor", "Vendor management", "We deal with your internet, phone, printer and line-of-business software vendors on your behalf for support issues."),
+    ("users", "User onboarding and offboarding", "Setting up new staff and securely removing access for staff who leave, on request from your authorized contact."),
+    ("training", "Security awareness training", "Online security awareness training and simulated phishing tests for your staff, with results reported to you."),
+    ("documentation", "Documentation and inventory", "An up-to-date record of your network, devices, accounts and licenses, available to you on request."),
+    ("reviews", "Technology reviews", "A regular review meeting covering the health of your systems, recurring issues, upcoming renewals and budget planning."),
+    ("after_hours", "After-hours emergency support", "Emergency support outside support hours for issues that stop your business from operating."),
+]
+SERVICE_DEFAULTS = ["help_desk", "monitoring", "security", "email_admin", "network", "vendor", "users", "documentation"]
+
+EXCLUSIONS = [
+    "Hardware, software, licenses, subscriptions and cloud services (quoted separately).",
+    "Projects, such as new servers, office moves, migrations, new locations, major upgrades and new system roll-outs.",
+    "Response to and recovery from security incidents, ransomware, data breaches and disasters.",
+    "Work on equipment or software that is out of warranty, no longer supported by its maker, or not licensed.",
+    "Problems caused by changes made by anyone other than us, by misuse, or by events outside our control.",
+    "Home networks and personally owned devices, unless listed in this Schedule.",
+    "Software development, website work, and training on line-of-business applications.",
+    "Compliance audits, assessments and legal or regulatory advice.",
+]
