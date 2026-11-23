@@ -10,11 +10,11 @@
 {% if done %}<div class="banner ok" role="status"><b>Signed — thank you!</b> We've been notified. Keep this link: you can come back to it any time to see the agreement.</div>{% endif %}
 <section class="card pad stack">
   <div class="row"><h1 class="grow" style="font-size:22px">{{ c.name }}</h1><span class="pill{% if c.status == 'Active' %} done{% elif c.status == 'Sent' %} wait{% endif %}">{% if c.status == "Sent" %}Waiting for your signature{% else %}{{ c.status }}{% endif %}</span></div>
-  <div class="kv">{% if c.number %}<span>Contract #</span><span>{{ c.number }}</span>{% endif %}<span>Between</span><span>{{ company }} and {{ client.name }}</span><span>Type</span><span>{{ c.type }}</span>
-    <span>Term</span><span>{{ c.start_date|date:"M j, Y"|default:"On signing" }} – {{ c.end_date|date:"M j, Y"|default:"ongoing" }}{% if c.auto_renew %} · renews automatically{% endif %}</span>
+  <div class="kv">{% if c.number %}<span>Contract #</span><span>{{ c.number }}</span>{% endif %}<span>Between</span><span>{{ company }} and {{ client.name }}</span><span>Type</span><span>{% if c.type == "MSA" %}Master Services Agreement{% elif c.type == "Managed" %}Managed services{% elif c.type == "Break/fix" %}Hourly services{% elif c.type == "BAA" %}Business Associate Agreement{% else %}{{ c.type }}{% endif %}</span>
+    {% if c.type != "BAA" and c.type != "MSA" %}<span>Term</span><span>{{ c.start_date|date:"M j, Y"|default:"On signing" }} – {{ c.end_date|date:"M j, Y"|default:"ongoing" }}{% if c.auto_renew and c.type != "Break/fix" %} · renews automatically{% endif %}</span>{% endif %}
     {% if c.monthly_rate %}<span>Monthly</span><span>{{ c.monthly_rate|dollars }}</span>{% endif %}
-    {% if c.included_hours %}<span>Included hours</span><span>{{ c.included_hours|floatformat:"-2" }} / month</span>{% endif %}
-    {% if c.overage_rate %}<span>Extra hours</span><span>{{ c.overage_rate|dollars }}/h</span>{% endif %}</div>
+    {% if c.included_hours and c.type != "Break/fix" %}<span>Included hours</span><span>{{ c.included_hours|floatformat:"-2" }} / month</span>{% endif %}
+    {% if c.overage_rate %}<span>{% if c.type == "Break/fix" %}Hourly rate{% else %}Extra hours{% endif %}</span><span>{{ c.overage_rate|dollars }}/h</span>{% endif %}</div>
   {% if c.scope %}<div class="doc agreement">{{ scope_html }}</div>{% endif %}
   {% if c.terms %}{% if c.scope %}<hr style="border:0;border-top:1px solid var(--line);margin:6px 0">{% endif %}<div class="doc agreement">{{ terms_html }}</div>{% endif %}
   {% if law %}<p class="small muted" style="margin:0">{{ law }}</p>{% endif %}

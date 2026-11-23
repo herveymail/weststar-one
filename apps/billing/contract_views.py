@@ -24,8 +24,13 @@ from . import contract_texts as T
 from .models import Contract, contract_link
 
 
+KIND_NAMES = {"MSA": "Master Services Agreement", "Managed": "Managed Services Agreement", "Break/fix": "Hourly Services Agreement",
+              "BAA": "Business Associate Agreement"}
+
+
 class BuildForm(forms.ModelForm):
-    kind = forms.ChoiceField(choices=[("Managed", "Managed services (MSP) contract"), ("MSA", "Master Services Agreement (MSA) only")])
+    kind = forms.ChoiceField(choices=[("Managed", "Managed services (MSP) contract"), ("Break/fix", "Hourly services (break/fix) contract"),
+                                      ("MSA", "Master Services Agreement (MSA) only"), ("BAA", "Business Associate Agreement (BAA, for HIPAA clients)")])
     services = forms.MultipleChoiceField(choices=[(k, n) for k, n, _d in T.SERVICES], required=False, widget=forms.CheckboxSelectMultiple)
 
     class Meta:
@@ -59,8 +64,12 @@ class BuildForm(forms.ModelForm):
             priced = any((d.get(q) and d.get(r)) for q, r in (("users", "user_rate"), ("workstations", "workstation_rate"), ("servers", "server_rate"))) or d.get("flat_fee")
             if not priced:
                 self.add_error("flat_fee", "Add a price: a count and a rate (users, computers or servers), or a base monthly fee.")
-            if d.get("msa") and d.get("include_msa"):
-                d["include_msa"] = False   # already under a signed MSA: don't attach the terms a second time
+        if d.get("kind") == "Break/fix" and not d.get("overage_rate"):
+            self.add_error("overage_rate", "Add the hourly rate.")
+        if d.get("msa") and d.get("include_msa"):
+            d["include_msa"] = False   # already under a signed MSA: don't attach the terms a second time
+        if d.get("kind") in ("MSA", "BAA"):
+            d["include_msa"], d["msa"] = False, None
         return d
 
 
@@ -91,8 +100,9 @@ def build(request, pk=None):
             d = form.cleaned_data
             obj.type, obj.services = d["kind"], d["services"]
             obj.include_msa = d.get("include_msa", False)
+            obj.msa = d.get("msa")
             if not obj.name:
-                obj.name = ("Master Services Agreement" if obj.type == "MSA" else "Managed Services Agreement") + f" — {obj.client.name}"
+                obj.name = KIND_NAMES[obj.type] + f" — {obj.client.name}"
             if not obj.pk:
                 from apps.core.numbering import next_number
                 obj.number, obj.status, obj.created_by = next_number("contract"), "Draft", request.user
@@ -101,7 +111,9 @@ def build(request, pk=None):
             messages.success(request, "Agreement built. Read it through, then send it for e-signature.")
             return redirect(f"/billing/contract/{obj.pk}/")
     else:
-        init = {"kind": c.type if c.type == "MSA" else "Managed", "services": c.services} if c else _defaults(request, client)
+        init = {"kind": c.type if c.type in KIND_NAMES else "Managed", "services": c.services} if c else _defaults(request, client)
+        if not c and request.GET.get("kind") in KIND_NAMES:
+            init["kind"] = request.GET["kind"]
         form = BuildForm(instance=c, initial=init, user=request.user)
     return render(request, "billing/contract_build.html", {"form": form, "c": c, "service_help": {k: d for k, _n, d in T.SERVICES},
                                                            "services": [(k, n, d) for k, n, d in T.SERVICES], "exclusions": T.EXCLUSIONS},
@@ -113,7 +125,7 @@ def doc_context(c, for_pdf=False) -> dict:
     from apps.core.branding import login_brand, logo_url
     state, county = legal.jurisdiction(c.client)
     sig = c.signatures.order_by("-created_at").first()
-    lines = builder.price_lines(c) if c.built and c.type != "MSA" else []
+    lines = builder.price_lines(c) if c.built and c.type == "Managed" else []
     return {**login_brand(), "c": c, "client": c.client, "company": Setting.get("company.name", "") or "Weststar MSP", "logo_url": logo_url(),
             "scope_html": legal.to_html(c.scope), "terms_html": legal.to_html(c.terms), "signature": sig, "price_lines": lines,
             "law": "" if c.built else f"This agreement is governed by the laws of the State of {state}" + (f"; any dispute will be heard in {county} County, {state}." if county else "."),
@@ -126,8 +138,35 @@ def page(request, pk):
         raise PermissionDenied
     c = get_object_or_404(Contract.objects.select_related("client", "msa"), pk=pk)
     return render(request, "billing/contract_page.html", {**doc_context(c), "link": contract_link(c) if c.status != "Cancelled" else "",
+                                                          "kind_name": KIND_NAMES.get(c.type, c.type),
+                                                          "can_bill": c.type == "Managed" and c.built and c.status == "Active" and can(request.user, "billing", "edit"),
+                                                          "bill_todo": (not c.recurring_id and builder.monthly_total(c) > 0) or (not c.setup_invoice_id and bool(c.setup_fee)),
                                                           "can_edit": can(request.user, "billing", "edit"), "editable": not c.signed and c.status in ("Draft", "Sent"),
                                                           "schedules": c.schedules.filter(archived_at__isnull=True) if c.type == "MSA" else []})
+
+
+@login_required
+def billing(request, pk):
+    """Signed managed-services contract → the recurring monthly invoice and a draft invoice for the onboarding fee."""
+    if request.method != "POST" or not can(request.user, "billing", "edit"):
+        raise PermissionDenied
+    c = get_object_or_404(Contract.objects.select_related("client"), pk=pk, archived_at__isnull=True)
+    if c.type != "Managed" or not c.built or c.status != "Active":
+        messages.error(request, "Billing is set up from a signed managed services contract.")
+        return redirect(f"/billing/contract/{c.pk}/")
+    made = builder.create_billing(c, request.user)
+    bits = []
+    if made.get("recurring"):
+        r = made["recurring"]
+        bits.append(f"a recurring invoice of ${r.total:,.2f} a month, first one on {r.next_run:%b %-d, %Y}")
+    if made.get("invoice"):
+        bits.append(f"draft invoice {made['invoice'].number} for the onboarding fee")
+    if bits:
+        audit(request, "create", "contracts", c.pk, f"Set up billing from {c.name}: " + " and ".join(bits), area="billing")
+        messages.success(request, "Created " + " and ".join(bits) + ".")
+    else:
+        messages.info(request, "Billing for this contract is already set up.")
+    return redirect(f"/billing/contract/{c.pk}/")
 
 
 def pdf_bytes(c) -> bytes:

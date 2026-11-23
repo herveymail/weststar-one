@@ -182,3 +182,83 @@ EXCLUSIONS = [
     "Software development, website work, and training on line-of-business applications.",
     "Compliance audits, assessments and legal or regulatory advice.",
 ]
+
+# The hourly (break/fix) schedule: no monthly fee, work is done on request and billed by the hour.
+HOURLY_SCHEDULE = """## Hourly Services Schedule
+This Schedule is between {company} and {client} and describes IT services we provide on request, billed by the hour. {msa_line}
+
+## 1. How it works
+- There is no monthly fee and no minimum commitment. You ask for help when you need it, and we bill for the time and materials used.
+- We do not monitor, patch, back up or secure your systems under this Schedule. Those are managed services and are available under a separate schedule.
+- We schedule hourly work as our calendar allows. Clients with a managed services agreement are served first.
+
+## 2. Rates
+{pricing}
+
+## 3. Support hours and response targets
+{support}
+
+## 4. Approving the work
+- For anything beyond a simple fix we will tell you what we expect it to take before we start, and get your go-ahead if it grows.
+- When the work is finished we ask your contact to confirm it is complete and to acknowledge the time and charges. That confirmation is our record that the work was accepted.
+- Hardware, software and licenses are quoted separately and ordered once you approve the quote.
+
+## 5. What you are responsible for
+- Keeping current backups of your data. We are not responsible for data lost on systems we were not engaged to back up.
+- Keeping your systems licensed, under warranty and supported by their makers.
+- Deciding whether to follow our recommendations. If you decline one, you accept the risk that results.
+
+## 6. Term
+- This Schedule starts on {start_text} and continues until either party ends it with {notice_days} days' written notice.
+- We may change our hourly rates with 30 days' written notice.
+- Ending this Schedule does not cancel charges for work already done.
+"""
+
+# Business Associate Agreement, following the elements in 45 CFR 164.504(e) and the HHS sample provisions.
+BAA = """## Business Associate Agreement
+This Business Associate Agreement (the "BAA") is between {client} ("Covered Entity") and {company} ("Business Associate"). It takes effect on {effective_date} and applies whenever Business Associate creates, receives, maintains or transmits protected health information for Covered Entity while providing IT services (the "Services").
+
+## 1. Definitions
+- "HIPAA Rules" means the Privacy, Security, Breach Notification and Enforcement Rules at 45 CFR Parts 160 and 164, as amended.
+- "Protected Health Information" or "PHI" has the meaning given in 45 CFR 160.103, limited to the information Business Associate handles for Covered Entity.
+- Other terms used here that are defined in the HIPAA Rules have the meanings given there.
+
+## 2. What Business Associate may do with PHI
+- Business Associate may use and disclose PHI only as needed to provide the Services, as required by law, and as this BAA permits. Its access to PHI is incidental to maintaining and supporting Covered Entity's systems.
+- Business Associate will limit its use, disclosure and requests for PHI to the minimum necessary for the task.
+- Business Associate may use PHI for its own proper management and administration and to carry out its legal responsibilities, and may disclose PHI for those purposes if the disclosure is required by law, or if the recipient gives reasonable assurances that it will keep the PHI confidential, use it only for the purpose it was disclosed, and report any breach of confidentiality to Business Associate.
+- Business Associate will not use or disclose PHI in a way that would violate Subpart E of 45 CFR Part 164 if done by Covered Entity, except as allowed in the paragraph above.
+
+## 3. Business Associate's obligations
+- Not use or disclose PHI other than as permitted by this BAA or as required by law.
+- Use appropriate safeguards, and comply with Subpart C of 45 CFR Part 164 for electronic PHI, to prevent use or disclosure not provided for by this BAA.
+- Report to Covered Entity any use or disclosure of PHI not provided for by this BAA of which it becomes aware, including any breach of unsecured PHI as required by 45 CFR 164.410, and any security incident. A breach will be reported without unreasonable delay and no later than {breach_days} days after Business Associate discovers it, with the information Covered Entity needs for its own notices to the extent Business Associate has it.
+- Unsuccessful attempts, such as pings, port scans and blocked log-in attempts that do not result in access to PHI, are reported by this notice and need no further report.
+- Ensure, in line with 45 CFR 164.502(e)(1)(ii) and 164.308(b)(2), that any subcontractor that creates, receives, maintains or transmits PHI for Business Associate agrees to the same restrictions and conditions that apply to Business Associate.
+- Make PHI in a designated record set available to Covered Entity as needed for Covered Entity to meet its obligations under 45 CFR 164.524, within 15 days of a request, to the extent Business Associate holds it.
+- Make amendments to PHI in a designated record set as directed by Covered Entity under 45 CFR 164.526, to the extent Business Associate holds it.
+- Keep and make available the information needed for Covered Entity to give an accounting of disclosures under 45 CFR 164.528.
+- To the extent Business Associate carries out an obligation of Covered Entity under Subpart E of 45 CFR Part 164, comply with the requirements that apply to Covered Entity in doing so.
+- Make its internal practices, books and records relating to PHI available to the Secretary of Health and Human Services for determining compliance with the HIPAA Rules.
+
+## 4. Covered Entity's obligations
+- Tell Business Associate of any limitation in its notice of privacy practices, any change in or revocation of an individual's permission, and any restriction it has agreed to, where these affect Business Associate's use or disclosure of PHI.
+- Not ask Business Associate to use or disclose PHI in a way that would not be permitted under the HIPAA Rules if done by Covered Entity.
+- Give Business Associate only the access to PHI that the Services require, and not send PHI to Business Associate by email, in service requests or in screenshots.
+- Remain responsible for its own compliance with the HIPAA Rules, including its risk analysis, policies, workforce training and the security settings it chooses for its systems.
+
+## 5. Term and termination
+- This BAA stays in effect for as long as Business Associate provides the Services, and ends when the Services end or when it is terminated under this section.
+- Covered Entity may terminate this BAA, and the Services that involve PHI, if Business Associate materially violates it and does not cure the violation within 30 days after written notice.
+- When this BAA ends, Business Associate will return or destroy the PHI it still holds, where that is feasible, and keep no copies. Where return or destruction is not feasible (for example, PHI in backups kept for a retention period), Business Associate will continue to protect that PHI under this BAA and limit its use to the purposes that make return or destruction infeasible, for as long as it holds it.
+- The obligations in this section continue after this BAA ends.
+
+## 6. General
+- If the parties have a services agreement, this BAA is part of it. Where this BAA and that agreement disagree about PHI, this BAA controls. The limits of liability in that agreement apply to this BAA to the extent the law allows.
+- A reference in this BAA to a section of the HIPAA Rules means the section as in effect or as amended.
+- The parties will amend this BAA as needed for both to comply with the HIPAA Rules and other applicable law.
+- Any ambiguity in this BAA will be read in the way that permits compliance with the HIPAA Rules.
+- Nothing in this BAA gives rights to anyone other than the parties.
+- This BAA is governed by federal law and, where federal law does not apply, by the laws of the State of {state}.
+- The parties agree that this BAA may be signed electronically and that a typed name entered on the signing page is that person's signature.
+"""

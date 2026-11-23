@@ -112,3 +112,46 @@ def test_msa_wording_can_be_changed_in_settings(acct, acme):
     Setting.put("legal.msa", "## Our Agreement\nBetween {company} and {client}, under {state} law.")
     acct.post("/billing/contract/build/", {"kind": "MSA", "client": acme.pk, "notice_days": "30"})
     assert Contract.objects.get().terms == "## Our Agreement\nBetween Weststar MSP and Acme Dental, under Texas law."
+
+
+def test_hourly_contract_and_baa(acct, acme):
+    r = acct.post("/billing/contract/build/", {"kind": "Break/fix", "client": acme.pk, "notice_days": "30", "include_msa": "on", "after_hours_rate": "225", "trip_fee": "75"})
+    assert r.status_code == 422 and b"Add the hourly rate" in r.content
+    acct.post("/billing/contract/build/", {"kind": "Break/fix", "client": acme.pk, "notice_days": "30", "include_msa": "on", "overage_rate": "150",
+                                           "after_hours_rate": "225", "trip_fee": "75", "included_hours": "1", "service_notes": "Remote work is billed in 15-minute steps"})
+    h = Contract.objects.get(type="Break/fix")
+    for want in ("Hourly Services Schedule", "Standard rate: $150 per hour", "After-hours rate: $225", "Onsite trip charge: $75", "Minimum charge: 1 hour per onsite visit",
+                 "15-minute steps", "no monthly fee", "confirm it is complete", "30 days' written notice"):
+        assert want in h.scope, want
+    assert h.name == "Hourly Services Agreement — Acme Dental" and h.monthly_rate is None and "Master Services Agreement" in h.terms and "{" not in h.scope
+    acct.post("/billing/contract/build/", {"kind": "BAA", "client": acme.pk, "notice_days": "30", "include_msa": "on"})
+    b = Contract.objects.get(type="BAA")
+    for want in ("Business Associate Agreement", 'Acme Dental ("Covered Entity")', 'Weststar MSP ("Business Associate")', "45 CFR 164.410", "no later than 10 days",
+                 "164.502(e)(1)(ii)", "164.524", "164.526", "164.528", "Secretary of Health and Human Services", "return or destroy"):
+        assert want in b.terms, want
+    assert b.scope == "" and not b.include_msa and "{" not in b.terms
+    page = acct.get(f"/billing/contract/{b.pk}/").content.decode()
+    assert "Business Associate Agreement" in page and "Create recurring billing" not in page
+
+
+def test_recurring_billing_from_a_signed_contract(acct, acme):
+    from apps.billing.models import Invoice, RecurringInvoice
+    from apps.portal.models import ContractSignature
+    acct.post("/billing/contract/build/", {**MSP, "client": acme.pk})
+    c = Contract.objects.get()
+    assert "Once the client signs" in acct.get(f"/billing/contract/{c.pk}/").content.decode()
+    acct.post(f"/billing/contract/{c.pk}/billing/")                      # not signed yet: nothing happens
+    assert not RecurringInvoice.objects.exists()
+    ContractSignature.objects.create(contract=c, signed_name="Dana Lee", content_hash="x")
+    Contract.objects.filter(pk=c.pk).update(status="Active")
+    assert "Create recurring billing" in acct.get(f"/billing/contract/{c.pk}/").content.decode()
+    acct.post(f"/billing/contract/{c.pk}/billing/")
+    acct.post(f"/billing/contract/{c.pk}/billing/")                      # twice: still one of each
+    r, inv = RecurringInvoice.objects.get(), Invoice.objects.get()
+    assert (r.total, r.status, r.client, r.next_run.day) == (D("1540.00"), "Active", acme, 1)
+    assert [(ln.description, ln.qty, ln.rate) for ln in r.lines.all()] == [("Managed services — per user", 12, D("95.00")), ("Managed services — per server", 2, D("150.00")),
+                                                                           ("Managed services — base monthly fee", 1, D("100.00"))]
+    assert (inv.total, inv.status) == (D("500.00"), "Draft")
+    c.refresh_from_db()
+    page = acct.get(f"/billing/contract/{c.pk}/").content.decode()
+    assert c.recurring == r and c.setup_invoice == inv and inv.number in page and "Create recurring billing" not in page

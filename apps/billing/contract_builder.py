@@ -73,6 +73,7 @@ def base_values(c) -> dict:
         "effective_date": f"{start:%B %-d, %Y}" if start else "the date it is signed by both parties",
         "net_terms_text": f"within {net} days of the invoice date" if net else "when you receive them",
         "liability_months": Setting.get("legal.liability_months", "") or "12",
+        "breach_days": Setting.get("legal.baa_breach_days", "") or "10",
         "late_policy": v.get("late_policy") or "Balances not paid by the due date may be charged a late fee.",
     })
     return v
@@ -82,25 +83,62 @@ def msa_text(c) -> str:
     return _fill(legal.text("msa"), base_values(c)).strip()
 
 
-def schedule_text(c) -> str:
+def baa_text(c) -> str:
+    return _fill(legal.text("baa"), base_values(c)).strip()
+
+
+def _msa_line(c, v) -> str:
+    if c.include_msa:
+        return 'It is part of the Master Services Agreement between the parties that follows this Schedule (the "Agreement"); one signature covers both.'
+    if c.msa_id:
+        sig = c.msa.signatures.order_by("created_at").first()
+        when = f" signed {sig.created_at:%B %-d, %Y}" if sig else ""
+        return f'It is a Schedule under the Master Services Agreement between the parties{when}{" (" + c.msa.number + ")" if c.msa.number else ""} (the "Agreement").'
+    return f'It is governed by {v["company"]}\'s standard terms of service (the "Agreement").'
+
+
+def _support_lines(v, managed: bool, after_hours_included=False, after_hours_rate=None) -> list[str]:
     from apps.helpdesk import hours as H
     from apps.helpdesk import services as hd
+    office = H.office_label()
+    sup = [f"- Support hours: {office}, excluding public holidays." if office else "- Support hours: our normal business hours, excluding public holidays.",
+           "- How to ask for help: the client portal, email " + (v.get("support_email") or "our support address") + (f", or phone {v['company_phone']}" if v.get("company_phone") else "") + "."]
+    targets = ", ".join(f"{p} — {_dur(hd.response_minutes(p, None))}" for p in ("Critical", "High", "Medium", "Low"))
+    if managed:
+        sup.append(f"- Response targets, counted during support hours{' (Critical around the clock)' if Setting.get('tickets.sla_critical_247', 'true') != 'false' else ''}: {targets}.")
+    else:
+        sup.append(f"- We aim to respond within these times during support hours, as our schedule allows: {targets}. These are goals, not guarantees.")
+    sup.append("- Critical means your business cannot operate; High means a person or key system cannot work; Medium and Low are everything else.")
+    if after_hours_included:
+        sup.append("- Emergency support outside support hours is included for issues that stop your business from operating.")
+    elif after_hours_rate:
+        sup.append("- Support outside support hours is available at the after-hours rate" + (" in Section 4." if managed else " above."))
+    return sup
+
+
+def hourly_text(c) -> str:
+    v = base_values(c)
+    pr = [f"- Standard rate: {_money(c.overage_rate)} per hour during support hours."]
+    if c.after_hours_rate:
+        pr.append(f"- After-hours rate: {_money(c.after_hours_rate)} per hour outside support hours.")
+    if c.trip_fee:
+        pr.append(f"- Onsite trip charge: {_money(c.trip_fee)} per visit.")
+    if c.included_hours:
+        pr.append(f"- Minimum charge: {c.included_hours.normalize():f} hour{'s' if c.included_hours != 1 else ''} per onsite visit.")
+    pr += [f"- {ln.strip().lstrip('-').strip()}" for ln in (c.service_notes or "").splitlines() if ln.strip()]
+    pr.append("- Time is billed for the time worked, including travel where a trip charge does not apply.")
+    v.update({"msa_line": _msa_line(c, v), "pricing": "\n".join(pr), "support": "\n".join(_support_lines(v, False, after_hours_rate=c.after_hours_rate)),
+              "start_text": f"{c.start_date:%B %-d, %Y}" if c.start_date else "the date it is signed"})
+    return re.sub(r"\n{3,}", "\n\n", _fill(T.HOURLY_SCHEDULE, v)).strip()
+
+
+def schedule_text(c) -> str:
     v = base_values(c)
     picked = [k for k in (c.services or [])]
     names = dict((k, (n, d)) for k, n, d in T.SERVICES)
     svc = [f"- {names[k][0]}: {names[k][1]}" for k, _n, _d in T.SERVICES if k in picked]
     svc += [f"- {ln.strip().lstrip('-').strip()}" for ln in (c.service_notes or "").splitlines() if ln.strip()]
-    # support
-    office = H.office_label()
-    sup = [f"- Support hours: {office}, excluding public holidays." if office else "- Support hours: our normal business hours, excluding public holidays.",
-           "- How to ask for help: the client portal, email " + (v.get("support_email") or "our support address") + (f", or phone {v['company_phone']}" if v.get("company_phone") else "") + "."]
-    targets = ", ".join(f"{p} — {_dur(hd.response_minutes(p, None))}" for p in ("Critical", "High", "Medium", "Low"))
-    sup.append(f"- Response targets, counted during support hours{' (Critical around the clock)' if Setting.get('tickets.sla_critical_247', 'true') != 'false' else ''}: {targets}.")
-    sup.append("- Critical means your business cannot operate; High means a person or key system cannot work; Medium and Low are everything else.")
-    if "after_hours" in picked:
-        sup.append("- Emergency support outside support hours is included for issues that stop your business from operating.")
-    elif c.after_hours_rate:
-        sup.append("- Support outside support hours is available at the after-hours rate in Section 4.")
+    sup = _support_lines(v, True, "after_hours" in picked, c.after_hours_rate)
     # pricing
     lines, total = price_lines(c), monthly_total(c)
     pr = [f"- {label}: {_money(amt)} per month." for label, amt in lines] if len(lines) > 1 else []
@@ -121,15 +159,7 @@ def schedule_text(c) -> str:
         pr.append("- Onsite visits are not part of the Covered Services and are billed at the hourly rate.")
     # exclusions
     ex = [f"- {x}" for x in T.EXCLUSIONS] + [f"- {ln.strip().lstrip('-').strip()}" for ln in (c.exclusions or "").splitlines() if ln.strip()]
-    # term
-    if c.include_msa:
-        msa_line = 'It is part of the Master Services Agreement between the parties that follows this Schedule (the "Agreement"); one signature covers both.'
-    elif c.msa_id:
-        sig = c.msa.signatures.order_by("created_at").first()
-        when = f" signed {sig.created_at:%B %-d, %Y}" if sig else ""
-        msa_line = f'It is a Schedule under the Master Services Agreement between the parties{when}{" (" + c.msa.number + ")" if c.msa.number else ""} (the "Agreement").'
-    else:
-        msa_line = f'It is governed by {v["company"]}\'s standard terms of service (the "Agreement").'
+    msa_line = _msa_line(c, v)
     renew = c.renewal_months or c.term_months or 12
     v.update({
         "msa_line": msa_line, "services": "\n".join(svc) or "- (no services picked yet)", "support": "\n".join(sup), "pricing": "\n".join(pr), "exclusions": "\n".join(ex),
@@ -151,6 +181,13 @@ def build(c, save=True):
     if c.type == "MSA":
         c.scope, c.terms = "", msa_text(c)
         c.monthly_rate = None
+    elif c.type == "BAA":
+        c.scope, c.terms = "", baa_text(c)
+        c.monthly_rate = None
+    elif c.type == "Break/fix":
+        c.scope = hourly_text(c)
+        c.terms = msa_text(c) if c.include_msa else ""
+        c.monthly_rate = None
     else:
         c.monthly_rate = monthly_total(c) or None
         c.scope = schedule_text(c)
@@ -165,3 +202,51 @@ def build(c, save=True):
     if save:
         c.save()
     return c
+
+
+def create_billing(c, user=None) -> dict:
+    """From a signed managed-services contract: the recurring monthly invoice, and a draft invoice for the onboarding fee."""
+    from datetime import date, timedelta
+
+    from django.db import transaction
+    from django.utils import timezone
+
+    from apps.core.numbering import next_number
+
+    from .models import Contract, Invoice, InvoiceLine, RecurringInvoice, RecurringLine
+    made = {}
+    labor_tax = Setting.get("billing.labor_taxable", "no") == "yes"
+    try:
+        tax = Decimal(Setting.get("billing.default_tax_rate", "0") or 0)
+    except Exception:  # noqa: BLE001
+        tax = ZERO
+    today = timezone.localdate()
+    with transaction.atomic():
+        c = Contract.objects.select_for_update().select_related("client").get(pk=c.pk)
+        if not c.recurring_id and monthly_total(c) > 0:
+            start = c.start_date if c.start_date and c.start_date > today else today
+            first = start if start.day == 1 else date(start.year + (start.month == 12), start.month % 12 + 1, 1)   # billed in advance on the 1st
+            r = RecurringInvoice.objects.create(name=c.name[:200], client=c.client, frequency="Month", next_run=first, status="Active", tax_rate=tax,
+                                                notes=f"Per agreement {c.number or c.name}.", created_by=user)
+            rows = []
+            for qty, rate, what in ((c.users, c.user_rate, "per user"), (c.workstations, c.workstation_rate, "per computer"), (c.servers, c.server_rate, "per server")):
+                if qty and rate:
+                    rows.append((f"Managed services — {what}", qty, rate))
+            if c.flat_fee:
+                rows.append(("Managed services — base monthly fee", 1, c.flat_fee))
+            if not rows:
+                rows.append(("Managed services — monthly fee", 1, c.monthly_rate))
+            for i, (desc, qty, rate) in enumerate(rows):
+                RecurringLine.objects.create(schedule=r, description=desc, qty=qty, rate=rate, taxable=labor_tax, sort_order=i)
+            r.recalc()
+            c.recurring = made["recurring"] = r
+        if not c.setup_invoice_id and c.setup_fee:
+            inv = Invoice.objects.create(number=next_number("invoice"), client=c.client, status="Draft", invoice_date=today,
+                                         due_date=today + timedelta(days=c.client.net_terms or 0), tax_rate=tax,
+                                         scope=f"Onboarding — {c.name}"[:255], created_by=user)
+            InvoiceLine.objects.create(invoice=inv, description=f"One-time onboarding fee per agreement {c.number or c.name}", qty=1, rate=c.setup_fee, taxable=labor_tax)
+            inv.recalc()
+            c.setup_invoice = made["invoice"] = inv
+        if made:
+            Contract.objects.filter(pk=c.pk).update(recurring=c.recurring, setup_invoice=c.setup_invoice)
+    return made

@@ -311,6 +311,8 @@ class Contract(Record):
     our_signer = models.CharField(max_length=200, blank=True)
     our_title = models.CharField(max_length=200, blank=True)
     our_signed_at = models.DateTimeField(null=True, blank=True, editable=False)
+    recurring = models.ForeignKey("RecurringInvoice", null=True, blank=True, on_delete=models.SET_NULL, related_name="contracts", editable=False)
+    setup_invoice = models.ForeignKey("Invoice", null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False)
 
     BUILDER_FIELDS = ["include_msa", "msa", "term_months", "renewal_months", "notice_days", "increase_pct", "users", "user_rate", "workstations",
                       "workstation_rate", "servers", "server_rate", "flat_fee", "setup_fee", "after_hours_rate", "trip_fee", "services", "service_notes",

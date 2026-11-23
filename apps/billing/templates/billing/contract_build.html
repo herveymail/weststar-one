@@ -7,10 +7,10 @@
 {% if form.errors %}<div class="banner" role="alert"><b>Not built yet.</b> Fix what is marked below.{% if form.non_field_errors %} {{ form.non_field_errors|join:" " }}{% endif %}</div>{% endif %}
 <form method="post" class="stack cb" id="cb-form">{% csrf_token %}
   <section class="card pad stack">
-    <h2>1 · What and who</h2>
+    <h2>What and who</h2>
     <div class="form-grid">
       <div class="field"><label for="{{ form.kind.id_for_label }}">Kind of agreement</label>{{ form.kind }}
-        <span class="help">MSA = the general terms, signed once per client. A managed services contract lists the services, prices and term.</span></div>
+        <span class="help">MSA = the general terms, signed once per client. Managed and hourly contracts list the services and prices. A BAA is for clients covered by HIPAA.</span></div>
       <div class="field"><label for="{{ form.client.id_for_label }}">Client *</label>{{ form.client }}{{ form.client.errors }}</div>
       <div class="field wide"><label for="{{ form.name.id_for_label }}">Name</label>{{ form.name }}<span class="help">Leave blank and it's named for you.</span></div>
       <div class="field"><label for="{{ form.start_date.id_for_label }}">Start date</label>{{ form.start_date }}<span class="help">Blank = the day it is signed.</span></div>
@@ -18,16 +18,15 @@
     </div>
   </section>
 
-  <div data-only="Managed" class="stack">
-  <section class="card pad stack">
-    <h2>2 · The MSA</h2>
+  <section class="card pad stack" data-only="Managed Break/fix">
+    <h2>The MSA</h2>
     <label class="check">{{ form.include_msa }}<span><b>Attach the MSA terms to this contract</b> — the client signs once and it covers both. Best for a new client.</span></label>
     <div class="field" style="max-width:520px"><label for="{{ form.msa.id_for_label }}">Or put it under an MSA this client already has</label>{{ form.msa }}
       <span class="help">Only MSAs for the client picked above are listed. Save once to refresh the list after changing the client.</span></div>
   </section>
 
-  <section class="card pad stack">
-    <h2>3 · Term</h2>
+  <section class="card pad stack" data-only="Managed">
+    <h2>Term</h2>
     <div class="form-grid">
       <div class="field"><label for="{{ form.term_months.id_for_label }}">Initial term (months)</label>{{ form.term_months }}<span class="help">Blank or 0 = month to month.</span></div>
       <div class="field"><label for="{{ form.renewal_months.id_for_label }}">Renewal term (months)</label>{{ form.renewal_months }}<span class="help">Blank = same as the initial term.</span></div>
@@ -36,16 +35,17 @@
     </div>
   </section>
 
-  <section class="card pad stack">
-    <h2>4 · What is covered</h2>
+  <section class="card pad stack" data-only="Managed">
+    <h2>What is covered</h2>
     {{ form.services.errors }}
     <div class="cb-services">{% for k, n, d in services %}
       <label class="cb-svc"><input type="checkbox" name="services" value="{{ k }}"{% if k in form.services.value %} checked{% endif %}><span><b>{{ n }}</b><small>{{ d }}</small></span></label>{% endfor %}</div>
     <div class="field"><label for="{{ form.service_notes.id_for_label }}">Anything else that is covered (one per line)</label>{{ form.service_notes }}</div>
   </section>
 
-  <section class="card pad stack">
-    <h2>5 · Price</h2>
+  <section class="card pad stack" data-only="Managed Break/fix">
+    <h2>Price</h2>
+    <div data-only="Managed" class="stack">
     {{ form.flat_fee.errors }}
     <table class="grid cb-price"><thead><tr><th>Per month</th><th class="num">How many</th><th class="num">Each ($)</th><th class="num">Monthly</th></tr></thead><tbody>
       <tr data-row><td>Users</td><td>{{ form.users }}</td><td>{{ form.user_rate }}{{ form.user_rate.errors }}</td><td class="num" data-sub>—</td></tr>
@@ -54,22 +54,26 @@
       <tr data-flat><td>Base monthly fee</td><td></td><td>{{ form.flat_fee }}</td><td class="num" data-sub>—</td></tr>
     </tbody><tfoot><tr><td colspan="3" class="num"><b>Monthly total</b></td><td class="num"><b id="cb-total">$0.00</b></td></tr></tfoot></table>
     <p class="help" style="margin:0">Use any mix: per user, per computer, per server, a flat fee, or all of them.</p>
+    <div class="form-grid"><div class="field"><label for="{{ form.setup_fee.id_for_label }}">One-time onboarding fee ($)</label>{{ form.setup_fee }}{{ form.setup_fee.errors }}</div></div>
+    </div>
     <div class="form-grid">
-      <div class="field"><label for="{{ form.setup_fee.id_for_label }}">One-time onboarding fee ($)</label>{{ form.setup_fee }}{{ form.setup_fee.errors }}</div>
-      <div class="field"><label for="{{ form.included_hours.id_for_label }}">Hours included per month</label>{{ form.included_hours }}<span class="help">Blank = covered work is unlimited.</span></div>
-      <div class="field"><label for="{{ form.overage_rate.id_for_label }}">Hourly rate for work not covered ($)</label>{{ form.overage_rate }}{{ form.overage_rate.errors }}</div>
+      <div class="field"><label for="{{ form.included_hours.id_for_label }}"><span data-only="Managed">Hours included per month</span><span data-only="Break/fix">Minimum hours per onsite visit</span></label>{{ form.included_hours }}<span class="help" data-only="Managed">Blank = covered work is unlimited.</span><span class="help" data-only="Break/fix">Blank = no minimum.</span></div>
+      <div class="field"><label for="{{ form.overage_rate.id_for_label }}"><span data-only="Managed">Hourly rate for work not covered ($)</span><span data-only="Break/fix">Hourly rate ($) *</span></label>{{ form.overage_rate }}{{ form.overage_rate.errors }}</div>
       <div class="field"><label for="{{ form.after_hours_rate.id_for_label }}">After-hours hourly rate ($)</label>{{ form.after_hours_rate }}{{ form.after_hours_rate.errors }}</div>
       <div class="field"><label for="{{ form.trip_fee.id_for_label }}">Onsite trip charge ($)</label>{{ form.trip_fee }}{{ form.trip_fee.errors }}</div>
     </div>
+    <div class="field" data-only="Break/fix"><label for="hourly-notes">Other rate details (one per line)</label><textarea id="hourly-notes" class="textarea" rows="2" data-mirror="{{ form.service_notes.id_for_label }}" placeholder="e.g. Remote work is billed in 15-minute steps"></textarea></div>
   </section>
 
-  <section class="card pad stack">
-    <h2>6 · What is not covered</h2>
+  <section class="card pad stack" data-only="Managed">
+    <h2>What is not covered</h2>
     <ul class="small muted" style="margin:0;padding-left:18px">{% for x in exclusions %}<li>{{ x }}</li>{% endfor %}</ul>
     <div class="field"><label for="{{ form.exclusions.id_for_label }}">Add more exclusions (one per line)</label>{{ form.exclusions }}</div>
   </section>
-  </div>
-
+  <section class="card pad stack" data-only="BAA">
+    <h2>About the BAA</h2>
+    <p class="muted" style="margin:0">A Business Associate Agreement is the HIPAA agreement a medical, dental or other covered client needs from us because we may see patient information while supporting their systems. It follows the standard required terms; the client is the Covered Entity and we are the Business Associate. The wording and the days allowed to report a breach are in Settings › Legal & terms.</p>
+  </section>
   <section class="card pad stack">
     <h2>Who signs for us</h2>
     <div class="form-grid">

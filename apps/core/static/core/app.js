@@ -416,7 +416,7 @@ document.addEventListener('submit', (e) => {
   const num = el => { const v = (el && el.value || '').replace(/[$,\s]/g, ''); return parseFloat(v) || 0; };
   const money = n => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   function sync() {
-    form.querySelectorAll('[data-only]').forEach(el => { el.hidden = el.dataset.only !== kind.value; });
+    form.querySelectorAll('[data-only]').forEach(el => { el.hidden = !el.dataset.only.split(' ').includes(kind.value); });
     let total = 0;
     form.querySelectorAll('tr[data-row]').forEach(tr => {
       const ins = tr.querySelectorAll('input'); const sub = num(ins[0]) * num(ins[1]);
@@ -426,5 +426,9 @@ document.addEventListener('submit', (e) => {
     if (flat) { const f = num(flat.querySelector('input')); flat.querySelector('[data-sub]').textContent = f ? money(f) : '—'; total += f; }
     const out = document.getElementById('cb-total'); if (out) out.textContent = money(total);
   }
+  // The hourly contract's "other rate details" box writes into the same field the managed contract uses for extra services.
+  const mirror = form.querySelector('[data-mirror]');
+  if (mirror) { const target = document.getElementById(mirror.dataset.mirror); mirror.value = kind.value === 'Break/fix' ? target.value : '';
+    mirror.addEventListener('input', () => { target.value = mirror.value; }); }
   form.addEventListener('input', sync); form.addEventListener('change', sync); sync();
 })();

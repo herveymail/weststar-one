@@ -207,8 +207,9 @@ DOCS = {
 
 
 def _client_agreements():
-    from apps.billing.contract_texts import MSA
+    from apps.billing.contract_texts import BAA, MSA
     DOCS["msa"] = ("Master Services Agreement (MSA)", MSA, "The base agreement used by the contract builder (Billing › Contracts › New agreement).")
+    DOCS["baa"] = ("Business Associate Agreement (BAA)", BAA, "For clients covered by HIPAA. Used by the contract builder.")
 
 
 _client_agreements()

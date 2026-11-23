@@ -429,3 +429,4 @@ html.ws-busy, html.ws-busy * { cursor: progress; }
 @media (max-width: 640px) { .sig-grid { grid-template-columns: 1fr; } }
 .sig-name { border-bottom: 1px solid var(--text); min-height: 38px; font: italic 22px Georgia, 'Times New Roman', serif; padding: 4px 0; }
 .kv-list { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0; font-size: 14px; } .kv-list dt { color: var(--muted); } .kv-list dd { margin: 0; }
+.cb [hidden] { display: none !important; }

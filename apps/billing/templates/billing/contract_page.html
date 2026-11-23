@@ -33,14 +33,21 @@
     <section class="card pad stack" style="gap:8px"><h2>At a glance</h2>
       <dl class="kv-list">
         <dt>Client</dt><dd><a href="/clients/{{ client.pk }}/?tab=Contracts">{{ client.name }}</a></dd>
-        <dt>Kind</dt><dd>{% if c.type == "MSA" %}Master Services Agreement{% elif c.type == "Managed" %}Managed services{% else %}{{ c.type }}{% endif %}</dd>
-        {% if c.type != "MSA" %}<dt>Term</dt><dd>{{ c.start_date|date:"M j, Y"|default:"On signing" }} – {{ c.end_date|date:"M j, Y"|default:"ongoing" }}{% if c.auto_renew %} · auto-renews{% endif %}</dd>{% endif %}
+        <dt>Kind</dt><dd>{{ kind_name }}</dd>
+        {% if c.type != "MSA" and c.type != "BAA" %}<dt>Term</dt><dd>{{ c.start_date|date:"M j, Y"|default:"On signing" }} – {{ c.end_date|date:"M j, Y"|default:"ongoing" }}{% if c.auto_renew %} · auto-renews{% endif %}</dd>{% endif %}
         {% if c.monthly_rate %}<dt>Monthly</dt><dd><b>{{ c.monthly_rate|dollars }}</b></dd>{% endif %}
         {% if c.setup_fee %}<dt>Onboarding</dt><dd>{{ c.setup_fee|dollars }}</dd>{% endif %}
-        {% if c.msa %}<dt>Under MSA</dt><dd><a href="/billing/contract/{{ c.msa.pk }}/">{{ c.msa.number|default:c.msa.name }}</a> ({{ c.msa.status }})</dd>{% elif c.type == "Managed" and c.built %}<dt>MSA</dt><dd>{% if c.include_msa %}Attached — one signature{% else %}Not attached{% endif %}</dd>{% endif %}
+        {% if c.msa %}<dt>Under MSA</dt><dd><a href="/billing/contract/{{ c.msa.pk }}/">{{ c.msa.number|default:c.msa.name }}</a> ({{ c.msa.status }})</dd>{% elif c.built and c.type == "Managed" or c.built and c.type == "Break/fix" %}<dt>MSA</dt><dd>{% if c.include_msa %}Attached — one signature{% else %}Not attached{% endif %}</dd>{% endif %}
       </dl>
       {% for label, amt in price_lines %}{% if forloop.first %}<div class="small muted" style="margin-top:4px">Price breakdown</div>{% endif %}<div class="small" style="display:flex;gap:8px"><span style="flex:1">{{ label }}</span><span>{{ amt|dollars }}</span></div>{% endfor %}
     </section>
+    {% if c.type == "Managed" and c.built %}<section class="card pad stack" style="gap:8px"><h2>Billing</h2>
+      {% if c.recurring %}<div class="small">Recurring invoice: <a href="/m/recurring/?open_form=/m/recurring/{{ c.recurring.pk }}/">{{ c.recurring.name }}</a> · {{ c.recurring.total|dollars }} a month · next {{ c.recurring.next_run|date:"M j, Y" }} · {{ c.recurring.status }}</div>{% endif %}
+      {% if c.setup_invoice %}<div class="small">Onboarding fee: invoice <a href="/billing/invoice/{{ c.setup_invoice.pk }}/">{{ c.setup_invoice.number }}</a> · {{ c.setup_invoice.total|dollars }} · {{ c.setup_invoice.status }}</div>{% endif %}
+      {% if can_bill and bill_todo %}<form method="post" action="/billing/contract/{{ c.pk }}/billing/">{% csrf_token %}<button class="btn primary small">Create recurring billing</button></form>
+        <p class="small muted" style="margin:0">Makes the monthly recurring invoice ({{ c.monthly_rate|dollars }}, billed on the 1st){% if c.setup_fee %} and a draft invoice for the {{ c.setup_fee|dollars }} onboarding fee{% endif %}. The first partial month isn't prorated — add that by hand if you charge it.</p>
+      {% elif not c.recurring and not c.setup_invoice %}<p class="small muted" style="margin:0">{% if c.status == "Active" %}Nothing to bill on this contract.{% else %}Once the client signs, you can create the recurring invoice from here with one click.{% endif %}</p>{% endif %}
+    </section>{% endif %}
     {% if schedules %}<section class="card pad stack" style="gap:6px"><h2>Contracts under this MSA</h2>{% for s in schedules %}<a href="/billing/contract/{{ s.pk }}/">{{ s.name }}</a><span class="small muted">{{ s.status }}{% if s.monthly_rate %} · {{ s.monthly_rate|dollars }}/mo{% endif %}</span>{% endfor %}</section>{% endif %}
     <section class="card pad stack" style="gap:6px"><h2>How signing works</h2>
       <p class="small muted" style="margin:0">The client gets an email with a private link, reads the agreement and signs by typing their name — no account needed. We keep their name, title, the time, their IP address and a fingerprint of the exact text they signed. Once signed, the wording is locked and the PDF carries a signature page.</p>

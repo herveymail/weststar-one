@@ -112,6 +112,7 @@ urlpatterns = [
     path("billing/contract/<int:pk>/build/", cbv.build, name="contract_rebuild"),
     path("billing/contract/<int:pk>/", cbv.page, name="contract_page"),
     path("billing/contract/<int:pk>/pdf/", cbv.pdf, name="contract_pdf"),
+    path("billing/contract/<int:pk>/billing/", cbv.billing, name="contract_billing"),
     path("billing/contract/<int:pk>/send/", bv.contract_send, name="contract_send"),
     path("billing/renewal/<int:pk>/quote/", bv.renewal_quote, name="renewal_quote"),
     path("billing/<slug:kind>/<int:pk>/", bv.document, name="document"),
