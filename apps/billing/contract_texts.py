@@ -58,7 +58,7 @@ This Master Services Agreement (the "Agreement") is between {company} ("{company
 - {company_entities_or_cap} will start processing your request the same business day we receive it, and we will keep providing service up to the cancellation date.
 - We will release to you all passwords for the equipment and accounts you own. We will also remove our monitoring and management software and our own access, and give you a copy of the records we keep about your environment.
 - If your new IT company needs our help moving things over, that work is billed at {transition_rate} per hour.
-- If your new IT company is not ready to take over by the cancellation date and you ask us to keep supporting you, you agree to pay {post_cancel_rate} per hour for any IT support we provide after that date. That work is billed as off-contract work.
+- If your new IT company is not ready to take over by the cancellation date and you ask us to keep supporting you, you agree to pay {post_cancel_rate} for any IT support we provide after that date. That work is billed as off-contract work.
 - We cannot call your new IT company and speak for you. You need to be on the call with us as a three-way call.
 - Software, licenses and security tools that we provide as part of our services stop on the cancellation date unless you arrange to take them over with the vendor.
 

@@ -64,6 +64,18 @@ def _fill(text: str, values: dict) -> str:
     return re.sub(r"\{([a-z_]+)\}", lambda m: str(values.get(m.group(1), m.group(0))), text)
 
 
+def _post_cancel_rate(c) -> str:
+    """Support after the cancellation date is billed at the normal hourly rate, unless Settings names a special one."""
+    special = (Setting.get("legal.post_cancel_rate", "") or "").strip()
+    if special:
+        return f"{_money(special)} per hour"
+    normal = (c.client.hourly_rate if c.client_id and c.client.hourly_rate else None) or (Setting.get("billing.hourly_rate", "") or "").strip()
+    try:
+        return f"our standard hourly rate ({_money(normal)} per hour at the time of this Agreement)" if normal and Decimal(normal) > 0 else "our standard hourly rate in effect at the time"
+    except Exception:  # noqa: BLE001 — a mistyped rate in Settings
+        return "our standard hourly rate in effect at the time"
+
+
 def base_values(c) -> dict:
     v = legal.values(c.client, "msa")
     net = c.client.net_terms if c.client_id and c.client.net_terms is not None else int(Setting.get("billing.net_terms", "30") or 30)
@@ -82,7 +94,7 @@ def base_values(c) -> dict:
         "company_entities_cap": ents or v["company"],
         "company_entities_or_cap": ents.replace(" and ", " or ") if ents else v["company"],
         "cancel_email": Setting.get("legal.cancel_email", "chervey@weststarmsp.com") or v.get("support_email") or "our office",
-        "transition_rate": _money(Setting.get("legal.transition_rate", "") or 175), "post_cancel_rate": _money(Setting.get("legal.post_cancel_rate", "") or 75),
+        "transition_rate": _money(Setting.get("legal.transition_rate", "") or 175), "post_cancel_rate": _post_cancel_rate(c),
         "late_policy": v.get("late_policy") or "Balances not paid by the due date may be charged a late fee.",
     })
     return v
