@@ -185,3 +185,17 @@ def test_msa_has_the_service_request_rules_and_our_right_to_cancel(acct, acme):
                  "do not follow Weststar MSP's policies", "## 5. Fees and payment", "## 22. Electronic signatures", "price changes under Section 5"):
         assert want in t, want
     assert "{" not in t
+
+
+def test_msa_cancellation_and_security_terms(acct, acme):
+    acct.post("/billing/contract/build/", {"kind": "MSA", "client": acme.pk, "notice_days": "30"})
+    t = Contract.objects.get().terms
+    for want in ("## 7. Cancelling at your request", "do not accept a cancellation by phone", "email to chervey@weststarmsp.com", "company letterhead",
+                 "your account number", "Weststar MSP Arizona or Weststar MSP Texas will start processing your request the same business day",
+                 "providing service up to the cancellation date", "release to you all passwords for the equipment and accounts you own", "$175 per hour",
+                 "$75 per hour for any IT support", "off-contract work", "three-way call", "follow Weststar MSP's cybersecurity recommendations",
+                 "hold Weststar MSP Arizona and Weststar MSP Texas harmless from any claim arising out of a data breach", "feedback on ways to protect yourself"):
+        assert want in t, want
+    assert "{" not in t
+    Setting.put("legal.transition_rate", "200")
+    assert "$200 per hour" in builder.msa_text(Contract.objects.get())

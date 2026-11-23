@@ -80,6 +80,9 @@ def base_values(c) -> dict:
         "portal_name": Setting.get("brand.app_name", "") or "Weststar ONE",
         "entities_line": (f" In this Agreement, {v['company']} means {ents}, each of which may provide the services and enforce this Agreement." if ents else ""),
         "company_entities_cap": ents or v["company"],
+        "company_entities_or_cap": ents.replace(" and ", " or ") if ents else v["company"],
+        "cancel_email": Setting.get("legal.cancel_email", "chervey@weststarmsp.com") or v.get("support_email") or "our office",
+        "transition_rate": _money(Setting.get("legal.transition_rate", "") or 175), "post_cancel_rate": _money(Setting.get("legal.post_cancel_rate", "") or 75),
         "late_policy": v.get("late_policy") or "Balances not paid by the due date may be charged a late fee.",
     })
     return v

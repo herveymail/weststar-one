@@ -53,10 +53,14 @@ This Master Services Agreement (the "Agreement") is between {company} ("{company
 - If you end a Schedule early without cause, or we end it because of your breach, the fees for the rest of its current term become due, unless the Schedule says otherwise.
 - Ending this Agreement does not cancel amounts already owed.
 
-## 7. Transition when services end
-- When services end and your account is paid in full, we will give you the administrator passwords and account access we hold for your systems, remove our monitoring and management software and our own access, and give you a copy of the records we keep about your environment.
-- Reasonable transition help is included. Extended work to move you to another provider is billed at our standard rates.
-- Software, licenses and security tools that we provide as part of our services stop when the services end unless you arrange to take them over with the vendor.
+## 7. Cancelling at your request, and moving to another provider
+- We do not accept a cancellation by phone. To cancel, send an email to {cancel_email} with a letter on your company letterhead that gives your account number and the date you want service to end. The rest of this Agreement, including any notice period and fees for the remainder of a term, still applies.
+- {company_entities_or_cap} will start processing your request the same business day we receive it, and we will keep providing service up to the cancellation date.
+- We will release to you all passwords for the equipment and accounts you own. We will also remove our monitoring and management software and our own access, and give you a copy of the records we keep about your environment.
+- If your new IT company needs our help moving things over, that work is billed at {transition_rate} per hour.
+- If your new IT company is not ready to take over by the cancellation date and you ask us to keep supporting you, you agree to pay {post_cancel_rate} per hour for any IT support we provide after that date. That work is billed as off-contract work.
+- We cannot call your new IT company and speak for you. You need to be on the call with us as a three-way call.
+- Software, licenses and security tools that we provide as part of our services stop on the cancellation date unless you arrange to take them over with the vendor.
 
 ## 8. Third-party products and services
 - Hardware, software and cloud services made by others are provided under the maker's own terms and warranty. We pass those through to you and will help you use them, but we do not add to them.
@@ -64,6 +68,8 @@ This Master Services Agreement (the "Agreement") is between {company} ("{company
 - We are not responsible for outages, defects, price changes or the discontinuation of third-party products and services.
 
 ## 9. Security, backups and data
+- Our role is to secure your systems and to give you feedback on ways to protect yourself. You agree to follow {company}'s cybersecurity recommendations.
+- To the fullest extent the law allows, you will hold {company_entities_cap} harmless from any claim arising out of a data breach or other security incident involving your systems or data.
 - No security measure can prevent every attack. We do not guarantee that your systems will be free of viruses, ransomware, intrusion, data loss or downtime, and we are not liable for a security incident unless it was directly caused by our gross negligence or willful misconduct.
 - Unless a Schedule includes a managed backup service, you are responsible for backing up your data. Where we do manage backups, we monitor them and act on failures, but we cannot guarantee that every file can be restored.
 - Responding to and recovering from a security incident, a disaster, or a problem caused by something outside the covered services is not included in recurring fees and is billed at our standard rates unless a Schedule says otherwise.
