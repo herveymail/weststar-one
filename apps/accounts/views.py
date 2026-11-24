@@ -68,7 +68,10 @@ def password_login_allowed(user) -> bool:
         return False
     if Setting.get("security.password_login", "everyone") == "everyone":
         return True
-    return user.role == "admin"
+    # Passwords are limited to admins — except for people an admin has allowed, and people who have no way to use
+    # Google at all (their address isn't on an allowed Workspace domain, e.g. an outside contractor). Without this
+    # they could not sign in by either door.
+    return user.role == "admin" or user.password_ok or not google.can_use(user)
 
 
 def google_start(request):
@@ -297,7 +300,7 @@ def _temp_password() -> str:
 class UserForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ["name", "email", "google_email", "role", "hr_access", "google_only", "title", "phone", "scoped_clients"]
+        fields = ["name", "email", "google_email", "role", "hr_access", "google_only", "password_ok", "title", "phone", "scoped_clients"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "input"}), "email": forms.EmailInput(attrs={"class": "input"}),
             "google_email": forms.EmailInput(attrs={"class": "input"}),
@@ -305,6 +308,19 @@ class UserForm(forms.ModelForm):
             "phone": forms.TextInput(attrs={"class": "input"}),
             "scoped_clients": forms.CheckboxSelectMultiple(),
         }
+
+    def clean(self):
+        d = super().clean()
+        if d.get("google_only") and d.get("password_ok"):
+            self.add_error("password_ok", "Pick one: “Must sign in with Google” or “Allow password sign-in”, not both.")
+        if d.get("google_only"):
+            from . import google
+            doms = google.config()["domains"]
+            emails = [e for e in (d.get("email"), d.get("google_email")) if e]
+            if doms and not any(e.rsplit("@", 1)[-1].lower() in doms for e in emails):
+                self.add_error("google_only", f"This person's email isn't on an allowed Google domain ({', '.join(doms)}), so they could never sign in. "
+                                              "Untick this, or add their Google account email above.")
+        return d
 
     def __init__(self, *a, **kw):
         super().__init__(*a, **kw)

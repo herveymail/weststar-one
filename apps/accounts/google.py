@@ -46,6 +46,12 @@ def config() -> dict:
     }
 
 
+def can_use(user) -> bool:
+    """Could this person sign in with Google at all? Their staff email or Google account email must be on an allowed domain."""
+    doms = config()["domains"]
+    return any((e or "").rsplit("@", 1)[-1].lower() in doms for e in (user.email, user.google_email) if e and "@" in e)
+
+
 def enabled() -> bool:
     c = config()
     return bool(c["client_id"] and c["client_secret"] and c["domains"])

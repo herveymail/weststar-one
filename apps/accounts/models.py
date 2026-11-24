@@ -37,6 +37,9 @@ class User(AbstractBaseUser):
                                           help_text="About 7 AM on weekdays: your tickets, today's calendar and what needs doing.")
     google_only = models.BooleanField("Must sign in with Google", default=False,
                                       help_text="Their password stops working once Google sign-in is set up (like the old app's linked accounts).")
+    password_ok = models.BooleanField("Allow password sign-in", default=False,
+                                      help_text="Lets this person sign in with their password even when Settings › Sign-in & 2FA limits passwords to admins. "
+                                                "For contractors and anyone without a company Google account.")
     google_email = models.EmailField("Google account email (if different)", max_length=254, blank=True, default="",
                                      help_text="Only if they sign in to Google with a different address than their staff email above.")
     google_linked_at = models.DateTimeField(null=True, blank=True, editable=False)
