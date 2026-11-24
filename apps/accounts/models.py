@@ -21,6 +21,8 @@ class User(AbstractBaseUser):
     name = models.CharField(max_length=200)
     role = models.CharField(max_length=20, choices=ROLES, default="tech")
     hr_access = models.BooleanField("H/R access", default=False)
+    scoped_clients = models.ManyToManyField("crm.Client", blank=True, related_name="+", verbose_name="Only these clients",
+                                            help_text="For a contractor: pick clients and this login can only see and work tickets for them — nothing else in the system.")
     title = models.CharField(max_length=100, blank=True)
     phone = models.CharField(max_length=50, blank=True)
     menu_style = models.CharField("Side menu", max_length=10, choices=[("icons", "Icon bar with pop-out menus"), ("list", "Full list, everything open")], default="icons")

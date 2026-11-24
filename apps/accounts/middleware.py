@@ -11,6 +11,39 @@ OPEN_PATHS = ("/login/", "/static/", "/health/", "/client-portal/", "/portal", "
 STEP_PATHS = ("/login/mfa/", "/logout/", "/account/password/", "/account/mfa-setup/")
 
 
+class ClientScopeMiddleware:
+    """A login limited to certain clients (Settings › Users › Only these clients): narrow every query to those clients
+    for the length of the request, and refuse everything except the ticket screens."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        from django.http import HttpResponse
+
+        from apps.core import scope
+        user = request.user
+        if not user.is_authenticated or request.path.startswith(OPEN_PATHS):
+            return self.get_response(request)
+        ids = list(user.scoped_clients.values_list("id", flat=True))
+        if not ids:
+            return self.get_response(request)
+        request.client_scope = ids
+        path = request.path
+        if not path.startswith(scope.ALLOWED):
+            if request.method == "GET" and not request.headers.get("HX-Request"):
+                return redirect("/tickets/")
+            return HttpResponse("This sign-in is limited to tickets for certain clients.", status=403, content_type="text/plain")
+        token = scope.enter(ids)
+        try:
+            response = self.get_response(request)
+            if hasattr(response, "render") and callable(response.render) and not getattr(response, "is_rendered", True):
+                response.render()   # finish any lazy template work while the limit is still on
+            return response
+        finally:
+            scope.leave(token)
+
+
 class SessionGuardMiddleware:
     """Every request: session still valid (not revoked, not idle), then the sign-in gates in order —
     two-factor code → forced password change → required two-factor setup."""

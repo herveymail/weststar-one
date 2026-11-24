@@ -7,6 +7,8 @@ import secrets
 
 from django.conf import settings
 from django.db import models
+
+from apps.core.scope import ScopedManager
 from django.utils import timezone
 
 KINDS = [("ticket", "Ticket"), ("client", "Client"), ("project", "Project")]
@@ -23,6 +25,7 @@ def stored_path(instance, filename):
 
 
 class Upload(models.Model):
+    objects = ScopedManager("client_id", "ticket__client_id")   # narrowed for client-limited logins
     kind = models.CharField(max_length=10, choices=KINDS)
     ticket = models.ForeignKey("helpdesk.Ticket", null=True, blank=True, on_delete=models.CASCADE, related_name="uploads")
     message = models.ForeignKey("helpdesk.TicketMessage", null=True, blank=True, on_delete=models.SET_NULL, related_name="uploads")

@@ -1,5 +1,7 @@
 from django.conf import settings
 from django.db import models
+
+from apps.core.scope import ScopedManager
 from django.utils import timezone
 
 from apps.core.choices import C
@@ -47,6 +49,7 @@ DEFAULT_RESPONSE_MINUTES = {"Critical": 60, "High": 240, "Medium": 1440, "Low": 
 
 
 class Ticket(models.Model):
+    objects = ScopedManager("client_id")   # narrowed for client-limited logins (apps/core/scope.py)
     number = models.CharField(max_length=30, unique=True)
     subject = models.CharField(max_length=255)
     details = models.TextField(blank=True)
@@ -164,6 +167,7 @@ Ticket.grid_sla = property(grid_sla)
 
 
 class TicketMessage(models.Model):
+    objects = ScopedManager("ticket__client_id")   # narrowed for client-limited logins (apps/core/scope.py)
     KINDS = [("reply", "Reply"), ("note", "Internal note"), ("work", "Work log"), ("event", "Event")]
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="messages")
     kind = models.CharField(max_length=10, choices=KINDS)
@@ -195,6 +199,7 @@ class TicketMessage(models.Model):
 
 
 class TimeEntry(models.Model):
+    objects = ScopedManager("ticket__client_id")   # narrowed for client-limited logins (apps/core/scope.py)
     WORK_TYPES = C("Remote", "On-site", "Phone", "Travel", "Project")
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="time_entries")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
@@ -252,6 +257,7 @@ class AiLog(models.Model):
 class TicketSignoff(models.Model):
     """Customer sign-off (old app 2026.0.89). completion: break/fix customer confirms the work is done, working, and
     agrees to the charges. dropoff: customer confirms they received equipment. A tech may override with a reason."""
+    objects = ScopedManager("ticket__client_id")   # narrowed for client-limited logins (apps/core/scope.py)
     TYPES = [("completion", "Work completed"), ("dropoff", "Drop-off")]
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="signoffs")
     type = models.CharField(max_length=12, choices=TYPES)
@@ -284,6 +290,7 @@ class TicketSignoff(models.Model):
 
 class TicketApproval(models.Model):
     """Scope/budget approval log: the client OK'd out-of-scope or over-budget work (protects against billing disputes)."""
+    objects = ScopedManager("ticket__client_id")   # narrowed for client-limited logins (apps/core/scope.py)
     VIA = [("email", "Email"), ("phone", "Phone"), ("in_person", "In person"), ("text", "Text message"), ("portal", "Portal")]
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="approvals")
     description = models.CharField(max_length=500)

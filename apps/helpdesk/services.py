@@ -158,6 +158,13 @@ def create_ticket(*, user=None, subject, details="", client=None, contact=None, 
 STAFF_ALERT_ROLES = "admin, manager, help_desk, tech"
 
 
+def may_work(user, t: Ticket) -> bool:
+    """False for a contractor whose sign-in is limited to clients other than this ticket's."""
+    if user is None or not user.scoped_clients.exists():
+        return True
+    return bool(t.client_id) and user.scoped_clients.filter(pk=t.client_id).exists()
+
+
 def staff_alert_recipients(t: Ticket, created_by=None) -> list[str]:
     """Who gets the "new ticket waiting" email (Settings › Ticket emails › Alerts to your team; each person can opt out in Profile).
     Already assigned → just that person. Otherwise everyone in the chosen roles who wants every new ticket, plus extra addresses."""
@@ -172,11 +179,13 @@ def staff_alert_recipients(t: Ticket, created_by=None) -> list[str]:
     ours = own_addresses()
     if t.assigned_to_id:
         u = t.assigned_to
-        people = [u] if u.is_active and u.ticket_alerts != "none" and u != created_by else []
+        people = [u] if u.is_active and u.ticket_alerts != "none" and u != created_by and may_work(u, t) else []
         extra = []
     else:
         roles = [r.strip() for r in (Setting.get("tickets.staff_alert_roles", "") or STAFF_ALERT_ROLES).split(",") if r.strip()]
         people = list(User.objects.filter(is_active=True, role__in=roles, ticket_alerts="all").exclude(pk=getattr(created_by, "pk", None)))
+        # A contractor limited to certain clients only hears about those clients' tickets.
+        people = [p for p in people if may_work(p, t)]
         extra = [a.strip() for a in (Setting.get("tickets.staff_alert_to", "") or "").replace(";", ",").split(",") if "@" in a]
     out = []
     for a in [p.email for p in people] + extra:
@@ -318,6 +327,9 @@ def update_ticket(ticket: Ticket, *, user, request=None, skip_signoff=False, **c
             t.response_due_at = sla_due(t.created_at, t.priority, t.client)[0]
         if t.resolve_due_at:
             t.resolve_due_at = sla_due(t.created_at, t.priority, t.client)[1]
+    if "assigned_to" in changes and changes["assigned_to"] is not None and not may_work(changes["assigned_to"], t):
+        event(t, f"Not assigned to {changes['assigned_to'].name}: their sign-in is limited to other clients", user)
+        changes = {k: v for k, v in changes.items() if k != "assigned_to"}
     if "assigned_to" in changes and changes["assigned_to"] != t.assigned_to:
         a = changes["assigned_to"]
         notes.append(f"Assigned to {a.name}" if a else "Unassigned")

@@ -38,7 +38,7 @@
       {% endif %}
     {% endfor %}
     <div class="grow"></div>
-    <a href="/settings/" class="rail-item{% if request.path|slice:':10' == '/settings/' %} on{% endif %}" title="Settings">{% icon "settings" 20 %}Settings</a>
+    {% if not limited_login %}<a href="/settings/" class="rail-item{% if request.path|slice:':10' == '/settings/' %} on{% endif %}" title="Settings">{% icon "settings" 20 %}Settings</a>{% endif %}
   </nav>
   {% for g in nav %}{% if g.group and g.items|length > 1 %}
   <div class="fly" id="fly-{{ forloop.counter }}" role="menu" aria-label="{{ g.group }}" hidden>
@@ -68,7 +68,7 @@
       <button type="button" class="btn menu-btn" id="menu-btn" aria-controls="main-nav" aria-expanded="false">Menu</button>
       <a href="/" class="tb-brand">{% if logo_url %}<img src="{{ logo_url }}" alt="{{ app_name }}">{% else %}{{ company_name|default:app_name }}{% endif %}</a>
       <div class="tb-clock" aria-hidden="true"><span class="tb-time" data-clock>—</span><span class="tb-dot"></span><span data-date></span></div>
-      <div class="search" id="jump-box">
+      <div class="search" id="jump-box"{% if limited_login %} hidden{% endif %}>
         {% icon "search" 16 %}
         <label for="jump" class="sr">Search or jump to a page</label>
         <input id="jump" name="q" autocomplete="off" placeholder="Search…"
@@ -86,11 +86,11 @@
         <button type="button" class="btn primary tb-newbtn" id="new-btn" aria-expanded="false" aria-controls="new-pop">{% icon "plus" 16 %}<span>New</span></button>
         <div class="jump" id="new-pop" hidden>
           {% if can_tickets_edit %}<button type="button" class="jump-item" hx-get="/tickets/new/" hx-target="#modal" hx-swap="innerHTML"><i class="bi bi-ticket-detailed" style="color:#2563eb"></i>Ticket</button>{% endif %}
-          <a class="jump-item" href="/m/clients/new/"><i class="bi bi-building" style="color:#16a34a"></i>Client</a>
+          {% if not limited_login %}<a class="jump-item" href="/m/clients/new/"><i class="bi bi-building" style="color:#16a34a"></i>Client</a>
           <a class="jump-item" href="/m/invoices/new/"><i class="bi bi-receipt" style="color:#d97706"></i>Invoice</a>
           <a class="jump-item" href="/m/quotes/new/"><i class="bi bi-file-text" style="color:#0891b2"></i>Quote</a>
           <a class="jump-item" href="/m/leads/new/"><i class="bi bi-funnel" style="color:#7c3aed"></i>Lead</a>
-          <a class="jump-item" href="/m/contracts/new/"><i class="bi bi-file-earmark-check" style="color:#6b7280"></i>Contract</a>
+          <a class="jump-item" href="/m/contracts/new/"><i class="bi bi-file-earmark-check" style="color:#6b7280"></i>Contract</a>{% endif %}
         </div>
       </div>
       <div class="user-menu">
@@ -98,10 +98,10 @@
         <div class="jump" id="user-pop" hidden>
           <div class="jump-head">{{ user.name }}<br><span class="small">{{ user.email }}</span></div>
           <a class="jump-item" href="/profile/"><i class="bi bi-person"></i>Profile &amp; look</a>
-          <a class="jump-item" href="/my-hr/"><i class="bi bi-clock-history"></i>HR Portal</a>
+          {% if not limited_login %}<a class="jump-item" href="/my-hr/"><i class="bi bi-clock-history"></i>HR Portal</a>{% endif %}
           <a class="jump-item" href="/tech/"><i class="bi bi-phone"></i>Tech app (phone)</a>
           <a class="jump-item" href="/settings/my_security/"><i class="bi bi-shield-lock"></i>My sign-in &amp; 2FA</a>
-          <a class="jump-item" href="/settings/"><i class="bi bi-gear"></i>Settings</a>
+          {% if not limited_login %}<a class="jump-item" href="/settings/"><i class="bi bi-gear"></i>Settings</a>{% endif %}
           <a class="jump-item" href="/portal/" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i>Customer Portal</a>
           <form method="post" action="/logout/">{% csrf_token %}<button class="jump-item" style="width:100%;color:#dc2626"><i class="bi bi-box-arrow-right"></i>Log Out</button></form>
         </div>
@@ -109,7 +109,7 @@
     </header>
     {% if messages %}<div class="flash">{% for m in messages %}<div role="status" class="banner {% if m.level_tag == 'error' %}{% else %}info{% endif %}">{{ m }}</div>{% endfor %}</div>{% endif %}
     <main id="content" class="{% block main_class %}page{% endblock %}">{% block content %}{% endblock %}</main>
-    <footer class="app-foot"><span>Weststar One {{ app_version }}</span><span class="spacer"></span><a href="/settings/">Settings</a><a href="/profile/">Profile</a></footer>
+    <footer class="app-foot"><span>Weststar One {{ app_version }}</span><span class="spacer"></span>{% if not limited_login %}<a href="/settings/">Settings</a>{% endif %}<a href="/profile/">Profile</a></footer>
   </div>
 </div>
 <div id="modal"></div>

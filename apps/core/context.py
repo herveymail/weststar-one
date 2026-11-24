@@ -13,9 +13,12 @@ def app_context(request):
     of = request.GET.get("open_form", "")
     open_form = of if _re.fullmatch(r"/(m/[a-z_]+/(new|\d+)|tickets/new)/(\?[A-Za-z0-9_=&%.+-]*)?", of) else ""
     nav = []
+    limited = bool(getattr(request, "client_scope", None))   # a contractor login: only the ticket screens exist for them
     for group, short, icon, items in NAV:
         visible = []
         for item_id, label, url, area in items:
+            if limited and not url.startswith("/tickets/"):
+                continue
             if area == "*" or can(user, area):
                 active = path == "/" if url == "/" else path.startswith(url)
                 visible.append({"id": item_id, "label": label, "url": url, "active": active, "bi": NAV_BI.get(item_id, "bi-circle")})
@@ -29,6 +32,7 @@ def app_context(request):
         "logo_url": logo_url(),
         "app_name": Setting.get("brand.app_name", "Weststar ONE"),
         "nav": nav,
+        "limited_login": limited,
         "open_form": open_form,
         "look": user.look,
         "ui_style": user.ui_style,

@@ -430,3 +430,9 @@ html.ws-busy, html.ws-busy * { cursor: progress; }
 .sig-name { border-bottom: 1px solid var(--text); min-height: 38px; font: italic 22px Georgia, 'Times New Roman', serif; padding: 4px 0; }
 .kv-list { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0; font-size: 14px; } .kv-list dt { color: var(--muted); } .kv-list dd { margin: 0; }
 .cb [hidden] { display: none !important; }
+/* A scrolling list of tick boxes (Settings › Users › Only these clients) */
+.pick-list { max-height: 220px; overflow: auto; border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; background: var(--input); }
+.pick-list > div, .pick-list ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.pick-list label { display: flex; gap: 8px; align-items: center; font-weight: 400; cursor: pointer; }
+.field-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.search[hidden] { display: none; }

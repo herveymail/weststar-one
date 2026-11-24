@@ -1,12 +1,15 @@
 from django.conf import settings
 from django.db import models
 
+from apps.core.scope import ScopedManager
+
 from apps.core.choices import C, money
 from apps.core.models import EncryptedField, Record
 from apps.crm.models import Client, Contact
 
 
 class CalendarEvent(Record):
+    objects = ScopedManager("client_id")   # narrowed for client-limited logins
     title = models.CharField("Event", max_length=255)
     starts_at = models.DateTimeField("Starts")
     ends_at = models.DateTimeField("Ends", null=True, blank=True)

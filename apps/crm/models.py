@@ -1,11 +1,14 @@
 from django.conf import settings
 from django.db import models
 
+from apps.core.scope import ScopedManager
+
 from apps.core.choices import C, money
 from apps.core.models import EncryptedField, Record
 
 
 class Client(Record):
+    objects = ScopedManager("id")   # narrowed for client-limited logins (apps/core/scope.py)
     name = models.CharField("Client name", max_length=200)
     status = models.CharField(max_length=20, choices=C("Active", "Lead", "Inactive", "Former"), default="Active")
     type = models.CharField(max_length=20, choices=C("Business", "Residential", "Nonprofit", "Government"), default="Business")
@@ -76,6 +79,7 @@ def domain_list(raw: str) -> list[str]:
 
 
 class Contact(Record):
+    objects = ScopedManager("client_id")   # narrowed for client-limited logins (apps/core/scope.py)
     client = models.ForeignKey(Client, on_delete=models.PROTECT, related_name="contacts")
     name = models.CharField(max_length=200)
     title = models.CharField(max_length=100, blank=True)
@@ -94,6 +98,7 @@ class Contact(Record):
 
 
 class Asset(Record):
+    objects = ScopedManager("client_id")   # narrowed for client-limited logins (apps/core/scope.py)
     client = models.ForeignKey(Client, on_delete=models.PROTECT, related_name="assets")
     name = models.CharField(max_length=200)
     type = models.CharField(max_length=20, choices=C("Workstation", "Laptop", "Server", "Network", "Printer", "Mobile", "Other"), default="Workstation")

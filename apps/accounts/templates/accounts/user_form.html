@@ -6,7 +6,7 @@
     <form hx-post="{% if obj %}/settings/users/{{ obj.pk }}/{% else %}/settings/users/new/{% endif %}" hx-target="#modal" class="stack">
       <input type="hidden" name="action" value="save">
       <div class="form-grid">
-        {% for f in form %}<div class="field">{% if f.widget_type == "checkbox" %}<label class="check">{{ f }}{{ f.label }}</label>{% else %}<label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% endif %}{{ f.errors }}</div>{% endfor %}
+        {% for f in form %}<div class="field{% if f.name == "scoped_clients" %} wide{% endif %}">{% if f.widget_type == "checkbox" %}<label class="check">{{ f }}{{ f.label }}</label>{% elif f.name == "scoped_clients" %}<span class="field-label">{{ f.label }} (contractor)</span><div class="pick-list">{{ f }}</div><span class="help">{{ f.help_text }}</span>{% else %}<label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% endif %}{{ f.errors }}</div>{% endfor %}
       </div>
       <div class="row"><button class="btn primary">{% if obj %}Save{% else %}Add user{% endif %}</button><button type="button" class="btn" data-close>Close</button></div>
     </form>

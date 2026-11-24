@@ -297,13 +297,27 @@ def _temp_password() -> str:
 class UserForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ["name", "email", "google_email", "role", "hr_access", "google_only", "title", "phone"]
+        fields = ["name", "email", "google_email", "role", "hr_access", "google_only", "title", "phone", "scoped_clients"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "input"}), "email": forms.EmailInput(attrs={"class": "input"}),
             "google_email": forms.EmailInput(attrs={"class": "input"}),
             "role": forms.Select(attrs={"class": "select"}), "title": forms.TextInput(attrs={"class": "input"}),
             "phone": forms.TextInput(attrs={"class": "input"}),
+            "scoped_clients": forms.CheckboxSelectMultiple(),
         }
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        from apps.crm.models import Client
+        self.fields["scoped_clients"].queryset = Client.objects.filter(archived_at__isnull=True).order_by("name")
+        self.fields["scoped_clients"].help_text = ("For a contractor. Tick one or more clients and this person can only see and work "
+                                                   "tickets for them: no other clients, no billing, no settings. Leave empty for normal staff.")
+
+    def clean(self):
+        d = super().clean()
+        if d.get("scoped_clients") and d.get("role") in ("admin", "manager"):
+            self.add_error("scoped_clients", "An admin or manager can't be limited to certain clients. Give this person the Tech role.")
+        return d
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
@@ -346,7 +360,8 @@ def user_edit_view(request, pk=None):
                     u.set_password(temp)
                     u.must_change_password = True
                 u.save()
-                if obj and ({"role", "hr_access"} & set(changed)):
+                form.save_m2m()
+                if obj and ({"role", "hr_access", "scoped_clients"} & set(changed)):
                     security.revoke_sessions(u)  # permissions changed: sign in again
                 audit(request, "update" if obj else "create", "user", u.pk, f"{'Updated' if obj else 'Added'} user {u.email}", changes={k: str(form.cleaned_data[k]) for k in changed})
                 if obj:
