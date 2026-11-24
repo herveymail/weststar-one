@@ -185,7 +185,7 @@ def _detail_ctx(request, t: Ticket, panel=False) -> dict:
         "approval_via": TicketApproval.VIA, "signoff_needed": t.is_open and completion_required(t),
         "conversation_count": sum(1 for m in msgs if m.kind != "event"),
         "history": [m for m in msgs if m.kind == "event"],
-        **_sender_ctx(t), "can_block": can(request.user, "tickets", "manage"),
+        **_sender_ctx(t), "can_block": can(request.user, "tickets", "manage") and not getattr(request, "client_scope", None),
         "minutes": time_rows["m"] or 0, "billable_minutes": time_rows["b"] or 0, "unbilled_minutes": time_rows["unbilled"] or 0,
         "value": round((time_rows["m"] or 0) / 60 * float(rate), 2) if rate else None,
         "timer": timer, "other_timer": other_timer,
@@ -262,8 +262,8 @@ def ticket_hours(request, pk):
 def ticket_block_sender(request, pk):
     """Stop a sender (one address or their whole domain) from making tickets, and close the open ones they already made."""
     from . import inbound
-    if not can(request.user, "tickets", "manage"):
-        raise PermissionDenied
+    if not can(request.user, "tickets", "manage") or getattr(request, "client_scope", None):
+        raise PermissionDenied   # blocking a sender changes it for the whole company: not for a client-limited login
     t = get_object_or_404(Ticket, pk=pk)
     email = (t.contact_email or "").strip().lower()
     if "@" not in email:

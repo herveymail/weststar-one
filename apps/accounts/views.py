@@ -311,13 +311,9 @@ class UserForm(forms.ModelForm):
         from apps.crm.models import Client
         self.fields["scoped_clients"].queryset = Client.objects.filter(archived_at__isnull=True).order_by("name")
         self.fields["scoped_clients"].help_text = ("For a contractor. Tick one or more clients and this person can only see and work "
-                                                   "tickets for them: no other clients, no billing, no settings. Leave empty for normal staff.")
+                                                   "tickets for them: no other clients, no billing, no settings — whatever their role. The role still decides what they may do "
+                                                   "on those tickets (Tech: work them; Manager or Admin: also delete and approve). Leave empty for normal staff.")
 
-    def clean(self):
-        d = super().clean()
-        if d.get("scoped_clients") and d.get("role") in ("admin", "manager"):
-            self.add_error("scoped_clients", "An admin or manager can't be limited to certain clients. Give this person the Tech role.")
-        return d
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
@@ -352,6 +348,8 @@ def user_edit_view(request, pk=None):
         if action == "save" and form.is_valid():
             if obj and obj.pk == request.user.pk and form.cleaned_data["role"] != "admin":
                 form.add_error("role", "You can't remove your own admin role.")
+            elif obj and obj.pk == request.user.pk and form.cleaned_data.get("scoped_clients"):
+                form.add_error("scoped_clients", "You can't limit your own sign-in — you would lose Settings and couldn't undo it. Ask another admin if you really want this.")
             else:
                 changed = form.changed_data
                 u = form.save(commit=False)

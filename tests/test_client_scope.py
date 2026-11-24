@@ -95,8 +95,18 @@ def test_admin_sets_it_on_the_user_and_admins_cannot_be_limited(world):
     assert w.post(f"/settings/users/{u.pk}/", data).status_code in (200, 204)
     assert list(u.scoped_clients.all()) == [world["a"]]
     assert "Contractor · 1 client" in w.get("/settings/users/").content.decode()
-    r = w.post(f"/settings/users/{u.pk}/", {**data, "role": "admin"})
-    assert b"can&#x27;t be limited" in r.content
+    # any role can be limited: a manager is still kept to their clients and out of everything else
+    assert w.post(f"/settings/users/{u.pk}/", {**data, "role": "manager"}).status_code in (200, 204)
+    u.refresh_from_db()
+    assert u.role == "manager" and list(u.scoped_clients.all()) == [world["a"]]
+    m = signed_in(Browser(), u)
+    page = m.get("/tickets/").content.decode()
+    assert "Alpha printer" in page and "Beta wifi" not in page and "Gamma" not in page
+    assert m.get("/settings/users/")["Location"] == "/tickets/" and m.get("/m/invoices/")["Location"] == "/tickets/"
+    assert m.get(f"/tickets/{world['tc'].pk}/").status_code == 404
+    # but an admin can't lock themselves out of Settings
+    r = w.post(f"/settings/users/{boss.pk}/", {"action": "save", "name": boss.name, "email": boss.email, "role": "admin", "scoped_clients": [world["a"].pk]})
+    assert b"limit your own sign-in" in r.content and not boss.scoped_clients.exists()
 
 
 def test_nothing_about_other_clients_leaks_on_any_screen_they_can_open(world, settings, tmp_path):
